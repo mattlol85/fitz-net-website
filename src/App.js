@@ -13,7 +13,7 @@ function App() {
   const [greetingShown, setGreetingShown] = useState(false);
 
   useEffect(() => {
-    // check whether the visitor has already seen the greeting message
+      // check whether the visitor has already seen the greeting message
     if (!localStorage.getItem('greetingShown')) {
       // set a cookie or local storage item to remember that the message has been shown
       localStorage.setItem('greetingShown', 'true');
