@@ -1,13 +1,13 @@
 import './css/App.css';
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
-import Homepage from './components/Homepage';
-import NoPage from './components/NoPage';
-import Navbar from './components/Navbar';
-import LaurenPanelContent from './components/LaurenPanelContent';
-import InfoPanelContent from './components/InfoPanelContent';
-import Footer from './components/Footer';
-import GreetingMessage from './components/GreetingMessage';
+import Homepage from './components/Homepage.jsx';
+import NoPage from './components/NoPage.jsx';
+import Navbar from './components/Navbar.jsx';
+import LaurenPanelContent from './components/LaurenPanelContent.jsx';
+import InfoPanelContent from './components/InfoPanelContent.jsx';
+import Footer from './components/Footer.jsx';
+import GreetingMessage from './components/GreetingMessage.jsx';
 
 function App() {
   const [greetingShown, setGreetingShown] = useState(false);
