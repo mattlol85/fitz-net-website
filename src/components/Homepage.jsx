@@ -1,6 +1,6 @@
 import React from 'react';
 import '../css/Homepage.css';
-import BoxLogo from './BoxLogo';
+import BoxLogo from './BoxLogo.jsx';
 
 function Homepage() {
   return (
