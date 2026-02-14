@@ -126,19 +126,19 @@ jobs:
           INCREMENT="patch"
           EMOJI="🐛"
           
-          if [[ "$COMMIT_SUBJECT" =~ ^[a-z]+(\([^)]+\))?!: ]]; then
+          if [[ "$COMMIT_SUBJECT" =~ ^[a-z]+(\([^)]*\))?!:\ ]]; then
             # Breaking change (! before colon)
             INCREMENT="major"
             EMOJI="🚀"
-          elif [[ "$COMMIT_SUBJECT" =~ ^feat(\([^)]+\))?:[[:space:]] ]]; then
+          elif [[ "$COMMIT_SUBJECT" =~ ^feat(\([^)]*\))?:\ ]]; then
             # Feature
             INCREMENT="minor"
             EMOJI="✨"
-          elif [[ "$COMMIT_SUBJECT" =~ ^fix(\([^)]+\))?:[[:space:]] ]]; then
+          elif [[ "$COMMIT_SUBJECT" =~ ^fix(\([^)]*\))?:\ ]]; then
             # Fix
             INCREMENT="patch"
             EMOJI="🐛"
-          elif [[ "$COMMIT_SUBJECT" =~ ^chore(\([^)]+\))?:[[:space:]] ]]; then
+          elif [[ "$COMMIT_SUBJECT" =~ ^chore(\([^)]*\))?:\ ]]; then
             # Chore
             INCREMENT="patch"
             EMOJI="🔧"
