@@ -1,0 +1,288 @@
+name: 🏗️ Build and Tag
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  build:
+    name: 🧪 Build & Test
+    runs-on: ubuntu-latest
+    outputs:
+      should-release: ${{ steps.release_check.outputs.should-release }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📚 Install dependencies
+        run: npm ci
+
+      - name: 🧪 Run tests
+        run: npm run test:coverage
+
+      - name: 🔨 Build project
+        run: npm run build
+
+      - name: 📦 Capture build details
+        id: artifact
+        run: |
+          BUILD_DIR="build"
+          if [[ ! -d "$BUILD_DIR" ]]; then
+            echo "Build directory not found" >&2
+            exit 1
+          fi
+          echo "build-dir=$BUILD_DIR" >> $GITHUB_OUTPUT
+          echo "build-size=$(du -sh $BUILD_DIR | cut -f1)" >> $GITHUB_OUTPUT
+
+      - name: 📤 Upload build artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-artifacts
+          path: ${{ steps.artifact.outputs.build-dir }}
+          retention-days: 30
+
+      - name: 🎯 Determine release eligibility
+        id: release_check
+        run: |
+          set -euo pipefail
+          last_commit_msg=$(git log -1 --pretty=%B | tr '[:upper:]' '[:lower:]')
+          ref_name=${GITHUB_REF##*/}
+
+          if [[ "${{ github.actor }}" == "github-actions[bot]" || "${{ github.event_name }}" != "push" ]]; then
+            echo "should-release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          case "$ref_name" in
+            main|master)
+              ;;
+            *)
+              echo "should-release=false" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
+
+          if [[ "$last_commit_msg" =~ \[skip[[:space:]-]?release\] ]]; then
+            echo "should-release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should-release=true" >> "$GITHUB_OUTPUT"
+          echo "Release eligibility determined: ${{ steps.release_check.outputs.should-release }}"
+
+  version:
+    name: 🏷️ Version & Tag
+    runs-on: ubuntu-latest
+    needs: build
+    if: needs.build.outputs.should-release == 'true'
+    outputs:
+      new-version: ${{ steps.version_calc.outputs.new-version }}
+      new-version-no-v: ${{ steps.version_calc.outputs.new-version-no-v }}
+      increment-type: ${{ steps.version_calc.outputs.increment-type }}
+      emoji: ${{ steps.version_calc.outputs.emoji }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Determine next version
+        id: version_calc
+        run: |
+          set -euo pipefail
+          echo "::group::Calculating version"
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
+          VERSION=${LATEST_TAG#v}
+          IFS='.' read -ra PARTS <<< "$VERSION"
+          MAJOR=${PARTS[0]:-0}
+          MINOR=${PARTS[1]:-0}
+          PATCH=${PARTS[2]:-0}
+          
+          # Ensure numeric values
+          MAJOR=$((MAJOR + 0))
+          MINOR=$((MINOR + 0))
+          PATCH=$((PATCH + 0))
+
+          COMMIT_MSG=$(git log -1 --pretty=%B || echo "")
+          COMMIT_SUBJECT=$(git log -1 --pretty=%s || echo "")
+
+          # Parse conventional commit format: type(scope): message
+          # Extract type from commit message
+          INCREMENT="patch"
+          EMOJI="🐛"
+          
+          if [[ "$COMMIT_SUBJECT" =~ ^([a-z]+)(\(.+\))?!: ]]; then
+            # Breaking change (! before colon)
+            INCREMENT="major"
+            EMOJI="🚀"
+          elif [[ "$COMMIT_SUBJECT" =~ ^feat(\(.+\))?:\ ]]; then
+            # Feature
+            INCREMENT="minor"
+            EMOJI="✨"
+          elif [[ "$COMMIT_SUBJECT" =~ ^fix(\(.+\))?:\ ]]; then
+            # Fix
+            INCREMENT="patch"
+            EMOJI="🐛"
+          elif [[ "$COMMIT_SUBJECT" =~ ^chore(\(.+\))?:\ ]]; then
+            # Chore
+            INCREMENT="patch"
+            EMOJI="🔧"
+          fi
+
+          case "$INCREMENT" in
+            major)
+              MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor)
+              MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch)
+              PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW_VERSION_NO_V="$MAJOR.$MINOR.$PATCH"
+          NEW_VERSION="v$NEW_VERSION_NO_V"
+
+          echo "new-version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "new-version-no-v=$NEW_VERSION_NO_V" >> "$GITHUB_OUTPUT"
+          echo "increment-type=$INCREMENT" >> "$GITHUB_OUTPUT"
+          echo "emoji=$EMOJI" >> "$GITHUB_OUTPUT"
+          echo "$EMOJI $LATEST_TAG -> $NEW_VERSION ($INCREMENT)"
+          echo "Commit subject: $COMMIT_SUBJECT"
+          echo "::endgroup::"
+
+      - name: 📝 Update package.json version
+        env:
+          NEW_VERSION_NO_V: ${{ steps.version_calc.outputs.new-version-no-v }}
+        run: |
+          npm version "$NEW_VERSION_NO_V" --no-git-tag-version
+
+      - name: 📄 Show version change
+        run: grep '"version"' package.json
+
+      - name: 📚 Commit version bump
+        env:
+          NEW_VERSION: ${{ steps.version_calc.outputs.new-version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
+          git push origin ${{ github.ref_name }}
+
+      - name: 🏷️ Create annotated tag
+        env:
+          NEW_VERSION: ${{ steps.version_calc.outputs.new-version }}
+          INCREMENT: ${{ steps.version_calc.outputs.increment-type }}
+          EMOJI: ${{ steps.version_calc.outputs.emoji }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$NEW_VERSION" -m "$EMOJI Auto $INCREMENT release $NEW_VERSION"
+          git push origin "$NEW_VERSION"
+
+  release:
+    name: 🚀 Publish Release
+    runs-on: ubuntu-latest
+    needs: version
+    if: needs.version.result == 'success'
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 📥 Download build artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: build-artifacts
+          path: downloaded-build
+
+      - name: 📦 Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_VERSION: ${{ needs.version.outputs.new-version }}
+          INCREMENT: ${{ needs.version.outputs.increment-type }}
+          EMOJI: ${{ needs.version.outputs.emoji }}
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B || echo "")
+          NOTES_FILE=$(mktemp)
+          {
+            echo "## $EMOJI Release"
+            echo "Auto-generated release for $NEW_VERSION"
+            echo ""
+            echo "- Increment: $INCREMENT"
+            echo "- Triggered by: ${{ github.actor }}"
+            echo ""
+            echo "### 📦 Artifacts"
+            echo "- Build artifacts available in workflow run"
+            echo ""
+            echo "### 💬 Commit Message"
+            echo '```'
+            echo "$COMMIT_MSG"
+            echo '```'
+          } > "$NOTES_FILE"
+          gh release create "$NEW_VERSION" --title "$EMOJI Release $NEW_VERSION" --notes-file "$NOTES_FILE"
+
+  docker:
+    name: 🐳 Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [version, release]
+    if: needs.version.result == 'success' && needs.release.result == 'success' && vars.DOCKERHUB_USERNAME != ''
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.new-version }}
+
+      - name: 🔐 Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 🏗️ Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: 🏗️ Set up Docker Build
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔍 Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_REPO }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ needs.version.outputs.new-version-no-v }}
+            type=raw,value=${{ needs.version.outputs.new-version }}
+            type=sha,prefix=
+
+      - name: 🐳 Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_REPO }}:latest
+          cache-to: type=inline
+          build-args: |
+            VERSION=${{ needs.version.outputs.new-version-no-v }}
+        timeout-minutes: 30
+        continue-on-error: true
+
