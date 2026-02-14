@@ -130,15 +130,15 @@ jobs:
             # Breaking change (! before colon)
             INCREMENT="major"
             EMOJI="🚀"
-          elif [[ "$COMMIT_SUBJECT" =~ ^feat(\([^)]+\))?:\ ]]; then
+          elif [[ "$COMMIT_SUBJECT" =~ ^feat(\([^)]+\))?:[[:space:]] ]]; then
             # Feature
             INCREMENT="minor"
             EMOJI="✨"
-          elif [[ "$COMMIT_SUBJECT" =~ ^fix(\([^)]+\))?:\ ]]; then
+          elif [[ "$COMMIT_SUBJECT" =~ ^fix(\([^)]+\))?:[[:space:]] ]]; then
             # Fix
             INCREMENT="patch"
             EMOJI="🐛"
-          elif [[ "$COMMIT_SUBJECT" =~ ^chore(\([^)]+\))?:\ ]]; then
+          elif [[ "$COMMIT_SUBJECT" =~ ^chore(\([^)]+\))?:[[:space:]] ]]; then
             # Chore
             INCREMENT="patch"
             EMOJI="🔧"
