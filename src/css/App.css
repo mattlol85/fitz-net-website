@@ -17,18 +17,19 @@ header {
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  background-color: #fff;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background-color: var(--nav-bg);
+  box-shadow: 0 4px 6px var(--shadow-color);
 }
 
 h1 {
   margin: 0;
   font-size: 24px;
+  color: var(--text-primary);
 }
 
 nav {
-  background-color: #fff;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background-color: var(--nav-bg);
+  box-shadow: 0 4px 6px var(--shadow-color);
   padding: 20px;
   margin-bottom: 20px;
 }
@@ -50,8 +51,13 @@ nav li:last-child {
 
 nav a {
   text-decoration: none;
-  color: #333;
+  color: var(--link-color);
   font-size: 18px;
   font-weight: 600;
   text-transform: uppercase;
+  transition: color 0.3s ease;
+}
+
+nav a:hover {
+  color: var(--link-hover);
 }

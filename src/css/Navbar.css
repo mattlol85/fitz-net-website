@@ -9,7 +9,7 @@
 .logo {
   font-size: 24px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .nav-links {
@@ -17,6 +17,7 @@
   display: flex;
   margin: 0;
   padding: 0;
+  align-items: center;
 }
 
 .nav-links li {
@@ -29,15 +30,17 @@
 
 .nav-links a {
   text-decoration: none;
-  color: #333;
+  color: var(--link-color);
   font-size: 18px;
   font-weight: 600;
   text-transform: uppercase;
+  transition: color 0.3s ease;
 }
 
 .nav-links a:hover {
-  color: #0077b6;
+  color: var(--link-hover);
 }
+
 .logo-link {
   display: flex;
   align-items: center;
@@ -48,3 +51,9 @@
   height: auto;
   max-height: 50px;
 }
+
+nav {
+  background-color: var(--nav-bg);
+  transition: background-color 0.3s ease;
+}
+

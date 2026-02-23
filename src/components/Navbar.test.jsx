@@ -3,24 +3,24 @@ import { BrowserRouter } from 'react-router-dom';
 import Navbar from './Navbar.jsx';
 
 describe('Navbar Component', () => {
+  const mockTheme = 'light';
+  const mockToggleTheme = vi.fn();
+
   test('renders navigation links', () => {
     render(
       <BrowserRouter>
-        <Navbar />
+        <Navbar theme={mockTheme} toggleTheme={mockToggleTheme} />
       </BrowserRouter>
     );
 
-    const laurenLink = screen.getByText(/Lauren Panel/i);
-    const infoLink = screen.getByText(/Info/i);
-
-    expect(laurenLink).toBeInTheDocument();
-    expect(infoLink).toBeInTheDocument();
+    const aboutLink = screen.getByText(/About/i);
+    expect(aboutLink).toBeInTheDocument();
   });
 
   test('renders logo image', () => {
     render(
       <BrowserRouter>
-        <Navbar />
+        <Navbar theme={mockTheme} toggleTheme={mockToggleTheme} />
       </BrowserRouter>
     );
 
@@ -31,7 +31,7 @@ describe('Navbar Component', () => {
   test('logo links to home page', () => {
     render(
       <BrowserRouter>
-        <Navbar />
+        <Navbar theme={mockTheme} toggleTheme={mockToggleTheme} />
       </BrowserRouter>
     );
 
@@ -39,25 +39,25 @@ describe('Navbar Component', () => {
     expect(logoLink).toHaveAttribute('href', '/');
   });
 
-  test('Lauren Panel link has correct href', () => {
+  test('About link has correct href', () => {
     render(
       <BrowserRouter>
-        <Navbar />
+        <Navbar theme={mockTheme} toggleTheme={mockToggleTheme} />
       </BrowserRouter>
     );
 
-    const laurenLink = screen.getByRole('link', { name: /Lauren Panel/i });
-    expect(laurenLink).toHaveAttribute('href', '/laurenpanel');
+    const aboutLink = screen.getByRole('link', { name: /About/i });
+    expect(aboutLink).toHaveAttribute('href', '/info');
   });
 
-  test('Info link has correct href', () => {
+  test('renders theme toggle button', () => {
     render(
       <BrowserRouter>
-        <Navbar />
+        <Navbar theme={mockTheme} toggleTheme={mockToggleTheme} />
       </BrowserRouter>
     );
 
-    const infoLink = screen.getByRole('link', { name: /Info/i });
-    expect(infoLink).toHaveAttribute('href', '/info');
+    const themeToggle = screen.getByRole('button', { name: /Toggle theme/i });
+    expect(themeToggle).toBeInTheDocument();
   });
 });

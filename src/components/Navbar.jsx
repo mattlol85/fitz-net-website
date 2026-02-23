@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import logo from '../img/FN_Logo_Straight.png';
+import ThemeToggle from './ThemeToggle.jsx';
 import '../css/Navbar.css';
 
-function Navbar() {
+function Navbar({ theme, toggleTheme }) {
   return (
     <nav>
       <ul>
@@ -13,10 +14,10 @@ function Navbar() {
           </Link>
         </li>
         <li>
-          <Link to="/laurenpanel">Lauren Panel</Link>
+          <Link to="/info">About</Link>
         </li>
         <li>
-          <Link to="/info">Info</Link>
+          <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
         </li>
       </ul>
     </nav>

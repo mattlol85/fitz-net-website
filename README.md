@@ -1,70 +1,187 @@
-# Getting Started with Create React App
+# Fitz-Net Website
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A modern, responsive website for fitznet.org built with React and Vite.
 
-## Available Scripts
+## 🚀 Overview
 
-In the project directory, you can run:
+This is the official website for Fitz-Net, featuring a clean, modern design with custom animations and an intuitive user interface. The site includes multiple pages and components, all wrapped in a smooth user experience with a personalized greeting message for first-time visitors.
 
-### `npm start`
+## ✨ Features
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Modern React Stack**: Built with React 19.2.0 and powered by Vite for lightning-fast development
+- **Dark/Light Theme**: Toggle between dark and light modes with persistent preference storage
+- **Responsive Design**: Mobile-first approach ensuring great experience across all devices
+- **Client-Side Routing**: React Router DOM for seamless navigation
+- **Greeting Message**: Personalized welcome message for first-time visitors using localStorage
+- **Custom Branding**: Animated Fitz-Net logo and custom styling
+- **Testing Suite**: Comprehensive test coverage with Vitest and Testing Library
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 🛠️ Tech Stack
 
-### `npm test`
+- **Frontend Framework**: React 19.2.0
+- **Build Tool**: Vite 6.0.3
+- **Routing**: React Router DOM 7.9.5
+- **Testing**: Vitest 4.0.5, @testing-library/react
+- **Development**: React SWC plugin for fast refresh
+- **Code Quality**: ESLint
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 📋 Prerequisites
 
-### `npm run build`
+- Node.js (v14 or higher recommended)
+- npm or yarn package manager
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🔧 Installation
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. Clone the repository:
+```bash
+git clone https://github.com/mattlol85/Fitz-Net.git
+cd fitznet-react-website
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+2. Install dependencies:
+```bash
+npm install
+```
 
-### `npm run eject`
+## 🚦 Available Scripts
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Development
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Start the development server with hot module replacement:
+```bash
+npm start
+# or
+npm run dev
+```
+Opens [http://localhost:3000](http://localhost:3000) in your browser automatically.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Testing
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Run tests in watch mode:
+```bash
+npm test
+```
 
-## Learn More
+Run tests with coverage report:
+```bash
+npm run test:coverage
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Production Build
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Build the optimized production bundle:
+```bash
+npm run build
+```
+Outputs to the `build/` directory with source maps enabled.
 
-### Code Splitting
+### Preview Production Build
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Preview the production build locally:
+```bash
+npm run preview
+```
 
-### Analyzing the Bundle Size
+## 📁 Project Structure
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```
+fitz-net-website/
+├── public/              # Static assets
+│   ├── favicon.ico
+│   ├── manifest.json
+│   └── logo files
+├── src/
+│   ├── components/      # React components
+│   │   ├── Navbar.jsx
+│   │   ├── Footer.jsx
+│   │   ├── Homepage.jsx
+│   │   ├── BoxLogo.jsx
+│   │   ├── GreetingMessage.jsx
+│   │   ├── ThemeToggle.jsx
+│   │   ├── InfoPanelContent.jsx
+│   │   ├── NoPage.jsx
+│   │   ├── Card.jsx
+│   │   └── Slider.jsx
+│   ├── css/             # Component styles
+│   ├── scripts/         # Utility scripts
+│   ├── App.jsx          # Main application component
+│   └── index.jsx        # Application entry point
+├── index.html           # HTML template
+├── vite.config.js       # Vite configuration
+├── package.json         # Project dependencies```
 
-### Making a Progressive Web App
+## 🧪 Testing
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+The project includes comprehensive test coverage for key components:
+- App
+- BoxLogo
+- Footer
+- GreetingMessage
+- Homepage
+- InfoPanelContent
+- Navbar
+- NoPage
+- ThemeToggle
 
-### Advanced Configuration
+Tests are configured to run with Vitest in a jsdom environment, supporting React Testing Library utilities.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## 🌐 Routes
 
-### Deployment
+- `/` or `/home` - Homepage with animated logo
+- `/info` - About page with technology stack and features information
+- `*` - 404 Not Found page
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## 🎨 Customization
 
-### `npm run build` fails to minify
+The application features custom styling through modular CSS files for each component. Key visual elements include:
+- **Theme System**: Complete dark/light mode with CSS variables for consistent theming
+- **Theme Toggle**: Moon/sun icon button in the navigation bar to switch themes
+- **Persistent Preferences**: Theme choice saved in localStorage
+- Custom Fitz-Net logo with multiple variations (straight, offset, animated)
+- Responsive navigation bar
+- Dynamic footer with copyright information
+- Greeting message modal for first-time visitors
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### Theme Variables
+
+The theme system uses CSS custom properties for easy customization:
+- Background colors (primary, secondary)
+- Text colors (primary, secondary)
+- Border and shadow colors
+- Navigation and footer styling
+- Button and link colors
+
+All components automatically adapt to the selected theme.
+
+## 📦 Build Output
+
+The production build:
+- Outputs to `build/` directory
+- Includes source maps for debugging
+- Optimizes and minifies all assets
+- Includes Progressive Web App manifest
+
+## 🤝 Contributing
+
+When contributing to this project:
+1. Ensure all tests pass with `npm test`
+2. Follow the existing code style
+3. Update tests for new features
+4. Keep component styles modular
+
+## 📄 License
+
+Private project - All rights reserved.
+
+## 👤 Author
+
+**Matthew Fitzgerald**
+- Website: [fitznet.org](https://fitznet.org)
+
+## 🔗 Repository
+
+[https://github.com/mattlol85/Fitz-Net](https://github.com/mattlol85/Fitz-Net)
+
+---
+
+Built with ❤️ using React and Vite
