@@ -1,12 +1,15 @@
 import './css/App.css';
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
 import Homepage from './components/Homepage.jsx';
 import NoPage from './components/NoPage.jsx';
 import Navbar from './components/Navbar.jsx';
 import InfoPanelContent from './components/InfoPanelContent.jsx';
 import Footer from './components/Footer.jsx';
 import GreetingMessage from './components/GreetingMessage.jsx';
+import Login from './components/Login.jsx';
+import WebSocketButton from './components/WebSocketButton.jsx';
 
 function App() {
   const [greetingShown, setGreetingShown] = useState(false);
@@ -39,17 +42,21 @@ function App() {
   return (
     <div className="app">
       {greetingShown && <GreetingMessage />}
-      <BrowserRouter>
-        <Navbar theme={theme} toggleTheme={toggleTheme} />
-        <Routes>
-          <Route path="/home" element={<Homepage />} />
-          <Route index element={<Homepage />} />
-          <Route path="/info" element={<InfoPanelContent />} />
-          <Route path="*" element={<NoPage />} />
-        </Routes>
-        <Footer />
-        <Outlet />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Navbar theme={theme} toggleTheme={toggleTheme} />
+          <Routes>
+            <Route path="/home" element={<Homepage />} />
+            <Route index element={<Homepage />} />
+            <Route path="/info" element={<InfoPanelContent />} />
+            <Route path="/websocket" element={<WebSocketButton />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="*" element={<NoPage />} />
+          </Routes>
+          <Footer />
+          <Outlet />
+        </BrowserRouter>
+      </AuthProvider>
     </div>
   );
 }
