@@ -57,3 +57,65 @@ nav {
   transition: background-color 0.3s ease;
 }
 
+nav ul {
+  list-style: none;
+  display: flex;
+  margin: 0;
+  padding: 0;
+  align-items: center;
+}
+
+nav ul li {
+  margin-right: 20px;
+}
+
+nav ul li:last-child {
+  margin-right: 0;
+}
+
+.nav-spacer {
+  flex-grow: 1;
+  margin-right: 0 !important;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+}
+
+.username {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  background: var(--user-info-bg, rgba(0, 123, 255, 0.1));
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.logout-button {
+  background: var(--logout-button-bg, #dc3545);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.logout-button:hover {
+  background: var(--logout-button-hover, #c82333);
+  transform: translateY(-1px);
+}
+
+.logout-button:active {
+  transform: translateY(0);
+}
+
+/* Dark theme support */
+[data-theme="dark"] .username {
+  --user-info-bg: rgba(0, 123, 255, 0.2);
+}

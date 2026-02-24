@@ -1,0 +1,226 @@
+.websocket-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 70vh;
+  padding: 2rem;
+}
+
+.websocket-card {
+  background: var(--card-background, #ffffff);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 3rem;
+  width: 100%;
+  max-width: 500px;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.websocket-title {
+  text-align: center;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--status-bg, #f5f5f5);
+  border-radius: 8px;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transition: background-color 0.3s ease;
+}
+
+.status-indicator.connected {
+  background-color: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+}
+
+.status-indicator.disconnected {
+  background-color: #f44336;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.status-text {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.instruction-text {
+  text-align: center;
+  color: var(--text-secondary, #666);
+  margin-bottom: 2rem;
+  font-size: 0.95rem;
+}
+
+.ws-button {
+  display: block;
+  width: 100%;
+  font-size: 1.5rem;
+  padding: 1.5rem;
+  cursor: pointer;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+  color: white;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.ws-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
+.ws-button:active:not(:disabled),
+.ws-button.pressed {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.4);
+}
+
+.ws-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
+}
+
+.output-section {
+  margin-top: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.led-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.led {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  border: 3px solid var(--border-color, #ddd);
+}
+
+.led.on {
+  background-color: #4caf50;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.8),
+              inset 0 0 10px rgba(255, 255, 255, 0.3);
+  border-color: #45a049;
+}
+
+.led.off {
+  background-color: var(--led-off, #424242);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.led-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #666);
+  font-weight: 500;
+}
+
+.screen {
+  min-height: 60px;
+  font-size: 1.1rem;
+  text-align: center;
+  border: 2px solid var(--border-color, #ddd);
+  border-radius: 8px;
+  padding: 1rem;
+  background: var(--screen-bg, #1a1a1a);
+  color: #4caf50;
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.screen-placeholder {
+  color: var(--screen-placeholder, #555);
+  font-style: italic;
+}
+
+.device-info {
+  margin-top: 1.5rem;
+  text-align: center;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+}
+
+.device-info small {
+  color: var(--text-secondary, #666);
+  font-size: 0.85rem;
+}
+
+.device-info code {
+  background: var(--code-background, #f5f5f5);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+/* Dark theme support */
+[data-theme="dark"] .websocket-card {
+  --card-background: #2a2a2a;
+  --border-color: #444;
+  --status-bg: #333;
+  --led-off: #555;
+  --screen-bg: #1a1a1a;
+  --screen-placeholder: #666;
+  --code-background: #444;
+}
+
+[data-theme="dark"] .screen {
+  color: #66ff66;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .websocket-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .websocket-title {
+    font-size: 1.5rem;
+  }
+
+  .ws-button {
+    font-size: 1.25rem;
+    padding: 1.25rem;
+  }
+}
+
