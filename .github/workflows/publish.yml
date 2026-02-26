@@ -213,15 +213,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [version, release]
     if: needs.version.result == 'success' && needs.release.result == 'success'
-    env:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_REPO }}
     steps:
       - name: ✅ Check Docker credentials
         id: docker_gate
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$DOCKERHUB_TOKEN" ] || [ -z "$DOCKERHUB_REPO" ]; then
+          if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$DOCKERHUB_TOKEN" ]; then
             echo "run=false" >> "$GITHUB_OUTPUT"
             echo "Docker credentials missing; skipping Docker steps."
             exit 0
@@ -255,7 +254,7 @@ jobs:
         uses: docker/metadata-action@v5
         if: steps.docker_gate.outputs.run == 'true'
         with:
-          images: ${{ secrets.DOCKERHUB_REPO }}
+          images: mattlol85/fitz-net-website
           tags: |
             type=raw,value=latest
             type=raw,value=${{ needs.version.outputs.new-version-no-v }}
@@ -271,7 +270,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_REPO }}:latest
+          cache-from: type=registry,ref=mattlol85/fitz-net-website:latest
           cache-to: type=inline
           build-args: |
             VERSION=${{ needs.version.outputs.new-version-no-v }}
@@ -282,7 +281,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ secrets.DOCKERHUB_REPO }}
+          repository: mattlol85/fitz-net-website
           readme-filepath: ./README.md
         continue-on-error: true
 
