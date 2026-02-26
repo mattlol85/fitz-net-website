@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Fitz Net Website
+  fitz-net-website:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-latest}
+    image: fitz-net-website:${VERSION:-latest}
+    container_name: fitz-net-website
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - fitz-net
+    labels:
+      - "com.fitz-net.service=website"
+      - "com.fitz-net.version=${VERSION:-latest}"
+
+  # Example: Add your API service here
+  # fitz-net-api:
+  #   image: your-api-image:latest
+  #   container_name: fitz-net-api
+  #   ports:
+  #     - "8585:8585"
+  #   restart: unless-stopped
+  #   networks:
+  #     - fitz-net
+
+  # Example: Add a database
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: fitz-net-db
+  #   environment:
+  #     POSTGRES_DB: fitznet
+  #     POSTGRES_USER: fitznet
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   restart: unless-stopped
+  #   networks:
+  #     - fitz-net
+
+networks:
+  fitz-net:
+    driver: bridge
+    name: fitz-net-network
+
+#volumes:
+#  postgres-data:
+#  name: fitz-net-postgres-data

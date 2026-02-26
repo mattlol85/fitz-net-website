@@ -51,6 +51,54 @@ cp .env.example .env
 
 Then edit `.env` with your configuration (see Environment Variables section below).
 
+## 🐳 Docker Deployment
+
+### Quick Start with Docker
+
+Run the website in a Docker container:
+
+```bash
+# Using Docker Compose (recommended)
+docker-compose up -d
+
+# Or using Docker CLI
+docker build -t fitz-net-website .
+docker run -d -p 3000:80 --name fitz-net-website fitz-net-website
+```
+
+The website will be available at [http://localhost:3000](http://localhost:3000)
+
+### Helper Scripts
+
+For easier Docker management, use the provided helper scripts:
+
+**Windows (PowerShell)**:
+```powershell
+.\docker-helper.ps1
+```
+
+**Linux/Mac**:
+```bash
+./docker-helper.sh
+```
+
+These interactive scripts provide options to:
+- Build the Docker image
+- Start/stop containers
+- View logs
+- Rebuild and restart
+- Clean up resources
+- Check container status
+
+### Multi-Container Setup
+
+The included `docker-compose.yml` supports running multiple services together. See [DOCKER.md](DOCKER.md) for detailed Docker documentation, including:
+- Multi-stage build details
+- Nginx configuration
+- API proxy setup
+- Running with other services
+- Production deployment
+
 ## 🔐 Environment Variables
 
 The application requires the following environment variables to be configured in a `.env` file:
