@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { mockApi } from '../services/mockApi';
+import { loginUser, logoutUser, validateToken } from '../services/api';
 
 // Create the AuthContext
 const AuthContext = createContext(null);
@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
 
     if (storedToken && storedUser) {
       // Validate token before restoring session
-      if (mockApi.validateToken(storedToken)) {
+      if (validateToken(storedToken)) {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
       } else {
@@ -41,7 +41,9 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = async (username, password) => {
     try {
-      const response = await mockApi.login(username, password);
+      console.log('🔑 Login initiated for user:', username);
+      const response = await loginUser(username, password);
+      console.log('🔑 Login response:', response);
 
       if (response.success) {
         const userData = {
@@ -56,11 +58,14 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('authToken', response.token);
         localStorage.setItem('authUser', JSON.stringify(userData));
 
+        console.log('✅ Login successful, user data stored');
         return { success: true, message: response.message };
       } else {
+        console.log('❌ Login failed:', response.message);
         return { success: false, message: response.message };
       }
     } catch (error) {
+      console.error('❌ Login error caught:', error);
       return { success: false, message: 'An error occurred during login' };
     }
   };
@@ -68,7 +73,7 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
-      await mockApi.logout();
+      await logoutUser();
 
       // Clear state
       setUser(null);
@@ -86,7 +91,7 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user is authenticated
   const isAuthenticated = () => {
-    return user !== null && token !== null && mockApi.validateToken(token);
+    return user !== null && token !== null && validateToken(token);
   };
 
   const value = {

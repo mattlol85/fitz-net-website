@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import {Link, useNavigate} from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import '../css/Login.css';
 
@@ -73,12 +73,8 @@ function Login() {
         </form>
 
         <div className="login-help">
-          <p className="demo-credentials">
-            <strong>Demo Credentials:</strong>
-            <br />
-            Username: <code>changmin</code>
-            <br />
-            Password: <code>testing123</code>
+          <p>
+            Don't have an account? <Link to="/register" className="register-link">Sign up</Link>
           </p>
         </div>
       </div>

@@ -9,6 +9,7 @@ import InfoPanelContent from './components/InfoPanelContent.jsx';
 import Footer from './components/Footer.jsx';
 import GreetingMessage from './components/GreetingMessage.jsx';
 import Login from './components/Login.jsx';
+import Register from './components/Register.jsx';
 import WebSocketButton from './components/WebSocketButton.jsx';
 
 function App() {
@@ -51,6 +52,7 @@ function App() {
             <Route path="/info" element={<InfoPanelContent />} />
             <Route path="/websocket" element={<WebSocketButton />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route path="*" element={<NoPage />} />
           </Routes>
           <Footer />

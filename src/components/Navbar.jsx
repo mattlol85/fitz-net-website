@@ -43,9 +43,14 @@ function Navbar({ theme, toggleTheme }) {
             </li>
           </>
         ) : (
-          <li>
-            <Link to="/login">Login</Link>
-          </li>
+          <>
+            <li>
+              <Link to="/login">Login</Link>
+            </li>
+            <li>
+              <Link to="/register">Sign Up</Link>
+            </li>
+          </>
         )}
         <li>
           <ThemeToggle theme={theme} toggleTheme={toggleTheme} />

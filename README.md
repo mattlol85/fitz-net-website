@@ -43,6 +43,70 @@ cd fitznet-react-website
 npm install
 ```
 
+3. Configure environment variables:
+```bash
+# Copy the example environment file
+cp .env.example .env
+```
+
+Then edit `.env` with your configuration (see Environment Variables section below).
+
+## 🔐 Environment Variables
+
+The application requires the following environment variables to be configured in a `.env` file:
+
+### Required Variables
+
+| Variable | Description | Example Value |
+|----------|-------------|---------------|
+| `VITE_API_BASE_URL` | Base URL for the Fitz-Net backend API | `/api` (development) or `http://fitznet.doomdns.org:8585` (production) |
+
+### Configuration Details
+
+#### Development Environment
+For local development, use the proxied API path to avoid CORS issues:
+```env
+VITE_API_BASE_URL=/api
+```
+
+The Vite development server is configured to proxy requests from `/api/*` to `http://fitznet.doomdns.org:8585` automatically. This is configured in `vite.config.js`.
+
+#### Production Environment
+For production builds, use the full backend URL:
+```env
+VITE_API_BASE_URL=http://fitznet.doomdns.org:8585
+```
+
+**Note**: The backend server must have CORS properly configured to accept requests from your production domain when using the full URL.
+
+### Backend API Endpoints
+
+The application integrates with the following Fitz-Net backend endpoints:
+
+- `POST /user/create` - Create a new user account
+  - Request body: `{ username, email, password }`
+  - Response: `{ success, message, id, username, email }`
+
+- `POST /user/login` - Authenticate a user
+  - Request body: `{ username, password }`
+  - Response: `{ success, message, token, username }`
+
+### Setup Instructions
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` and set `VITE_API_BASE_URL` according to your environment:
+   - **Development**: Use `/api` (default)
+   - **Production**: Use `http://fitznet.doomdns.org:8585`
+
+3. Restart the development server if it's already running:
+   ```bash
+   npm start
+   ```
+
 ## 🚦 Available Scripts
 
 ### Development
@@ -82,33 +146,6 @@ Preview the production build locally:
 npm run preview
 ```
 
-## 📁 Project Structure
-
-```
-fitz-net-website/
-├── public/              # Static assets
-│   ├── favicon.ico
-│   ├── manifest.json
-│   └── logo files
-├── src/
-│   ├── components/      # React components
-│   │   ├── Navbar.jsx
-│   │   ├── Footer.jsx
-│   │   ├── Homepage.jsx
-│   │   ├── BoxLogo.jsx
-│   │   ├── GreetingMessage.jsx
-│   │   ├── ThemeToggle.jsx
-│   │   ├── InfoPanelContent.jsx
-│   │   ├── NoPage.jsx
-│   │   ├── Card.jsx
-│   │   └── Slider.jsx
-│   ├── css/             # Component styles
-│   ├── scripts/         # Utility scripts
-│   ├── App.jsx          # Main application component
-│   └── index.jsx        # Application entry point
-├── index.html           # HTML template
-├── vite.config.js       # Vite configuration
-├── package.json         # Project dependencies```
 
 ## 🧪 Testing
 
@@ -183,5 +220,3 @@ Private project - All rights reserved.
 [https://github.com/mattlol85/Fitz-Net](https://github.com/mattlol85/Fitz-Net)
 
 ---
-
-Built with ❤️ using React and Vite
