@@ -129,6 +129,11 @@ jobs:
         env:
           NEW_VERSION_NO_V: ${{ steps.version_calc.outputs.new-version-no-v }}
         run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          if [ "$CURRENT_VERSION" = "$NEW_VERSION_NO_V" ]; then
+            echo "package.json already at version $NEW_VERSION_NO_V; skipping bump."
+            exit 0
+          fi
           npm version "$NEW_VERSION_NO_V" --no-git-tag-version
 
       - name: 📄 Show version change
