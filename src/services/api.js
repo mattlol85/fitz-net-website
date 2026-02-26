@@ -20,7 +20,10 @@ export const createUser = async (username, email, password) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
+      mode: 'cors',
+      credentials: 'omit',
       body: JSON.stringify({
         username,
         email,
@@ -71,7 +74,10 @@ export const loginUser = async (username, password) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
+      mode: 'cors',
+      credentials: 'omit',
       body: JSON.stringify({
         username,
         password,

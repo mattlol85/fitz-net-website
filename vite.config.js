@@ -9,8 +9,9 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://fitznet.doomdns.org:8585',
+        target: 'https://api.fitznet.doomdns.org',
         changeOrigin: true,
+        secure: false,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
     }

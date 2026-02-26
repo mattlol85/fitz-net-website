@@ -122,7 +122,7 @@ The Vite development server is configured to proxy requests from `/api/*` to `ht
 #### Production Environment
 For production builds, use the full backend URL:
 ```env
-VITE_API_BASE_URL=http://fitznet.doomdns.org:8585
+VITE_API_BASE_URL=http://api.fitznet.doomdns.org
 ```
 
 **Note**: The backend server must have CORS properly configured to accept requests from your production domain when using the full URL.
@@ -148,7 +148,7 @@ The application integrates with the following Fitz-Net backend endpoints:
 
 2. Edit `.env` and set `VITE_API_BASE_URL` according to your environment:
    - **Development**: Use `/api` (default)
-   - **Production**: Use `http://fitznet.doomdns.org:8585`
+   - **Production**: Use `https://api.fitznet.doomdns.org`
 
 3. Restart the development server if it's already running:
    ```bash
