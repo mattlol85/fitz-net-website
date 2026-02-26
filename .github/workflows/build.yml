@@ -1,0 +1,37 @@
+name: CI Build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: 🧪 Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v6
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📚 Install dependencies
+        run: npm ci
+
+      - name: 🧪 Run tests & build
+        run: |
+          echo "::group::Running tests"
+          npm run test:coverage
+          echo "::endgroup::"
+          echo "::group::Building project"
+          npm run build
+          echo "::endgroup::"
+
