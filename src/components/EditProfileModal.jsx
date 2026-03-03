@@ -163,4 +163,3 @@ function EditProfileModal({ isOpen, onClose, currentUser }) {
 }
 
 export default EditProfileModal;
-
