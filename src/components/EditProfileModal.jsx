@@ -83,7 +83,7 @@ function EditProfileModal({ isOpen, onClose, currentUser }) {
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="edit-profile-form">
+        <form onSubmit={handleSubmit} className="edit-profile-form" noValidate>
           <div className="form-group">
             <label htmlFor="username">Username</label>
             <input
@@ -163,4 +163,3 @@ function EditProfileModal({ isOpen, onClose, currentUser }) {
 }
 
 export default EditProfileModal;
-
