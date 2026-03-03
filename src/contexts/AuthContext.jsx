@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { loginUser, logoutUser, validateToken } from '../services/api';
+  import { loginUser, logoutUser, validateToken, updateUserProfile } from '../services/api';
 
 // Create the AuthContext
 const AuthContext = createContext(null);
@@ -94,6 +94,32 @@ export const AuthProvider = ({ children }) => {
     return user !== null && token !== null && validateToken(token);
   };
 
+  // Update user profile
+  const updateProfile = async (updates) => {
+    try {
+      console.log('🔄 Updating user profile');
+      const response = await updateUserProfile(updates, token);
+
+      if (response.success) {
+        const updatedUserData = {
+          username: response.username,
+          email: response.email,
+        };
+
+        setUser(updatedUserData);
+        localStorage.setItem('authUser', JSON.stringify(updatedUserData));
+        console.log('✅ Profile updated successfully');
+        return { success: true, message: response.message };
+      } else {
+        console.log('❌ Profile update failed:', response.message);
+        return { success: false, message: response.message };
+      }
+    } catch (error) {
+      console.error('❌ Profile update error caught:', error);
+      return { success: false, message: 'An error occurred during profile update' };
+    }
+  };
+
   const value = {
     user,
     token,
@@ -101,6 +127,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     isAuthenticated,
+    updateProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

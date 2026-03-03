@@ -13,6 +13,18 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      '/actuator-fitz': {
+        target: 'https://api.fitznet.doomdns.org',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/actuator-fitz/, '/actuator')
+      },
+      '/actuator-gamerbell': {
+        target: 'https://gamerbell.fitznet.doomdns.org',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/actuator-gamerbell/, '/actuator')
       }
     }
   },
