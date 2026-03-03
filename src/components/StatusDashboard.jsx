@@ -23,18 +23,16 @@ export default function StatusDashboard() {
                 info = await getActuatorInfo();
                 health = await getActuatorHealth();
               } else {
-                // Use proxy paths for development, full URLs for production
+                // Always use same-origin proxy paths to avoid CORS in browser.
                 const proxyPath = api.name === 'fitz-net-api' ? '/actuator-fitz' : '/actuator-gamerbell';
-                const infoUrl = import.meta.env.PROD ? `${api.url}/actuator/info` : `${proxyPath}/info`;
-                const healthUrl = import.meta.env.PROD ? `${api.url}/actuator/health` : `${proxyPath}/health`;
+                const infoUrl = `${proxyPath}/info`;
+                const healthUrl = `${proxyPath}/health`;
 
-                // Fetch info
                 const infoResponse = await fetch(infoUrl, {
                   headers: { 'Accept': 'application/json' },
                 });
                 info = infoResponse.ok ? await infoResponse.json() : null;
 
-                // Fetch health
                 const healthResponse = await fetch(healthUrl, {
                   headers: { 'Accept': 'application/json' },
                 });
@@ -295,4 +293,3 @@ export default function StatusDashboard() {
     </div>
   );
 }
-
