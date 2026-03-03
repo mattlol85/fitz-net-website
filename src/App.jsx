@@ -11,6 +11,7 @@ import GreetingMessage from './components/GreetingMessage.jsx';
 import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
 import WebSocketButton from './components/WebSocketButton.jsx';
+import StatusDashboard from './components/StatusDashboard.jsx';
 
 function App() {
   const [greetingShown, setGreetingShown] = useState(false);
@@ -50,6 +51,7 @@ function App() {
             <Route path="/home" element={<Homepage />} />
             <Route index element={<Homepage />} />
             <Route path="/info" element={<InfoPanelContent />} />
+            <Route path="/status" element={<StatusDashboard />} />
             <Route path="/websocket" element={<WebSocketButton />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />

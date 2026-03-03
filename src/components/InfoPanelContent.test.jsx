@@ -16,6 +16,20 @@ describe('InfoPanelContent Component', () => {
     expect(welcomeHeading).toBeInTheDocument();
   });
 
+  test('renders our services section', () => {
+    render(<InfoPanelContent />);
+
+    const servicesHeading = screen.getByRole('heading', { name: /Our Services/i });
+    expect(servicesHeading).toBeInTheDocument();
+
+    expect(screen.getByRole('heading', { name: /🌐 Fitz-Net Website/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /🔧 Fitz-Net API/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /🔔 Gamerbell/i })).toBeInTheDocument();
+
+    expect(screen.getByText(/Spring Boot backend service/i)).toBeInTheDocument();
+    expect(screen.getByText(/Real-time notification service/i)).toBeInTheDocument();
+  });
+
   test('renders technology stack section', () => {
     render(<InfoPanelContent />);
 
@@ -24,7 +38,9 @@ describe('InfoPanelContent Component', () => {
 
     expect(screen.getByRole('heading', { name: /⚛️ React 19/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /^⚡ Vite$/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /🎨 Modern CSS/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /☕ Spring Boot/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /🍃 MongoDB/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /🔌 WebSockets/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /🧪 Vitest/i })).toBeInTheDocument();
   });
 
