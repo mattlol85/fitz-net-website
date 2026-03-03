@@ -1,7 +1,9 @@
 // Real API service for Fitz-Net backend authentication
 // In development, requests to /api/* are proxied to the actual backend via Vite
 // In production, set VITE_API_BASE_URL to the full backend URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+import { API_URLS } from '../constants';
+
+const API_BASE_URL = API_URLS.FITZ_NET_API;
 
 /**
  * Create a new user account

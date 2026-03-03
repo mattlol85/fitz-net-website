@@ -25,6 +25,9 @@ function Navbar({ theme, toggleTheme }) {
         <li>
           <Link to="/info">About</Link>
         </li>
+        <li>
+          <Link to="/status">Status</Link>
+        </li>
         {isAuthenticated() && (
           <li>
             <Link to="/websocket">WebSocket</Link>
