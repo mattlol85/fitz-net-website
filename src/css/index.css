@@ -18,6 +18,8 @@
   --toggle-border: #dddddd;
   --toggle-hover-bg: #e0e0e0;
   --toggle-icon-color: #333333;
+  --logout-button-bg: #dc3545;
+  --logout-button-hover: #c82333;
 }
 
 [data-theme='dark'] {
@@ -40,6 +42,8 @@
   --toggle-border: #444444;
   --toggle-hover-bg: #3d3d3d;
   --toggle-icon-color: #ffd700;
+  --logout-button-bg: #dc3545;
+  --logout-button-hover: #b21f2d;
 }
 
 body {

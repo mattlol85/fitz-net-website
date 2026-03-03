@@ -37,7 +37,9 @@ function Navbar({ theme, toggleTheme }) {
         {isAuthenticated() ? (
           <>
             <li className="user-info">
-              <span className="username">Welcome, {user?.username}</span>
+              <Link to="/profile" className="username username-clickable">
+                Welcome, {user?.username}
+              </Link>
             </li>
             <li>
               <button onClick={handleLogout} className="logout-button">
