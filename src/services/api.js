@@ -26,6 +26,7 @@ const parseResponseData = async (response) => {
   }
 };
 
+
 /**
  * Create a new user account
  * @param {string} username - The username
