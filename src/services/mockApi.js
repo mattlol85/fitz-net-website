@@ -91,5 +91,25 @@ export const mockApi = {
       return false;
     }
   },
+
+  // Mock update profile endpoint
+  updateProfile: async (updates, token) => {
+    await delay(400);
+
+    if (!token) {
+      return {
+        success: false,
+        message: 'Authentication token is required',
+      };
+    }
+
+    // Simulate a successful profile update
+    return {
+      success: true,
+      message: 'Profile updated successfully',
+      username: updates.username,
+      email: updates.email,
+    };
+  },
 };
 

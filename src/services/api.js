@@ -191,6 +191,11 @@ export const logoutUser = async () => {
  * @returns {Promise<Object>} Response object with success status and updated user data
  */
 export const updateUserProfile = async (updates, token) => {
+  if (USE_MOCK_API) {
+    console.log('🎭 Using mock API for profile update');
+    return mockApi.updateProfile(updates, token);
+  }
+
   if (!token) {
     return {
       success: false,
