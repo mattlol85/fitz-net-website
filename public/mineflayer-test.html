@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mineflayer 1.21 Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 24px auto;
+      padding: 0 16px;
+      background: #111;
+      color: #eee;
+    }
+    h1 { margin-bottom: 8px; }
+    .muted { color: #aaa; margin-top: 0; }
+    .card {
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 14px;
+      background: #1a1a1a;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    input, button {
+      background: #222;
+      color: #eee;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 8px;
+    }
+    button { cursor: pointer; margin-right: 8px; }
+    button:hover { background: #2a2a2a; }
+    #log {
+      background: #0d0d0d;
+      border: 1px solid #333;
+      border-radius: 8px;
+      min-height: 260px;
+      padding: 8px;
+      overflow: auto;
+      white-space: pre-wrap;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+    }
+    .ok { color: #7CFC8A; }
+    .err { color: #ff7f7f; }
+  </style>
+</head>
+<body>
+  <h1>Mineflayer 1.21 Smoke Test</h1>
+  <p class="muted">Ultra basic page to verify spawn/status/chat/despawn against your external Minecraft server.</p>
+
+  <div class="card">
+    <div class="row">
+      <label for="apiBase">Bot API Base</label>
+      <input id="apiBase" value="/bot-api" />
+    </div>
+    <div class="row">
+      <label for="apiKey">API Key</label>
+      <input id="apiKey" value="dev-api-key" />
+    </div>
+    <div class="row">
+      <label for="wsBase">WebSocket Base</label>
+      <input id="wsBase" value="ws://localhost:3002" />
+    </div>
+    <div class="row">
+      <label for="userId">User ID</label>
+      <input id="userId" value="demo-user-1" />
+    </div>
+    <div class="row">
+      <label for="username">Bot Username</label>
+      <input id="username" value="FitzDemoBot" />
+    </div>
+    <div>
+      <button id="spawnBtn">Spawn Bot</button>
+      <button id="statusBtn">Get Status</button>
+      <button id="despawnBtn">Despawn Bot</button>
+      <button id="connectWsBtn">Connect WS</button>
+      <button id="disconnectWsBtn">Disconnect WS</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <label for="chatMessage">Chat Message</label>
+      <input id="chatMessage" value="hello from mineflayer test page" />
+    </div>
+    <button id="sendChatBtn">Send Chat</button>
+    <button id="requestStatusWsBtn">Request Status via WS</button>
+  </div>
+
+  <div class="card">
+    <strong>Log</strong>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    const el = (id) => document.getElementById(id);
+    const logEl = el('log');
+    let ws = null;
+
+    function now() {
+      return new Date().toISOString();
+    }
+
+    function log(message, type = '') {
+      const line = `[${now()}] ${message}`;
+      const div = document.createElement('div');
+      if (type) div.className = type;
+      div.textContent = line;
+      logEl.appendChild(div);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function config() {
+      return {
+        apiBase: el('apiBase').value.trim(),
+        apiKey: el('apiKey').value.trim(),
+        wsBase: el('wsBase').value.trim(),
+        userId: el('userId').value.trim(),
+        username: el('username').value.trim()
+      };
+    }
+
+    async function apiCall(path, options = {}) {
+      const cfg = config();
+      const headers = {
+        'Content-Type': 'application/json',
+        'x-api-key': cfg.apiKey,
+        ...(options.headers || {})
+      };
+      const response = await fetch(`${cfg.apiBase}${path}`, { ...options, headers });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body.message || body.error || `HTTP ${response.status}`);
+      }
+      return body;
+    }
+
+    async function spawnBot() {
+      try {
+        const cfg = config();
+        const data = await apiCall('/bot/spawn', {
+          method: 'POST',
+          body: JSON.stringify({ userId: cfg.userId, username: cfg.username })
+        });
+        log(`spawn OK: ${JSON.stringify(data)}`, 'ok');
+      } catch (err) {
+        log(`spawn failed: ${err.message}`, 'err');
+      }
+    }
+
+    async function getStatus() {
+      try {
+        const cfg = config();
+        const data = await apiCall(`/bot/status/${encodeURIComponent(cfg.userId)}`);
+        log(`status: ${JSON.stringify(data)}`, 'ok');
+      } catch (err) {
+        log(`status failed: ${err.message}`, 'err');
+      }
+    }
+
+    async function despawnBot() {
+      try {
+        const cfg = config();
+        const data = await apiCall('/bot/despawn', {
+          method: 'POST',
+          body: JSON.stringify({ userId: cfg.userId })
+        });
+        log(`despawn: ${JSON.stringify(data)}`, 'ok');
+      } catch (err) {
+        log(`despawn failed: ${err.message}`, 'err');
+      }
+    }
+
+    function connectWs() {
+      const cfg = config();
+      if (!cfg.userId) {
+        log('userId is required for WS', 'err');
+        return;
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        log('ws already connected');
+        return;
+      }
+
+      const url = `${cfg.wsBase}/bot/ws?userId=${encodeURIComponent(cfg.userId)}`;
+      ws = new WebSocket(url);
+      log(`connecting ws: ${url}`);
+
+      ws.addEventListener('open', () => log('ws connected', 'ok'));
+      ws.addEventListener('close', () => log('ws disconnected'));
+      ws.addEventListener('error', () => log('ws error', 'err'));
+      ws.addEventListener('message', (event) => {
+        log(`ws recv: ${event.data}`);
+      });
+    }
+
+    function disconnectWs() {
+      if (!ws) {
+        log('ws not initialized');
+        return;
+      }
+      ws.close();
+      ws = null;
+    }
+
+    function sendWs(payload) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        log('ws not connected', 'err');
+        return;
+      }
+      ws.send(JSON.stringify(payload));
+      log(`ws send: ${JSON.stringify(payload)}`);
+    }
+
+    el('spawnBtn').addEventListener('click', spawnBot);
+    el('statusBtn').addEventListener('click', getStatus);
+    el('despawnBtn').addEventListener('click', despawnBot);
+    el('connectWsBtn').addEventListener('click', connectWs);
+    el('disconnectWsBtn').addEventListener('click', disconnectWs);
+
+    el('sendChatBtn').addEventListener('click', () => {
+      sendWs({ type: 'chat', message: el('chatMessage').value || 'hello' });
+    });
+
+    el('requestStatusWsBtn').addEventListener('click', () => {
+      sendWs({ type: 'status' });
+    });
+
+    log('ready. Click Spawn Bot, then Connect WS.');
+  </script>
+</body>
+</html>
+

@@ -4,10 +4,17 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "canvas": "file:vendor/canvas-shim",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mineflayer": "^4.37.0",
+    "prismarine-viewer": "^1.33.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.5",
-    "web-vitals": "^5.1.0"
+    "web-vitals": "^5.1.0",
+    "ws": "^8.20.0"
   },
   "devDependencies": {
     "@babel/plugin-transform-private-property-in-object": "^7.25.9",
@@ -26,10 +33,15 @@
   "scripts": {
     "dev": "vite",
     "start": "vite",
+    "bot": "node bot/server.js",
+    "dev:bot": "node bot/server.js",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest --config ./vite.config.js",
     "test:coverage": "vitest --coverage --config ./vite.config.js"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "eslintConfig": {
     "extends": [

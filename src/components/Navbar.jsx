@@ -33,6 +33,11 @@ function Navbar({ theme, toggleTheme }) {
             <Link to="/websocket">WebSocket</Link>
           </li>
         )}
+        {isAuthenticated() && (
+          <li>
+            <Link to="/videogames">Video Games</Link>
+          </li>
+        )}
         <li className="nav-spacer"></li>
         {isAuthenticated() ? (
           <>

@@ -27,8 +27,9 @@ This is the official website for Fitz-Net, featuring a clean, modern design with
 
 ## 📋 Prerequisites
 
-- Node.js (v14 or higher recommended)
+- Node.js (v22 or higher recommended)
 - npm or yarn package manager
+- Java 21+ only if you run your own external Paper server
 
 ## 🔧 Installation
 
@@ -167,6 +168,11 @@ npm run dev
 ```
 Opens [http://localhost:3000](http://localhost:3000) in your browser automatically.
 
+Run the bot control service (connects to an external Minecraft server):
+```bash
+npm run bot
+```
+
 ### Testing
 
 Run tests in watch mode:
@@ -215,6 +221,13 @@ Tests are configured to run with Vitest in a jsdom environment, supporting React
 - `/` or `/home` - Homepage with animated logo
 - `/info` - About page with technology stack and features information
 - `*` - 404 Not Found page
+
+## 🤖 Minecraft Bot Notes
+
+- This repo does not bundle or run a Paper server anymore.
+- Configure the external server in `bot/.env` (`MC_SERVER_HOST`, `MC_SERVER_PORT`, `MC_VERSION`, `MC_AUTH`).
+- For `MC_AUTH=offline`, your external server must allow offline mode.
+- For `MC_AUTH=microsoft`, use credentials/session flow compatible with your Mineflayer setup.
 
 ## 🎨 Customization
 

@@ -13,6 +13,7 @@ import Register from './components/Register.jsx';
 import EditProfile from './components/EditProfile.jsx';
 import WebSocketButton from './components/WebSocketButton.jsx';
 import StatusDashboard from './components/StatusDashboard.jsx';
+import VideoGames from './components/VideoGames.jsx';
 
 function App() {
   const [greetingShown, setGreetingShown] = useState(false);
@@ -57,6 +58,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<EditProfile />} />
+            <Route path="/videogames" element={<VideoGames />} />
             <Route path="*" element={<NoPage />} />
           </Routes>
           <Footer />

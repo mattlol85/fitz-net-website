@@ -25,6 +25,19 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/actuator-gamerbell/, '/actuator')
+      },
+      '/bot-api': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/bot-api/, '')
+      },
+      // Proxy prismarine-viewer ports through Vite so the iframe works without
+      // cross-origin or mixed-content issues. Viewer ports start at 3007.
+      '/mc-viewer': {
+        target: 'http://localhost:3007',
+        changeOrigin: true,
+        ws: true,
+        rewrite: (path) => path.replace(/^\/mc-viewer/, '')
       }
     }
   },

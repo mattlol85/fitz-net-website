@@ -1,0 +1,340 @@
+/* ===== Video Games Page ===== */
+.videogames-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.videogames-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.videogames-header h1 {
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem;
+}
+
+.videogames-subtitle {
+  color: var(--text-secondary, #888);
+  margin: 0;
+}
+
+/* ===== Toolbar ===== */
+.videogames-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 10px;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.bot-status-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bot-status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.bot-status-dot.offline { background: #999; }
+.bot-status-dot.connecting { background: #f59e0b; animation: pulse 1s infinite; }
+.bot-status-dot.online { background: #10b981; }
+.bot-status-dot.error { background: #ef4444; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.bot-status-text {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.bot-position, .bot-vitals {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #888);
+  font-family: monospace;
+}
+
+.spawn-button, .despawn-button {
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+.spawn-button {
+  background: #10b981;
+  color: white;
+}
+.spawn-button:hover:not(:disabled) { background: #059669; transform: translateY(-1px); }
+.spawn-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.despawn-button {
+  background: #ef4444;
+  color: white;
+}
+.despawn-button:hover { background: #dc2626; transform: translateY(-1px); }
+
+.videogames-error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+/* ===== Main Layout ===== */
+.videogames-main {
+  display: flex;
+  gap: 1rem;
+  height: calc(100vh - 300px);
+  min-height: 500px;
+}
+
+.viewer-panel {
+  flex: 7;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.chat-panel {
+  flex: 3;
+  min-width: 280px;
+}
+
+/* ===== Viewer ===== */
+.mc-viewer {
+  flex: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border-color, #e0e0e0);
+  background: #1a1a2e;
+}
+
+.mc-viewer-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+}
+
+.mc-viewer-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* ===== Controls ===== */
+.mc-controls {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+}
+
+.mc-controls-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #888);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.mc-controls-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.mc-controls-row {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.mc-ctrl-btn {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 6px;
+  background: var(--card-bg, #f5f5f5);
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.1s;
+  user-select: none;
+}
+
+.mc-ctrl-btn.wide {
+  width: 100px;
+}
+
+.mc-ctrl-btn:active:not(:disabled) {
+  background: #007bff;
+  color: white;
+}
+
+.mc-ctrl-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ===== Chat ===== */
+.mc-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.mc-chat-header {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  color: var(--text-primary);
+}
+
+.mc-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  background: #0d1117;
+  color: #c9d1d9;
+}
+
+.mc-chat-empty {
+  color: #555;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.mc-chat-msg {
+  margin-bottom: 0.25rem;
+  word-wrap: break-word;
+}
+
+.mc-chat-time {
+  color: #555;
+  margin-right: 0.5rem;
+}
+
+.mc-chat-username {
+  color: #58a6ff;
+  margin-right: 0.35rem;
+}
+
+.mc-chat-text {
+  color: #c9d1d9;
+}
+
+.mc-chat-input {
+  display: flex;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+}
+
+.mc-chat-input input {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  border: none;
+  outline: none;
+  font-size: 0.9rem;
+  background: var(--card-bg, #fff);
+  color: var(--text-primary);
+}
+
+.mc-chat-input button {
+  padding: 0.6rem 1rem;
+  border: none;
+  background: #007bff;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.mc-chat-input button:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.mc-chat-input button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== Placeholder ===== */
+.videogames-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  background: var(--card-bg, #fff);
+  border: 2px dashed var(--border-color, #e0e0e0);
+  border-radius: 12px;
+}
+
+.placeholder-content {
+  text-align: center;
+  max-width: 420px;
+  padding: 2rem;
+}
+
+.placeholder-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.placeholder-content h2 {
+  color: var(--text-primary);
+  margin: 0 0 0.75rem;
+}
+
+.placeholder-content p {
+  color: var(--text-secondary, #888);
+  margin: 0 0 0.5rem;
+  line-height: 1.5;
+}
+
+.placeholder-note {
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .videogames-main {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .viewer-panel {
+    min-height: 350px;
+  }
+
+  .chat-panel {
+    min-height: 300px;
+  }
+}
+
