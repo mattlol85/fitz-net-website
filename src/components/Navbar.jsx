@@ -29,9 +29,14 @@ function Navbar({ theme, toggleTheme }) {
           <Link to="/status">Status</Link>
         </li>
         {isAuthenticated() && (
-          <li>
-            <Link to="/websocket">WebSocket</Link>
-          </li>
+          <>
+            <li>
+              <Link to="/overwatch">Overwatch Tracker</Link>
+            </li>
+            <li>
+              <Link to="/websocket">WebSocket</Link>
+            </li>
+          </>
         )}
         <li className="nav-spacer"></li>
         {isAuthenticated() ? (

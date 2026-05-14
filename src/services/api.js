@@ -256,12 +256,202 @@ export const updateUserProfile = async (updates, token) => {
   }
 };
 
+const buildAuthHeaders = (token) => ({
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  'Authorization': `Bearer ${token}`,
+});
+
+const requireToken = (token) => {
+  if (!token) {
+    return {
+      success: false,
+      message: 'You must be logged in to use the Overwatch tracker.',
+    };
+  }
+
+  return null;
+};
+
+export const searchOverwatchPlayers = async (name, token) => {
+  if (USE_MOCK_API) {
+    return mockApi.searchOverwatchPlayers(name, token);
+  }
+
+  const tokenError = requireToken(token);
+  if (tokenError) return tokenError;
+
+  const trimmedName = name?.trim();
+  if (!trimmedName) {
+    return {
+      success: false,
+      message: 'Enter an Overwatch username or BattleTag.',
+    };
+  }
+
+  try {
+    const url = `${API_BASE_URL}/overwatch/search?name=${encodeURIComponent(trimmedName)}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: buildAuthHeaders(token),
+      mode: 'cors',
+      credentials: 'omit',
+    });
+    const data = await parseResponseData(response);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data.message || 'Unable to search Overwatch players.',
+      };
+    }
+
+    const players = Array.isArray(data) ? data : data.results || data.players || [];
+    return {
+      success: true,
+      players,
+    };
+  } catch (error) {
+    console.error('Overwatch search error:', error);
+    return {
+      success: false,
+      message: 'Network error while searching Overwatch players.',
+    };
+  }
+};
+
+export const saveOverwatchProfile = async (playerId, token) => {
+  if (USE_MOCK_API) {
+    return mockApi.saveOverwatchProfile(playerId, token);
+  }
+
+  const tokenError = requireToken(token);
+  if (tokenError) return tokenError;
+
+  if (!playerId) {
+    return {
+      success: false,
+      message: 'Choose an Overwatch player to save.',
+    };
+  }
+
+  try {
+    const url = `${API_BASE_URL}/overwatch/profile`;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: buildAuthHeaders(token),
+      mode: 'cors',
+      credentials: 'omit',
+      body: JSON.stringify({ playerId }),
+    });
+    const data = await parseResponseData(response);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data.message || 'Unable to save Overwatch profile.',
+      };
+    }
+
+    return {
+      success: true,
+      profile: data.profile || data,
+      message: data.message || 'Overwatch profile saved.',
+    };
+  } catch (error) {
+    console.error('Overwatch save error:', error);
+    return {
+      success: false,
+      message: 'Network error while saving Overwatch profile.',
+    };
+  }
+};
+
+export const getOverwatchProfile = async (token) => {
+  if (USE_MOCK_API) {
+    return mockApi.getOverwatchProfile(token);
+  }
+
+  const tokenError = requireToken(token);
+  if (tokenError) return tokenError;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/overwatch/me`, {
+      method: 'GET',
+      headers: buildAuthHeaders(token),
+      mode: 'cors',
+      credentials: 'omit',
+    });
+    const data = await parseResponseData(response);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data.message || 'Unable to load your Overwatch profile.',
+      };
+    }
+
+    return {
+      success: true,
+      profile: data.profile || data,
+    };
+  } catch (error) {
+    console.error('Overwatch profile error:', error);
+    return {
+      success: false,
+      message: 'Network error while loading your Overwatch profile.',
+    };
+  }
+};
+
+export const getOverwatchLeaderboard = async (token) => {
+  if (USE_MOCK_API) {
+    return mockApi.getOverwatchLeaderboard(token);
+  }
+
+  const tokenError = requireToken(token);
+  if (tokenError) return tokenError;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/overwatch/leaderboard`, {
+      method: 'GET',
+      headers: buildAuthHeaders(token),
+      mode: 'cors',
+      credentials: 'omit',
+    });
+    const data = await parseResponseData(response);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data.message || 'Unable to load the Overwatch leaderboard.',
+      };
+    }
+
+    const leaderboard = Array.isArray(data) ? data : data.leaderboard || data.users || [];
+    return {
+      success: true,
+      leaderboard,
+    };
+  } catch (error) {
+    console.error('Overwatch leaderboard error:', error);
+    return {
+      success: false,
+      message: 'Network error while loading the Overwatch leaderboard.',
+    };
+  }
+};
+
 export const api = {
   createUser,
   loginUser,
   validateToken,
   logoutUser,
   updateUserProfile,
+  searchOverwatchPlayers,
+  saveOverwatchProfile,
+  getOverwatchProfile,
+  getOverwatchLeaderboard,
 };
 
 export default api;

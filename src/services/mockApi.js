@@ -111,5 +111,119 @@ export const mockApi = {
       email: updates.email,
     };
   },
+
+  searchOverwatchPlayers: async (name, token) => {
+    await delay(300);
+
+    if (!token) {
+      return {
+        success: false,
+        message: 'Authentication token is required',
+      };
+    }
+
+    return {
+      success: true,
+      players: [
+        {
+          playerId: 'Tracer-117',
+          displayName: `${name || 'Tracer'}#117`,
+        },
+        {
+          playerId: 'Ana-1985',
+          displayName: 'Ana#1985',
+        },
+      ],
+    };
+  },
+
+  saveOverwatchProfile: async (playerId, token) => {
+    await delay(300);
+
+    if (!token) {
+      return {
+        success: false,
+        message: 'Authentication token is required',
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Overwatch profile saved.',
+      profile: {
+        playerId,
+        displayName: playerId.replace('-', '#'),
+        gamesWon: 186,
+        gamesPlayed: 312,
+        winrate: 59.6,
+        kda: 3.4,
+        damage: 912340,
+        healing: 128400,
+      },
+    };
+  },
+
+  getOverwatchProfile: async (token) => {
+    await delay(200);
+
+    if (!token) {
+      return {
+        success: false,
+        message: 'Authentication token is required',
+      };
+    }
+
+    return {
+      success: true,
+      profile: {
+        playerId: 'Tracer-117',
+        displayName: 'Tracer#117',
+        gamesWon: 186,
+        gamesPlayed: 312,
+        winrate: 59.6,
+        kda: 3.4,
+        damage: 912340,
+        healing: 128400,
+      },
+    };
+  },
+
+  getOverwatchLeaderboard: async (token) => {
+    await delay(200);
+
+    if (!token) {
+      return {
+        success: false,
+        message: 'Authentication token is required',
+      };
+    }
+
+    return {
+      success: true,
+      leaderboard: [
+        {
+          username: 'testuser',
+          playerId: 'Tracer-117',
+          displayName: 'Tracer#117',
+          gamesWon: 186,
+          winrate: 59.6,
+        },
+        {
+          username: 'changmin',
+          playerId: 'Reinhardt-4242',
+          displayName: 'Reinhardt#4242',
+          gamesWon: 161,
+          winrate: 57.2,
+        },
+        {
+          username: 'fitz',
+          playerId: 'Lucio-808',
+          displayName: 'Lucio#808',
+          gamesWon: 144,
+          winrate: 61.1,
+        },
+      ],
+    };
+  },
 };
 
