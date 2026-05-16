@@ -342,7 +342,7 @@ export const saveOverwatchProfile = async (playerId, token) => {
       headers: buildAuthHeaders(token),
       mode: 'cors',
       credentials: 'omit',
-      body: JSON.stringify({ playerId }),
+      body: JSON.stringify({ playerId, battleTag: playerId, bnetString: playerId }),
     });
     const data = await parseResponseData(response);
 
@@ -442,6 +442,47 @@ export const getOverwatchLeaderboard = async (token) => {
   }
 };
 
+export const getOverwatchHistory = async (token, playerId) => {
+  if (USE_MOCK_API) {
+    return mockApi.getOverwatchHistory(token, playerId);
+  }
+
+  const tokenError = requireToken(token);
+  if (tokenError) return tokenError;
+
+  try {
+    const endpoint = playerId
+      ? `${API_BASE_URL}/overwatch/${encodeURIComponent(playerId)}/history`
+      : `${API_BASE_URL}/overwatch/me/history`;
+
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: buildAuthHeaders(token),
+      mode: 'cors',
+      credentials: 'omit',
+    });
+    const data = await parseResponseData(response);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data.message || 'Unable to load Overwatch history.',
+      };
+    }
+
+    return {
+      success: true,
+      history: data.history || data,
+    };
+  } catch (error) {
+    console.error('Overwatch history error:', error);
+    return {
+      success: false,
+      message: 'Network error while loading Overwatch history.',
+    };
+  }
+};
+
 export const api = {
   createUser,
   loginUser,
@@ -452,6 +493,7 @@ export const api = {
   saveOverwatchProfile,
   getOverwatchProfile,
   getOverwatchLeaderboard,
+  getOverwatchHistory,
 };
 
 export default api;

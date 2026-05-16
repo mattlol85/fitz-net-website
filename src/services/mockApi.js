@@ -31,6 +31,19 @@ const generateMockToken = (username) => {
   return `${header}.${payload}.${signature}`;
 };
 
+const buildRankedMatches = () => ([
+  { win: true, result: 'Win', mode: 'Competitive', map: 'King’s Row', scoreFor: 3, scoreAgainst: 2, playedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString() },
+  { win: false, result: 'Loss', mode: 'Competitive', map: 'Circuit Royal', scoreFor: 2, scoreAgainst: 3, playedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString() },
+  { win: true, result: 'Win', mode: 'Competitive', map: 'Lijiang Tower', scoreFor: 2, scoreAgainst: 0, playedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString() },
+  { win: true, result: 'Win', mode: 'Competitive', map: 'New Junk City', scoreFor: 3, scoreAgainst: 1, playedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString() },
+  { win: false, result: 'Loss', mode: 'Competitive', map: 'Esperança', scoreFor: 1, scoreAgainst: 2, playedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString() },
+  { win: true, result: 'Win', mode: 'Competitive', map: 'Ilios', scoreFor: 2, scoreAgainst: 1, playedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString() },
+  { win: false, result: 'Loss', mode: 'Competitive', map: 'Dorado', scoreFor: 2, scoreAgainst: 3, playedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8).toISOString() },
+  { win: true, result: 'Win', mode: 'Competitive', map: 'Eichenwalde', scoreFor: 3, scoreAgainst: 2, playedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9).toISOString() },
+  { win: true, result: 'Win', mode: 'Competitive', map: 'Paraiso', scoreFor: 2, scoreAgainst: 1, playedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString() },
+  { win: false, result: 'Loss', mode: 'Competitive', map: 'Numbani', scoreFor: 1, scoreAgainst: 2, playedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 11).toISOString() },
+]);
+
 export const mockApi = {
   // Mock login endpoint
   login: async (username, password) => {
@@ -128,14 +141,24 @@ export const mockApi = {
         {
           playerId: 'Tracer-117',
           displayName: `${name || 'Tracer'}#117`,
+          avatar: 'https://static.playoverwatch.com/fake/tracer.png',
         },
         {
           playerId: 'Ana-1985',
           displayName: 'Ana#1985',
+          avatar: 'https://static.playoverwatch.com/fake/ana.png',
         },
       ],
     };
   },
+
+  buildHistory: (dps, tank, heals) => ({
+    currentSeason: 'Season 16',
+    dpsHistory: dps,
+    tankHistory: tank,
+    healsHistory: heals,
+    rankedMatches: buildRankedMatches(),
+  }),
 
   saveOverwatchProfile: async (playerId, token) => {
     await delay(300);
@@ -152,13 +175,20 @@ export const mockApi = {
       message: 'Overwatch profile saved.',
       profile: {
         playerId,
+        battleTag: playerId,
         displayName: playerId.replace('-', '#'),
+        avatarUrl: 'https://static.playoverwatch.com/fake/profile.png',
+        lastUpdatedAt: new Date().toISOString(),
         gamesWon: 186,
         gamesPlayed: 312,
         winrate: 59.6,
         kda: 3.4,
         damage: 912340,
         healing: 128400,
+        dpsRating: 2844,
+        tankRating: 2712,
+        healsRating: 2905,
+        rankedMatches: buildRankedMatches(),
       },
     };
   },
@@ -177,13 +207,66 @@ export const mockApi = {
       success: true,
       profile: {
         playerId: 'Tracer-117',
+        battleTag: 'Tracer-117',
         displayName: 'Tracer#117',
+        avatarUrl: 'https://static.playoverwatch.com/fake/profile.png',
+        lastUpdatedAt: new Date().toISOString(),
         gamesWon: 186,
         gamesPlayed: 312,
         winrate: 59.6,
         kda: 3.4,
         damage: 912340,
         healing: 128400,
+        dpsRating: 2844,
+        tankRating: 2712,
+        healsRating: 2905,
+        rankedMatches: buildRankedMatches(),
+      },
+    };
+  },
+
+  getOverwatchHistory: async (token, playerId) => {
+    await delay(220);
+
+    if (!token) {
+      return {
+        success: false,
+        message: 'Authentication token is required',
+      };
+    }
+
+    return {
+      success: true,
+      history: {
+        username: 'testuser',
+        playerId: playerId || 'Tracer-117',
+        battleTag: playerId || 'Tracer-117',
+        displayName: 'Tracer#117',
+        avatarUrl: 'https://static.playoverwatch.com/fake/profile.png',
+        lastUpdatedAt: new Date().toISOString(),
+        currentSeason: 'Season 16',
+        dpsRating: 2844,
+        tankRating: 2712,
+        healsRating: 2905,
+        dpsHistory: [
+          { label: 'Week 1', rating: 2760 },
+          { label: 'Week 2', rating: 2790 },
+          { label: 'Week 3', rating: 2815 },
+          { label: 'Week 4', rating: 2844 },
+        ],
+        tankHistory: [
+          { label: 'Week 1', rating: 2660 },
+          { label: 'Week 2', rating: 2685 },
+          { label: 'Week 3', rating: 2704 },
+          { label: 'Week 4', rating: 2712 },
+        ],
+        healsHistory: [
+          { label: 'Week 1', rating: 2820 },
+          { label: 'Week 2', rating: 2840 },
+          { label: 'Week 3', rating: 2875 },
+          { label: 'Week 4', rating: 2905 },
+        ],
+        rankedMatches: buildRankedMatches(),
       },
     };
   },
@@ -207,6 +290,9 @@ export const mockApi = {
           displayName: 'Tracer#117',
           gamesWon: 186,
           winrate: 59.6,
+          dpsRating: 2844,
+          tankRating: 2712,
+          healsRating: 2905,
         },
         {
           username: 'changmin',
@@ -214,6 +300,9 @@ export const mockApi = {
           displayName: 'Reinhardt#4242',
           gamesWon: 161,
           winrate: 57.2,
+          dpsRating: 2670,
+          tankRating: 2898,
+          healsRating: 2510,
         },
         {
           username: 'fitz',
@@ -221,6 +310,9 @@ export const mockApi = {
           displayName: 'Lucio#808',
           gamesWon: 144,
           winrate: 61.1,
+          dpsRating: 2722,
+          tankRating: 2584,
+          healsRating: 2944,
         },
       ],
     };
