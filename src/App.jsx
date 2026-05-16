@@ -13,6 +13,7 @@ import Register from './components/Register.jsx';
 import EditProfile from './components/EditProfile.jsx';
 import WebSocketButton from './components/WebSocketButton.jsx';
 import StatusDashboard from './components/StatusDashboard.jsx';
+import OverwatchTracker from './components/OverwatchTracker.jsx';
 
 function App() {
   const [greetingShown, setGreetingShown] = useState(false);
@@ -53,6 +54,7 @@ function App() {
             <Route index element={<Homepage />} />
             <Route path="/info" element={<InfoPanelContent />} />
             <Route path="/status" element={<StatusDashboard />} />
+            <Route path="/overwatch" element={<OverwatchTracker />} />
             <Route path="/websocket" element={<WebSocketButton />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
