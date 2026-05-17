@@ -344,47 +344,101 @@
   margin-bottom: 1rem;
 }
 
-.role-card {
+/* ─── Rank cards (replaces old role-card) ────────────────────────────────── */
+
+.rank-card {
   position: relative;
   overflow: hidden;
-  padding: 1rem;
+  padding: 1rem 1rem 1rem 1.25rem;
   border-radius: 12px;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.role-card::before {
-  content: '';
+.rank-card-bar {
   position: absolute;
   inset: 0 auto 0 0;
   width: 4px;
   border-radius: 2px 0 0 2px;
+  opacity: 0.85;
 }
 
-.role-card:has(.role-card-label[data-role='dps'])::before  { background: var(--ow-role-dps); }
-.role-card:has(.role-card-label[data-role='tank'])::before { background: var(--ow-role-tank); }
-.role-card:has(.role-card-label[data-role='heals'])::before { background: var(--ow-role-heals); }
-
-.role-card-label {
-  font-size: 0.76rem;
+.rank-card-role {
+  font-size: 0.74rem;
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.role-card strong {
-  margin-top: 0.5rem;
-  font-size: 1.6rem;
-  line-height: 1;
+.rank-badge {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 10px;
+  border: 1.5px solid transparent;
 }
 
-.role-card span {
-  margin-top: 0.2rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-transform: uppercase;
+.rank-badge-division {
+  font-size: 1.3rem;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.rank-badge-tier {
+  font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.04em;
+  opacity: 0.8;
+  text-transform: uppercase;
+}
+
+.rank-badge-unranked {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+.rank-badge-unranked strong {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* ─── Rank pills (leaderboard) ───────────────────────────────────────────── */
+
+.rank-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  border: 1.5px solid transparent;
+  font-size: 0.76rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ─── Rank legend badges ─────────────────────────────────────────────────── */
+
+.rank-legend-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1.5px solid transparent;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.rank-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 /* ─── Compact stat grid ──────────────────────────────────────────────────── */
@@ -433,10 +487,15 @@
 
 .history-chart {
   width: 100%;
-  min-height: 220px;
   border-radius: 10px;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+/* Rank chart: taller to accommodate 8 division bands */
+.rank-chart {
+  min-height: 260px;
 }
 
 .history-grid-line {

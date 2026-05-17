@@ -15,6 +15,34 @@ const ROLE_META = {
   heals: { label: 'Heals', color: '#10b981' },
 };
 
+const DIVISION_KEYS = ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'master', 'grandmaster', 'champion'];
+const DIVISION_META = {
+  bronze:      { label: 'Bronze',      color: '#c97a3a', bg: 'rgba(201,122,58,0.12)',   border: 'rgba(201,122,58,0.35)'  },
+  silver:      { label: 'Silver',      color: '#94a3b8', bg: 'rgba(148,163,184,0.1)',   border: 'rgba(148,163,184,0.35)' },
+  gold:        { label: 'Gold',        color: '#eab308', bg: 'rgba(234,179,8,0.1)',     border: 'rgba(234,179,8,0.35)'   },
+  platinum:    { label: 'Platinum',    color: '#22d3ee', bg: 'rgba(34,211,238,0.1)',    border: 'rgba(34,211,238,0.35)'  },
+  diamond:     { label: 'Diamond',     color: '#818cf8', bg: 'rgba(129,140,248,0.1)',   border: 'rgba(129,140,248,0.35)' },
+  master:      { label: 'Master',      color: '#c084fc', bg: 'rgba(192,132,252,0.12)',  border: 'rgba(192,132,252,0.4)'  },
+  grandmaster: { label: 'Grandmaster', color: '#fb923c', bg: 'rgba(251,146,60,0.12)',   border: 'rgba(251,146,60,0.4)'   },
+  champion:    { label: 'Champion',    color: '#f43f5e', bg: 'rgba(244,63,94,0.12)',    border: 'rgba(244,63,94,0.4)'    },
+};
+
+const divisionToStep = (division, tier) => {
+  if (!division) return null;
+  const idx = DIVISION_KEYS.indexOf(division.toLowerCase());
+  if (idx < 0) return null;
+  return idx * 5 + (5 - (tier || 5));
+};
+
+const formatRank = (division, tier) => {
+  if (!division) return 'Unranked';
+  const meta = DIVISION_META[division.toLowerCase()];
+  const label = meta ? meta.label : division.charAt(0).toUpperCase() + division.slice(1).toLowerCase();
+  return tier !== null && tier !== undefined ? `${label} ${tier}` : label;
+};
+
+const getDivMeta = (division) => (division ? DIVISION_META[division.toLowerCase()] : null);
+
 const numberFormatter = new Intl.NumberFormat();
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: 'short',
@@ -63,18 +91,25 @@ const getStat = (item, keys) => {
   return null;
 };
 
-const normalizeHistoryPoints = (points = [], fallbackRating = null) => {
+const normalizeHistoryPoints = (points = [], fallbackDivision = null, fallbackTier = null) => {
   const source = Array.isArray(points) ? points : [];
-  const normalized = source
-    .map((point, index) => ({
-      label: point?.label || point?.season || point?.date || point?.timestamp || `Point ${index + 1}`,
-      rating: toNumber(point?.rating ?? point?.sr ?? point?.value ?? fallbackRating),
-      recordedAt: point?.recordedAt || point?.recorded_at || point?.updatedAt || point?.updated_at || null,
-    }))
-    .filter((point) => point.rating !== null);
+  const fallbackStep = divisionToStep(fallbackDivision, fallbackTier);
 
-  if (normalized.length === 0 && fallbackRating !== null) {
-    return [{ label: 'Current', rating: fallbackRating, recordedAt: null }];
+  const normalized = source
+    .map((point, index) => {
+      const step = divisionToStep(point?.division, point?.tier) ?? divisionToStep(point?.division, point?.tier) ?? null;
+      return {
+        label: point?.label || point?.season || point?.date || point?.timestamp || `Point ${index + 1}`,
+        step,
+        division: point?.division || null,
+        tier: point?.tier || null,
+        recordedAt: point?.recordedAt || point?.recorded_at || null,
+      };
+    })
+    .filter((point) => point.step !== null);
+
+  if (normalized.length === 0 && fallbackStep !== null) {
+    return [{ label: 'Current', step: fallbackStep, division: fallbackDivision, tier: fallbackTier, recordedAt: null }];
   }
 
   return normalized;
@@ -102,29 +137,24 @@ const normalizeRankedMatches = (matches = []) => {
   });
 };
 
-const buildChartPoints = (series, width, height, padding) => {
-  const flattened = series.flatMap((entry) => entry.points.map((point) => point.rating));
-  if (flattened.length === 0) return null;
+// Step scale: 0 (Bronze 5) → 39 (Champion 1), Y_MIN/Y_MAX add half-step padding
+const STEP_Y_MIN = -0.5;
+const STEP_Y_MAX = 39.5;
 
-  let min = Math.min(...flattened);
-  let max = Math.max(...flattened);
-  if (min === max) {
-    min -= 50;
-    max += 50;
-  }
+const buildChartSeries = (series, width, height, padding) => {
+  const usableWidth = width - padding.left - padding.right;
+  const usableHeight = height - padding.top - padding.bottom;
+
+  const stepToY = (step) =>
+    padding.top + usableHeight * (1 - (step - STEP_Y_MIN) / (STEP_Y_MAX - STEP_Y_MIN));
 
   return series.map((entry) => {
-    const usableWidth = width - padding.left - padding.right;
-    const usableHeight = height - padding.top - padding.bottom;
     const count = Math.max(entry.points.length - 1, 1);
-
-    const points = entry.points.map((point, index) => {
-      const x = padding.left + (usableWidth * (entry.points.length === 1 ? 0.5 : index / count));
-      const yRatio = (point.rating - min) / (max - min);
-      const y = padding.top + (usableHeight * (1 - yRatio));
-      return { ...point, x, y };
-    });
-
+    const points = entry.points.map((point, index) => ({
+      ...point,
+      x: padding.left + usableWidth * (entry.points.length === 1 ? 0.5 : index / count),
+      y: stepToY(point.step),
+    }));
     return { ...entry, points };
   });
 };
@@ -144,88 +174,125 @@ function PlayerAvatar({ player, size = 'default' }) {
   );
 }
 
-function RoleCard({ role, value, subtitle }) {
-  const meta = ROLE_META[role];
+function RankCard({ role, division, tier }) {
+  const roleMeta = ROLE_META[role];
+  const divMeta = getDivMeta(division);
+
   return (
-    <div className="role-card">
-      <span className="role-card-label" data-role={role} style={{ color: meta.color }}>{meta.label}</span>
-      <strong>{formatNumber(value)}</strong>
-      {subtitle ? <span>{subtitle}</span> : null}
+    <div className="rank-card" data-role={role}>
+      <span className="rank-card-role" style={{ color: roleMeta.color }}>{roleMeta.label}</span>
+      {divMeta ? (
+        <div className="rank-badge" style={{ color: divMeta.color, background: divMeta.bg, borderColor: divMeta.border }}>
+          <strong className="rank-badge-division">{divMeta.label}</strong>
+          {tier !== null && tier !== undefined && (
+            <span className="rank-badge-tier">Tier {tier}</span>
+          )}
+        </div>
+      ) : (
+        <div className="rank-badge rank-badge-unranked">
+          <strong>Unranked</strong>
+        </div>
+      )}
+      <div className="rank-card-bar" style={{ background: roleMeta.color }} />
     </div>
   );
 }
 
-function HistoryChart({ history }) {
+function HistoryChart({ rankings }) {
   const width = 1000;
-  const height = 340;
-  const padding = { top: 28, right: 28, bottom: 36, left: 56 };
+  const height = 380;
+  const padding = { top: 20, right: 28, bottom: 36, left: 116 };
+  const usableWidth = width - padding.left - padding.right;
+  const usableHeight = height - padding.top - padding.bottom;
+
+  const stepToY = (step) =>
+    padding.top + usableHeight * (1 - (step - STEP_Y_MIN) / (STEP_Y_MAX - STEP_Y_MIN));
 
   const chartSeries = useMemo(() => {
-    const dpsPoints = normalizeHistoryPoints(history?.dpsHistory || history?.dps, history?.dpsRating);
-    const tankPoints = normalizeHistoryPoints(history?.tankHistory || history?.tank, history?.tankRating);
-    const healsPoints = normalizeHistoryPoints(history?.healsHistory || history?.heals, history?.healsRating);
+    const raw = [
+      { key: 'dps',   ...ROLE_META.dps,   points: normalizeHistoryPoints(rankings.dps?.history,   rankings.dps?.division,   rankings.dps?.tier)   },
+      { key: 'tank',  ...ROLE_META.tank,  points: normalizeHistoryPoints(rankings.tank?.history,  rankings.tank?.division,  rankings.tank?.tier)  },
+      { key: 'heals', ...ROLE_META.heals, points: normalizeHistoryPoints(rankings.heals?.history, rankings.heals?.division, rankings.heals?.tier) },
+    ].filter((s) => s.points.length > 0);
+    return buildChartSeries(raw, width, height, padding);
+  }, [rankings]);
 
-    return [
-      { key: 'dps', ...ROLE_META.dps, points: dpsPoints },
-      { key: 'tank', ...ROLE_META.tank, points: tankPoints },
-      { key: 'heals', ...ROLE_META.heals, points: healsPoints },
-    ];
-  }, [history]);
-
-  const chartPoints = useMemo(() => buildChartPoints(chartSeries, width, height, padding), [chartSeries]);
-
-  if (!chartPoints || chartPoints.every((entry) => entry.points.length === 0)) {
+  if (chartSeries.length === 0) {
     return (
       <div className="history-empty-state">
-        <p className="tracker-muted">No SR history data is available for this profile yet. Check back after playing ranked matches.</p>
+        <p className="tracker-muted">No rank data available. Link your BattleTag to load current competitive ranks.</p>
       </div>
     );
   }
 
-  const minValue = Math.min(...chartPoints.flatMap((entry) => entry.points.map((point) => point.rating)));
-  const maxValue = Math.max(...chartPoints.flatMap((entry) => entry.points.map((point) => point.rating)));
-  const axisSteps = 4;
-
   return (
     <div className="history-chart-wrap">
-      <svg className="history-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Line graph showing current season SR history for DPS, Tank, and Heals">
-        {Array.from({ length: axisSteps + 1 }).map((_, index) => {
-          const y = padding.top + ((height - padding.top - padding.bottom) * index) / axisSteps;
-          const value = Math.round(maxValue - ((maxValue - minValue) * index) / axisSteps);
+      <svg className="history-chart rank-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Competitive rank chart by role">
+
+        {/* Division background bands + y-axis labels */}
+        {DIVISION_KEYS.map((divKey, divIdx) => {
+          const meta = DIVISION_META[divKey];
+          const yTop    = stepToY(divIdx * 5 + 4.5);
+          const yBottom = stepToY(divIdx * 5 - 0.5);
+          const midY    = (yTop + yBottom) / 2;
           return (
-            <g key={`grid-${index}`}>
-              <line x1={padding.left} x2={width - padding.right} y1={y} y2={y} className="history-grid-line" />
-              <text x={padding.left - 10} y={y + 4} className="history-axis-label" textAnchor="end">
-                {value}
+            <g key={divKey}>
+              <rect x={padding.left} y={yTop} width={usableWidth} height={Math.max(yBottom - yTop, 0)} fill={meta.bg} />
+              <line x1={padding.left} x2={width - padding.right} y1={yTop} y2={yTop} stroke={meta.border} strokeWidth="0.75" />
+              <text x={padding.left - 8} y={midY + 4} textAnchor="end" fontSize="11" fontWeight="700" fill={meta.color}>
+                {meta.label}
               </text>
             </g>
           );
         })}
 
-        {chartPoints.map((entry) => {
-          const path = entry.points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+        {/* Bottom boundary line */}
+        <line x1={padding.left} x2={width - padding.right} y1={stepToY(-0.5)} y2={stepToY(-0.5)} stroke="var(--border-color)" strokeWidth="1" />
+
+        {/* Data lines */}
+        {chartSeries.map((entry) => {
+          if (entry.points.length < 2) return null;
+          const path = entry.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
           return (
-            <g key={entry.key}>
-              <path d={path} className={`history-line history-line-${entry.key}`} stroke={entry.color} />
-              {entry.points.map((point, index) => (
-                <g key={`${entry.key}-${index}`}>
-                  <circle cx={point.x} cy={point.y} r="5" className={`history-point history-point-${entry.key}`} fill={entry.color} />
-                  <title>{`${entry.label}: ${point.label} (${point.rating})`}</title>
-                </g>
-              ))}
-            </g>
+            <path key={`line-${entry.key}`} d={path} fill="none" stroke={entry.color} strokeWidth="3"
+              strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
           );
         })}
+
+        {/* Data points with division-coloured glow */}
+        {chartSeries.map((entry) =>
+          entry.points.map((point, index) => {
+            const dm = getDivMeta(point.division);
+            const dotColor = dm ? dm.color : entry.color;
+            return (
+              <g key={`${entry.key}-${index}`}>
+                <circle cx={point.x} cy={point.y} r="9" fill={dotColor} opacity="0.18" />
+                <circle cx={point.x} cy={point.y} r="5.5" fill={dotColor} stroke="var(--bg-secondary)" strokeWidth="2" />
+                <title>{`${entry.label}: ${formatRank(point.division, point.tier)}`}</title>
+              </g>
+            );
+          })
+        )}
       </svg>
 
-      <div className="history-legend">
-        {chartPoints.map((entry) => (
-          <div key={entry.key} className="history-legend-item">
-            <span className="history-legend-swatch" style={{ background: entry.color }} />
-            <strong>{entry.label}</strong>
-            <span>{entry.points.length} points</span>
-          </div>
-        ))}
+      <div className="history-legend rank-legend">
+        {chartSeries.map((entry) => {
+          const current = entry.points[entry.points.length - 1];
+          const dm = getDivMeta(current?.division);
+          return (
+            <div key={entry.key} className="history-legend-item rank-legend-item">
+              <span className="history-legend-swatch" style={{ background: entry.color }} />
+              <strong>{entry.label}</strong>
+              {dm ? (
+                <span className="rank-legend-badge" style={{ color: dm.color, background: dm.bg, borderColor: dm.border }}>
+                  {formatRank(current.division, current.tier)}
+                </span>
+              ) : (
+                <span className="tracker-muted">Unranked</span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -246,10 +313,10 @@ function OverwatchTracker() {
   const [error, setError] = useState('');
   const [showProfileDetails, setShowProfileDetails] = useState(false);
 
-  const currentRatings = useMemo(() => ({
-    dps: getStat(profile, ['dpsRating', 'dps_rating']),
-    tank: getStat(profile, ['tankRating', 'tank_rating']),
-    heals: getStat(profile, ['healsRating', 'heals_rating']),
+  const currentRankings = useMemo(() => ({
+    dps:   { division: profile?.dpsDivision,   tier: profile?.dpsTier,   history: [] },
+    tank:  { division: profile?.tankDivision,  tier: profile?.tankTier,  history: [] },
+    heals: { division: profile?.healsDivision, tier: profile?.healsTier, history: [] },
   }), [profile]);
 
   const rankedMatches = useMemo(
@@ -259,19 +326,19 @@ function OverwatchTracker() {
 
   const sortedLeaderboard = useMemo(() => {
     return [...leaderboard].sort((first, second) => {
-      const firstAverage = [
+      const firstRatings = [
         toNumber(getStat(first, ['dpsRating', 'dps_rating'])),
         toNumber(getStat(first, ['tankRating', 'tank_rating'])),
         toNumber(getStat(first, ['healsRating', 'heals_rating'])),
-      ].filter((value) => value !== null);
-      const secondAverage = [
+      ].filter((v) => v !== null);
+      const secondRatings = [
         toNumber(getStat(second, ['dpsRating', 'dps_rating'])),
         toNumber(getStat(second, ['tankRating', 'tank_rating'])),
         toNumber(getStat(second, ['healsRating', 'heals_rating'])),
-      ].filter((value) => value !== null);
+      ].filter((v) => v !== null);
 
-      const firstScore = firstAverage.length > 0 ? firstAverage.reduce((sum, value) => sum + value, 0) / firstAverage.length : Number(getStat(first, ['winrate', 'winRate', 'win_rate']) || 0);
-      const secondScore = secondAverage.length > 0 ? secondAverage.reduce((sum, value) => sum + value, 0) / secondAverage.length : Number(getStat(second, ['winrate', 'winRate', 'win_rate']) || 0);
+      const firstScore = firstRatings.length > 0 ? firstRatings.reduce((s, v) => s + v, 0) / firstRatings.length : Number(getStat(first, ['winrate', 'winRate', 'win_rate']) || 0);
+      const secondScore = secondRatings.length > 0 ? secondRatings.reduce((s, v) => s + v, 0) / secondRatings.length : Number(getStat(second, ['winrate', 'winRate', 'win_rate']) || 0);
 
       return secondScore - firstScore || Number(getStat(second, ['gamesWon', 'games_won']) || 0) - Number(getStat(first, ['gamesWon', 'games_won']) || 0);
     });
@@ -381,7 +448,7 @@ function OverwatchTracker() {
       <main className="overwatch-tracker">
         <section className="tracker-empty-state">
           <h1>Overwatch Tracker</h1>
-          <p>Log in to connect your Overwatch profile, chart your SR, and compare stats with the Fitz-Net server.</p>
+          <p>Log in to connect your Overwatch profile, chart your competitive rank, and compare with the Fitz-Net server.</p>
         </section>
       </main>
     );
@@ -509,7 +576,7 @@ function OverwatchTracker() {
           <div className="panel-header">
             <div>
               <h2>Your Overwatch stats</h2>
-              <p className="tracker-muted">Current season role SR and career stats for your linked profile.</p>
+              <p className="tracker-muted">Current season competitive rank and career stats for your linked profile.</p>
             </div>
             {history?.currentSeason ? <span className="season-pill">{history.currentSeason}</span> : null}
           </div>
@@ -519,9 +586,9 @@ function OverwatchTracker() {
           ) : profileLabel ? (
             <>
               <div className="role-card-grid">
-                <RoleCard role="dps" value={currentRatings.dps} subtitle="Current SR" />
-                <RoleCard role="tank" value={currentRatings.tank} subtitle="Current SR" />
-                <RoleCard role="heals" value={currentRatings.heals} subtitle="Current SR" />
+                <RankCard role="dps"   division={profile?.dpsDivision}   tier={profile?.dpsTier}   />
+                <RankCard role="tank"  division={profile?.tankDivision}  tier={profile?.tankTier}  />
+                <RankCard role="heals" division={profile?.healsDivision} tier={profile?.healsTier} />
               </div>
 
               <div className="stat-grid compact">
@@ -545,10 +612,10 @@ function OverwatchTracker() {
 
               <div className="chart-panel">
                 <div className="panel-copy">
-                  <h3>Current season SR history</h3>
-                  <p>Role SR over time for DPS, Tank, and Heals.</p>
+                  <h3>Competitive rank history</h3>
+                  <p>Role rank progression for DPS, Tank, and Heals.</p>
                 </div>
-                <HistoryChart history={{ ...history, ...currentRatings }} />
+                <HistoryChart rankings={currentRankings} />
               </div>
 
               <div className="ranked-match-panel">
@@ -577,7 +644,7 @@ function OverwatchTracker() {
               </div>
             </>
           ) : (
-            <p className="tracker-muted">Link a BattleTag to view your SR cards and season history graph.</p>
+            <p className="tracker-muted">Link a BattleTag to view your rank cards and season history graph.</p>
           )}
         </article>
 
@@ -585,7 +652,7 @@ function OverwatchTracker() {
           <div className="leaderboard-heading">
             <div>
               <h2>Server top users</h2>
-              <p className="tracker-muted">Ranked by average role SR, then wins and winrate.</p>
+              <p className="tracker-muted">Ranked by average role rating, then wins and winrate.</p>
             </div>
             <span>{sortedLeaderboard.length} linked</span>
           </div>
@@ -604,9 +671,18 @@ function OverwatchTracker() {
                       <span>{battleTag}</span>
                     </div>
                     <div className="leaderboard-roles">
-                      <span>DPS {formatNumber(getStat(player, ['dpsRating', 'dps_rating']))}</span>
-                      <span>Tank {formatNumber(getStat(player, ['tankRating', 'tank_rating']))}</span>
-                      <span>Heals {formatNumber(getStat(player, ['healsRating', 'heals_rating']))}</span>
+                      {[
+                        { role: 'dps',   division: getStat(player, ['dpsDivision']),   tier: getStat(player, ['dpsTier'])   },
+                        { role: 'tank',  division: getStat(player, ['tankDivision']),  tier: getStat(player, ['tankTier'])  },
+                        { role: 'heals', division: getStat(player, ['healsDivision']), tier: getStat(player, ['healsTier']) },
+                      ].filter((r) => r.division).map((r) => {
+                        const dm = getDivMeta(r.division);
+                        return (
+                          <span key={r.role} className="rank-pill" style={dm ? { color: dm.color, background: dm.bg, borderColor: dm.border } : {}}>
+                            {ROLE_META[r.role]?.label} · {formatRank(r.division, r.tier)}
+                          </span>
+                        );
+                      })}
                     </div>
                     <div className="leaderboard-stat">
                       <strong>{formatNumber(getStat(player, ['gamesWon', 'games_won']))}</strong>
