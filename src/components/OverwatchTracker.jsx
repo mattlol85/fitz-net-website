@@ -15,6 +15,7 @@ import LeaderboardPanel from './overwatch/LeaderboardPanel';
 import ProfilePanel from './overwatch/ProfilePanel';
 import SeasonProgressionChart from './overwatch/SeasonProgressionChart';
 import RoleHistoryChart from './overwatch/RoleHistoryChart';
+import HeroWinRateChart from './overwatch/HeroWinRateChart';
 
 function OverwatchTracker() {
   const { token, isAuthenticated } = useAuth();
@@ -322,13 +323,18 @@ function OverwatchTracker() {
 
           <section className="tracker-panel chart-panel-section">
             <div className="panel-copy">
-              <h2>Role SR history</h2>
-              <p>Historical SR per role, sorted by current rank.</p>
+              <h2>Top hero win rates</h2>
+              <p>Day-by-day win rate for your 3 most-played heroes in competitive.</p>
             </div>
             <div className="role-chart-grid">
-              {rankedRoles.map((role) => (
-                <RoleHistoryChart key={role.key} role={role} />
+              {(history?.topHeroHistories ?? []).map((hero, i) => (
+                <HeroWinRateChart key={hero.heroKey} hero={hero} index={i} />
               ))}
+              {(!history?.topHeroHistories || history.topHeroHistories.length === 0) && (
+                <p className="tracker-muted" style={{ gridColumn: '1 / -1', padding: '1rem 0' }}>
+                  No hero history yet — data will appear after the first background refresh.
+                </p>
+              )}
             </div>
           </section>
         </>

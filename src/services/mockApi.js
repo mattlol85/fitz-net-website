@@ -304,6 +304,47 @@ export const mockApi = {
           { label: 'Season 15', rating: 2860 },
           { label: 'Season 16', rating: 2905 },
         ],
+        topHeroHistories: [
+          {
+            heroKey: 'mercy',
+            heroName: 'Mercy',
+            history: [
+              { label: 'Apr 28', winRate: 55 },
+              { label: 'May 2',  winRate: 60 },
+              { label: 'May 5',  winRate: 57 },
+              { label: 'May 8',  winRate: 62 },
+              { label: 'May 11', winRate: 58 },
+              { label: 'May 14', winRate: 56 },
+              { label: 'May 17', winRate: 56.25 },
+            ],
+          },
+          {
+            heroKey: 'moira',
+            heroName: 'Moira',
+            history: [
+              { label: 'Apr 28', winRate: 40 },
+              { label: 'May 2',  winRate: 33 },
+              { label: 'May 5',  winRate: 28 },
+              { label: 'May 8',  winRate: 30 },
+              { label: 'May 11', winRate: 27 },
+              { label: 'May 14', winRate: 25 },
+              { label: 'May 17', winRate: 33.33 },
+            ],
+          },
+          {
+            heroKey: 'kiriko',
+            heroName: 'Kiriko',
+            history: [
+              { label: 'Apr 28', winRate: 20 },
+              { label: 'May 2',  winRate: 0 },
+              { label: 'May 5',  winRate: 0 },
+              { label: 'May 8',  winRate: 10 },
+              { label: 'May 11', winRate: 0 },
+              { label: 'May 14', winRate: 0 },
+              { label: 'May 17', winRate: 0 },
+            ],
+          },
+        ],
         rankedMatches: buildRankedMatches(),
       },
     };
