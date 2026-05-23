@@ -1,0 +1,158 @@
+/* ── LiveBoard canvas ─────────────────────────────────────────────────────── */
+
+.liveboard-canvas {
+  position: fixed;
+  top: 60px; /* navbar height */
+  left: 0;
+  width: 100vw;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+  background-color: var(--bg-primary);
+  cursor: crosshair;
+  user-select: none;
+}
+
+/* ── Gate (unauthenticated) ─────────────────────────────────────────────────── */
+
+.liveboard-gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 60px);
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+.liveboard-gate a {
+  color: var(--link-hover);
+}
+
+/* ── Hint overlay ───────────────────────────────────────────────────────────── */
+
+.liveboard-hint {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  opacity: 0.5;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* ── Cursor ─────────────────────────────────────────────────────────────────── */
+
+.live-cursor {
+  position: absolute;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  pointer-events: none;
+  z-index: 10;
+  transition: left 80ms linear, top 80ms linear;
+}
+
+.live-cursor__icon {
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px var(--shadow-color));
+}
+
+.live-cursor__label {
+  display: inline-block;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 4px var(--shadow-color);
+  margin-top: 2px;
+}
+
+/* ── Board message bubble ───────────────────────────────────────────────────── */
+
+@keyframes board-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.board-message {
+  position: absolute;
+  max-width: 280px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 10px;
+  box-shadow: 0 2px 8px var(--shadow-color);
+  pointer-events: none;
+  z-index: 5;
+  transform: translate(-50%, -50%);
+}
+
+.board-message__author {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.board-message__content {
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.board-message__content p {
+  margin: 0 0 4px 0;
+}
+
+.board-message__content p:last-child {
+  margin-bottom: 0;
+}
+
+.board-message__content a {
+  color: var(--link-hover);
+  text-decoration: underline;
+}
+
+.board-message__content strong {
+  font-weight: 700;
+}
+
+.board-message__content em {
+  font-style: italic;
+}
+
+/* ── Compose textarea ───────────────────────────────────────────────────────── */
+
+.liveboard-compose {
+  position: absolute;
+  width: 260px;
+  min-height: 72px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--link-hover);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  box-shadow: 0 4px 16px var(--shadow-color);
+  z-index: 20;
+  transform: translate(-50%, -50%);
+}
+
+.liveboard-compose::placeholder {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+

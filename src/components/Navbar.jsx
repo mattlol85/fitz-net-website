@@ -34,6 +34,9 @@ function Navbar({ theme, toggleTheme }) {
               <Link to="/overwatch">Overwatch Tracker</Link>
             </li>
             <li>
+              <Link to="/liveboard">Live Board</Link>
+            </li>
+            <li>
               <Link to="/websocket">WebSocket</Link>
             </li>
           </>
