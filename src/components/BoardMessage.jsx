@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { FADE_DURATION_MS } from '../services/liveBoardService';
@@ -6,12 +6,14 @@ import '../css/LiveBoard.css';
 
 /**
  * A single message pinned to board coordinates.
- * Computes the remaining fade duration from postedAt so late-joiners see
- * the correct remaining lifetime rather than the full duration.
+ * Computes the remaining fade duration from postedAt ONCE on mount (via useRef)
+ * so re-renders (e.g. new messages arriving) never reset the fade or timer bar.
  */
 function BoardMessage({ id, username, xRatio, yRatio, content, postedAt, onExpire }) {
-  const elapsed = Date.now() - new Date(postedAt).getTime();
-  const remaining = FADE_DURATION_MS - elapsed;
+  // Stable: computed once on mount, never recalculated on re-render
+  const remaining = useRef(
+    FADE_DURATION_MS - (Date.now() - new Date(postedAt).getTime())
+  ).current;
 
   const [visible, setVisible] = useState(remaining > 0);
 
@@ -25,7 +27,8 @@ function BoardMessage({ id, username, xRatio, yRatio, content, postedAt, onExpir
       onExpire?.(id);
     }, remaining);
     return () => clearTimeout(timer);
-  }, [id, remaining, onExpire]);
+  // remaining is now stable (ref), so this effect only runs once per mount
+  }, [id, onExpire]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!visible) return null;
 
@@ -58,12 +61,14 @@ function BoardMessage({ id, username, xRatio, yRatio, content, postedAt, onExpir
           {content}
         </ReactMarkdown>
       </div>
+      {/* Lifetime indicator: depletes left-to-right in sync with the fade */}
+      <div
+        className="board-message__timer"
+        style={{ animationDuration: `${remaining}ms` }}
+        aria-hidden="true"
+      />
     </div>
   );
 }
 
 export default BoardMessage;
-
-
-
-

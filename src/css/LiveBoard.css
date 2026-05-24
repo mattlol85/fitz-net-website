@@ -110,13 +110,33 @@
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  padding: 10px 14px;
+  padding: 10px 14px 14px;
   box-shadow:
     0 8px 32px var(--shadow-color),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
   pointer-events: none;
   z-index: 5;
   transform: translate(-50%, -50%);
+  overflow: hidden;
+}
+
+/* ── Lifetime timer bar ──────────────────────────────────────────────────── */
+
+@keyframes timer-deplete {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+.board-message__timer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--link-hover);
+  transform-origin: left center;
+  animation: timer-deplete linear forwards;
+  opacity: 0.55;
 }
 
 .board-message__author {
@@ -221,3 +241,4 @@
   animation: board-ripple 700ms ease-out forwards;
   z-index: 15;
 }
+
