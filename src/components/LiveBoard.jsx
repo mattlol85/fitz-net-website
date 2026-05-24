@@ -15,8 +15,6 @@ import LiveCursor from './LiveCursor';
 import BoardMessage from './BoardMessage';
 import '../css/LiveBoard.css';
 
-const NAVBAR_HEIGHT = 60; // px  (matches --navbar-height in index.css)
-
 function LiveBoard() {
   const { user, token, isAuthenticated } = useAuth();
   const canvasRef = useRef(null);
@@ -193,4 +191,5 @@ function LiveBoard() {
 }
 
 export default LiveBoard;
+
 

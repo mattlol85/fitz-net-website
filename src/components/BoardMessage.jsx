@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { FADE_DURATION_MS } from '../services/liveBoardService';
@@ -14,7 +14,6 @@ function BoardMessage({ id, username, xRatio, yRatio, content, postedAt, onExpir
   const remaining = FADE_DURATION_MS - elapsed;
 
   const [visible, setVisible] = useState(remaining > 0);
-  const ref = useRef(null);
 
   useEffect(() => {
     if (remaining <= 0) {
@@ -39,7 +38,6 @@ function BoardMessage({ id, username, xRatio, yRatio, content, postedAt, onExpir
 
   return (
     <div
-      ref={ref}
       className="board-message"
       style={style}
       data-testid="board-message"
@@ -65,4 +63,7 @@ function BoardMessage({ id, username, xRatio, yRatio, content, postedAt, onExpir
 }
 
 export default BoardMessage;
+
+
+
 

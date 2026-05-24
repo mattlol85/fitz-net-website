@@ -2,10 +2,10 @@
 
 .liveboard-canvas {
   position: fixed;
-  top: 60px; /* navbar height */
+  top: var(--navbar-height);
   left: 0;
   width: 100vw;
-  height: calc(100vh - 60px);
+  height: calc(100vh - var(--navbar-height));
   overflow: hidden;
   background-color: var(--bg-primary);
   cursor: crosshair;
@@ -18,7 +18,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: calc(100vh - 60px);
+  height: calc(100vh - var(--navbar-height));
   color: var(--text-secondary);
   font-size: 1.1rem;
 }
@@ -121,6 +121,8 @@
 .board-message__content a {
   color: var(--link-hover);
   text-decoration: underline;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .board-message__content strong {
@@ -155,4 +157,7 @@
   color: var(--text-secondary);
   font-size: 0.75rem;
 }
+
+
+
 

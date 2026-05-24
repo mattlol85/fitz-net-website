@@ -38,8 +38,19 @@ function buildWsUrl() {
 
 // ── Mock ──────────────────────────────────────────────────────────────────────
 let mockActive = false;
+let mockToken = null;
 
-function mockInit() {
+function _decodeMockUsername(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.sub || 'you';
+  } catch (_) {
+    return 'you';
+  }
+}
+
+function mockInit(token) {
+  mockToken = token || null;
   if (mockActive) return;
   mockActive = true;
   setTimeout(() => _emit('cursors', { username: 'ghost_user', xRatio: 0.38, yRatio: 0.42 }), 600);
@@ -50,7 +61,19 @@ function mockInit() {
   }), 1200);
 }
 
-function mockDisconnect() { mockActive = false; }
+function mockSendMessage(xRatio, yRatio, content) {
+  const username = mockToken ? _decodeMockUsername(mockToken) : 'you';
+  _emit('messages', {
+    id: `mock-${Date.now()}`,
+    username,
+    xRatio,
+    yRatio,
+    content,
+    postedAt: new Date().toISOString(),
+  });
+}
+
+function mockDisconnect() { mockActive = false; mockToken = null; }
 
 // ── Real STOMP ────────────────────────────────────────────────────────────────
 function realInit(token) {
@@ -89,13 +112,15 @@ function realSendMessage(xRatio, yRatio, content) {
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
-export function init(token)                    { USE_MOCK ? mockInit()                        : realInit(token); }
-export function disconnect()                   { USE_MOCK ? mockDisconnect()                  : realDisconnect(); }
+export function init(token)                    { USE_MOCK ? mockInit(token)                        : realInit(token); }
+export function disconnect()                   { USE_MOCK ? mockDisconnect()                        : realDisconnect(); }
 export function sendCursor(xRatio, yRatio)     { if (!USE_MOCK) realSendCursor(xRatio, yRatio); }
-export function sendMessage(xRatio, yRatio, c) { if (!USE_MOCK) realSendMessage(xRatio, yRatio, c); }
+export function sendMessage(xRatio, yRatio, c) { USE_MOCK ? mockSendMessage(xRatio, yRatio, c)      : realSendMessage(xRatio, yRatio, c); }
 
 export const subscribeCursors      = (cb) => _subscribe('cursors', cb);
 export const subscribeMessages     = (cb) => _subscribe('messages', cb);
 export const subscribeCursorRemove = (cb) => _subscribe('cursorRemove', cb);
 export const subscribeCleared      = (cb) => _subscribe('cleared', cb);
 export const subscribeBoardState   = (cb) => _subscribe('boardState', cb);
+
+
