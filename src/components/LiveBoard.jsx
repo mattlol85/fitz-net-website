@@ -19,14 +19,10 @@ function LiveBoard() {
   const { user, token, isAuthenticated } = useAuth();
   const canvasRef = useRef(null);
 
-  // Other users' cursors: { [username]: { xRatio, yRatio } }
   const [cursors, setCursors] = useState({});
-
-  // Board messages: [{ id, username, xRatio, yRatio, content, postedAt }]
   const [messages, setMessages] = useState([]);
-
-  // Compose input state: null | { xRatio, yRatio, clientX, clientY }
   const [compose, setCompose] = useState(null);
+  const [ripples, setRipples] = useState([]);
   const composeRef = useRef(null);
 
   // ── RAF-throttled cursor send ────────────────────────────────────────────
@@ -49,12 +45,26 @@ function LiveBoard() {
     }
   }, []);
 
-  // ── Double-click → open compose input ───────────────────────────────────
-  const handleDoubleClick = useCallback((e) => {
+  // ── Left-click → ripple ──────────────────────────────────────────────────
+  const handleClick = useCallback((e) => {
     if (!canvasRef.current) return;
-    // Ignore if clicking inside the compose area itself
     if (composeRef.current && composeRef.current.contains(e.target)) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const id = `${Date.now()}-${Math.random()}`;
+    setRipples(prev => [...prev, { id, x, y }]);
+  }, []);
 
+  const removeRipple = useCallback((id) => {
+    setRipples(prev => prev.filter(r => r.id !== id));
+  }, []);
+
+  // ── Right-click → open compose input ────────────────────────────────────
+  const handleContextMenu = useCallback((e) => {
+    e.preventDefault();
+    if (!canvasRef.current) return;
+    if (composeRef.current && composeRef.current.contains(e.target)) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const xRatio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
     const yRatio = Math.min(Math.max((e.clientY - rect.top) / rect.height, 0), 1);
@@ -83,7 +93,6 @@ function LiveBoard() {
     setCompose(null);
   }, []);
 
-  // Focus compose textarea when it mounts
   useEffect(() => {
     if (compose && composeRef.current) {
       composeRef.current.focus();
@@ -102,7 +111,7 @@ function LiveBoard() {
     init(token);
 
     const unsubCursors = subscribeCursors(({ username, xRatio, yRatio }) => {
-      if (username === user?.username) return; // don't render own cursor
+      if (username === user?.username) return;
       setCursors(prev => ({ ...prev, [username]: { xRatio, yRatio } }));
     });
 
@@ -152,11 +161,27 @@ function LiveBoard() {
       ref={canvasRef}
       className="liveboard-canvas"
       onMouseMove={handleMouseMove}
-      onDoubleClick={handleDoubleClick}
+      onClick={handleClick}
+      onContextMenu={handleContextMenu}
       data-testid="liveboard-canvas"
     >
       {/* Hint overlay */}
-      <div className="liveboard-hint">Double-click anywhere to leave a message</div>
+      <div className="liveboard-hint">
+        <span>Click for a ripple</span>
+        <span className="liveboard-hint__sep" />
+        <span>Right-click to leave a message</span>
+      </div>
+
+      {/* Ripples */}
+      {ripples.map(({ id, x, y }) => (
+        <div
+          key={id}
+          className="board-ripple"
+          style={{ left: x, top: y }}
+          onAnimationEnd={() => removeRipple(id)}
+          data-testid="board-ripple"
+        />
+      ))}
 
       {/* Other users' cursors */}
       {Object.entries(cursors).map(([username, { xRatio, yRatio }]) => (
@@ -191,5 +216,3 @@ function LiveBoard() {
 }
 
 export default LiveBoard;
-
-

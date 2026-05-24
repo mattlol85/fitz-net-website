@@ -74,15 +74,15 @@ describe('LiveBoard', () => {
 
   test('shows hint text', () => {
     renderBoard();
-    expect(screen.getByText(/Double-click anywhere/i)).toBeInTheDocument();
+    expect(screen.getByText(/Right-click to leave a message/i)).toBeInTheDocument();
+    expect(screen.getByText(/Click for a ripple/i)).toBeInTheDocument();
   });
 
-  test('double-click opens compose textarea at that position', () => {
+  test('right-click opens compose textarea at that position', () => {
     renderBoard();
     const canvas = screen.getByTestId('liveboard-canvas');
-    // Mock getBoundingClientRect
     canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
-    fireEvent.dblClick(canvas, { clientX: 300, clientY: 150 });
+    fireEvent.contextMenu(canvas, { clientX: 300, clientY: 150 });
     expect(screen.getByTestId('liveboard-compose')).toBeInTheDocument();
   });
 
@@ -90,7 +90,7 @@ describe('LiveBoard', () => {
     renderBoard();
     const canvas = screen.getByTestId('liveboard-canvas');
     canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
-    fireEvent.dblClick(canvas, { clientX: 300, clientY: 150 });
+    fireEvent.contextMenu(canvas, { clientX: 300, clientY: 150 });
 
     const textarea = screen.getByTestId('liveboard-compose');
     fireEvent.keyDown(textarea, { key: 'Escape' });
@@ -103,7 +103,7 @@ describe('LiveBoard', () => {
     renderBoard();
     const canvas = screen.getByTestId('liveboard-canvas');
     canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
-    fireEvent.dblClick(canvas, { clientX: 500, clientY: 300 });
+    fireEvent.contextMenu(canvas, { clientX: 500, clientY: 300 });
 
     const textarea = screen.getByTestId('liveboard-compose');
     fireEvent.change(textarea, { target: { value: 'hello board' } });
@@ -117,13 +117,21 @@ describe('LiveBoard', () => {
     renderBoard();
     const canvas = screen.getByTestId('liveboard-canvas');
     canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
-    fireEvent.dblClick(canvas, { clientX: 100, clientY: 100 });
+    fireEvent.contextMenu(canvas, { clientX: 100, clientY: 100 });
 
     const textarea = screen.getByTestId('liveboard-compose');
     fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true });
 
     expect(screen.getByTestId('liveboard-compose')).toBeInTheDocument();
     expect(mockSendMessage).not.toHaveBeenCalled();
+  });
+
+  test('left-click creates a ripple element', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    fireEvent.click(canvas, { clientX: 200, clientY: 200 });
+    expect(screen.getByTestId('board-ripple')).toBeInTheDocument();
   });
 
   test('incoming cursor event renders LiveCursor (not own username)', () => {
@@ -197,4 +205,3 @@ describe('LiveBoard', () => {
     expect(screen.getByText('pre-existing')).toBeInTheDocument();
   });
 });
-
