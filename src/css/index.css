@@ -1,4 +1,7 @@
 :root {
+  /* Layout */
+  --navbar-height: 60px;
+
   /* Light theme colors */
   --bg-primary: #ffffff;
   --bg-secondary: #f8f9fa;
