@@ -228,7 +228,7 @@ function OverwatchTracker() {
           <div>
             <div className="panel-copy">
               <h2>Link your BattleTag</h2>
-              <p>Use a BattleTag like Name-1234 or Name#1234. Weâ€™ll store it in your profile and fetch current SR plus history.</p>
+              <p>Use a BattleTag like Name-1234 or Name#1234. We'll store it in your profile and fetch current SR plus history.</p>
             </div>
             <form
               className="tracker-search compact"
