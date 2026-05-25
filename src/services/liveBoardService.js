@@ -53,7 +53,7 @@ function mockInit(token) {
   mockToken = token || null;
   if (mockActive) return;
   mockActive = true;
-  setTimeout(() => _emit('cursors', { username: 'ghost_user', xRatio: 0.38, yRatio: 0.42 }), 600);
+  setTimeout(() => _emit('cursors', { username: 'ghost_user', xRatio: 0.38, yRatio: 0.42, color: 'hsl(160,72%,50%)', painting: false }), 600);
   setTimeout(() => _emit('messages', {
     id: 'mock-1', username: 'ghost_user', xRatio: 0.38, yRatio: 0.47,
     content: '**Mock mode** — Live Board without a backend.\n\nTry [fitznet.org](https://fitznet.org)',
@@ -101,9 +101,9 @@ function realDisconnect() {
   stompClient = null;
 }
 
-function realSendCursor(xRatio, yRatio) {
+function realSendCursor(xRatio, yRatio, painting = false, color = '') {
   if (!stompClient?.active) return;
-  stompClient.publish({ destination: '/app/board/cursor', body: JSON.stringify({ xRatio, yRatio }) });
+  stompClient.publish({ destination: '/app/board/cursor', body: JSON.stringify({ xRatio, yRatio, painting, color }) });
 }
 
 function realSendMessage(xRatio, yRatio, content) {
@@ -114,7 +114,11 @@ function realSendMessage(xRatio, yRatio, content) {
 // ── Public API ────────────────────────────────────────────────────────────────
 export function init(token)                    { USE_MOCK ? mockInit(token)                        : realInit(token); }
 export function disconnect()                   { USE_MOCK ? mockDisconnect()                        : realDisconnect(); }
-export function sendCursor(xRatio, yRatio)     { if (!USE_MOCK) realSendCursor(xRatio, yRatio); }
+// In mock mode, sendCursor is intentionally a no-op: the real backend broadcasts
+// cursors to all OTHER subscribers, so the own user's cursor is always filtered by
+// subscribeCursors anyway. Showing own paint trails locally would require a separate
+// render path and is not part of the current feature scope.
+export function sendCursor(xRatio, yRatio, painting = false, color = '') { if (!USE_MOCK) realSendCursor(xRatio, yRatio, painting, color); }
 export function sendMessage(xRatio, yRatio, c) { USE_MOCK ? mockSendMessage(xRatio, yRatio, c)      : realSendMessage(xRatio, yRatio, c); }
 
 export const subscribeCursors      = (cb) => _subscribe('cursors', cb);

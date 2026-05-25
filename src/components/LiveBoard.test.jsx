@@ -1,12 +1,61 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { describe, test, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import LiveBoard from './LiveBoard';
 
+// ── Global stubs needed by LiveBoard ─────────────────────────────────────────
+
+beforeAll(() => {
+  // jsdom's HTMLCanvasElement.width/height getters trigger custom-element
+  // reactions that cause a stack-overflow. Override them with simple storage.
+  // NOTE: this override is global across all test files in the suite.
+  Object.defineProperty(HTMLCanvasElement.prototype, 'width', {
+    get() { return this._w || 0; },
+    set(v) { this._w = v; },
+    configurable: true,
+  });
+  Object.defineProperty(HTMLCanvasElement.prototype, 'height', {
+    get() { return this._h || 0; },
+    set(v) { this._h = v; },
+    configurable: true,
+  });
+
+  // jsdom does not implement canvas context
+  HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
+    clearRect: vi.fn(),
+    beginPath: vi.fn(),
+    arc:       vi.fn(),
+    fill:      vi.fn(),
+    get globalAlpha() { return 1; },
+    set globalAlpha(_) {},
+    get fillStyle() { return ''; },
+    set fillStyle(_) {},
+  }));
+
+  // jsdom does not implement ResizeObserver
+  global.ResizeObserver = vi.fn(function ResizeObserver() {
+    return { observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() };
+  });
+
+  // Depth-limited RAF: executes the callback only at the top level (depth 0).
+  // This allows single-shot work (e.g. sendCursor throttle) while preventing
+  // the recursive draw loop from causing a stack overflow.
+  let rafDepth = 0;
+  vi.stubGlobal('requestAnimationFrame', vi.fn((cb) => {
+    if (rafDepth === 0) {
+      rafDepth++;
+      try { cb(); } catch (_) {}
+      rafDepth--;
+    }
+    return 0;
+  }));
+  vi.stubGlobal('cancelAnimationFrame', vi.fn());
+});
+
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
-const mockInit = vi.fn();
+const mockInit       = vi.fn();
 const mockDisconnect = vi.fn();
 const mockSendCursor = vi.fn();
 const mockSendMessage = vi.fn();
@@ -21,9 +70,9 @@ function mockSubscribe(event) {
 
 vi.mock('../services/liveBoardService', () => ({
   FADE_DURATION_MS: 90_000,
-  init: (...args) => mockInit(...args),
-  disconnect: () => mockDisconnect(),
-  sendCursor: (...args) => mockSendCursor(...args),
+  init:        (...args) => mockInit(...args),
+  disconnect:  () => mockDisconnect(),
+  sendCursor:  (...args) => mockSendCursor(...args),
   sendMessage: (...args) => mockSendMessage(...args),
   subscribeCursors:      mockSubscribe('cursors'),
   subscribeMessages:     mockSubscribe('messages'),
@@ -34,7 +83,7 @@ vi.mock('../services/liveBoardService', () => ({
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({
-    user: { username: 'testuser' },
+    user: { username: 'testuser', boardColor: 'hsl(340,72%,50%)' },
     token: 'test-token',
     isAuthenticated: () => true,
   }),
@@ -76,6 +125,7 @@ describe('LiveBoard', () => {
     renderBoard();
     expect(screen.getByText(/Right-click to leave a message/i)).toBeInTheDocument();
     expect(screen.getByText(/Click for a ripple/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hold to paint/i)).toBeInTheDocument();
   });
 
   test('right-click opens compose textarea at that position', () => {
@@ -137,18 +187,98 @@ describe('LiveBoard', () => {
   test('incoming cursor event renders LiveCursor (not own username)', () => {
     renderBoard();
     act(() => {
-      _handlers['cursors']?.({ username: 'otheruser', xRatio: 0.2, yRatio: 0.3 });
+      _handlers['cursors']?.({ username: 'otheruser', xRatio: 0.2, yRatio: 0.3, color: 'hsl(120,72%,50%)', painting: false });
     });
     expect(screen.getByText('otheruser')).toBeInTheDocument();
+  });
+
+  test('incoming cursor passes color to LiveCursor', () => {
+    renderBoard();
+    act(() => {
+      _handlers['cursors']?.({ username: 'coloreduser', xRatio: 0.5, yRatio: 0.5, color: 'hsl(200,72%,50%)', painting: false });
+    });
+    // The label background must reflect the user's board color.
+    // jsdom normalizes hsl() → rgb() when assigned to element.style.
+    const label = screen.getByTestId('live-cursor-label');
+    expect(label).toBeInTheDocument();
+    expect(label.style.background).toBe('rgb(36, 158, 219)'); // hsl(200,72%,50%)
   });
 
   test('own username cursor is NOT rendered', () => {
     renderBoard();
     act(() => {
-      _handlers['cursors']?.({ username: 'testuser', xRatio: 0.5, yRatio: 0.5 });
+      _handlers['cursors']?.({ username: 'testuser', xRatio: 0.5, yRatio: 0.5, color: 'hsl(340,72%,50%)', painting: false });
     });
-    // 'testuser' should not appear as a cursor label
     expect(screen.queryByTestId('live-cursor')).not.toBeInTheDocument();
+  });
+
+  test('incoming painting=true cursor creates a paint dot', () => {
+    renderBoard();
+    act(() => {
+      _handlers['cursors']?.({ username: 'painter', xRatio: 0.4, yRatio: 0.4, color: 'hsl(60,72%,50%)', painting: true });
+    });
+    expect(screen.getByTestId('paint-dot')).toBeInTheDocument();
+  });
+
+  test('incoming painting=false cursor does NOT create a paint dot', () => {
+    renderBoard();
+    act(() => {
+      _handlers['cursors']?.({ username: 'mover', xRatio: 0.4, yRatio: 0.4, color: 'hsl(60,72%,50%)', painting: false });
+    });
+    expect(screen.queryByTestId('paint-dot')).not.toBeInTheDocument();
+  });
+
+  test('paint dot has color applied via background style', () => {
+    renderBoard();
+    act(() => {
+      _handlers['cursors']?.({ username: 'dotpainter', xRatio: 0.3, yRatio: 0.6, color: 'hsl(300,72%,50%)', painting: true });
+    });
+    const dot = screen.getByTestId('paint-dot');
+    expect(dot.style.background).toBeTruthy();
+    // NOTE: onAnimationEnd-based cleanup (removePaintDot) is not tested here
+    // because jsdom does not run CSS animations.
+  });
+
+  test('sendCursor is called with painting=false when mouse is just moving', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    fireEvent.mouseMove(canvas, { clientX: 300, clientY: 200 });
+    // painting=false when mouse is up (default)
+    expect(mockSendCursor).toHaveBeenCalledWith(0.3, expect.any(Number), false, 'hsl(340,72%,50%)');
+  });
+
+  test('sendCursor is called with painting=true when mouse is held down', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    fireEvent.mouseDown(canvas);
+    fireEvent.mouseMove(canvas, { clientX: 400, clientY: 300 });
+    expect(mockSendCursor).toHaveBeenCalledWith(0.4, 0.5, true, 'hsl(340,72%,50%)');
+  });
+
+  test('sendCursor includes user boardColor', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    fireEvent.mouseMove(canvas, { clientX: 100, clientY: 100 });
+    const calls = mockSendCursor.mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    // 4th argument is the color
+    expect(calls[calls.length - 1][3]).toBe('hsl(340,72%,50%)');
+  });
+
+  test('sparkle appears when cursors are in close proximity', () => {
+    renderBoard();
+    // Place another cursor at a known position
+    act(() => {
+      _handlers['cursors']?.({ username: 'nearby', xRatio: 0.5, yRatio: 0.5, color: 'hsl(120,72%,50%)', painting: false });
+    });
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    // Move own cursor very close to 'nearby' cursor
+    fireEvent.mouseMove(canvas, { clientX: 501, clientY: 301 }); // xRatio≈0.501, yRatio≈0.502
+    expect(screen.getByTestId('board-sparkle')).toBeInTheDocument();
   });
 
   test('incoming message event renders a BoardMessage', () => {
@@ -184,7 +314,7 @@ describe('LiveBoard', () => {
   test('cursor-remove event removes that cursor', () => {
     renderBoard();
     act(() => {
-      _handlers['cursors']?.({ username: 'otherguy', xRatio: 0.3, yRatio: 0.3 });
+      _handlers['cursors']?.({ username: 'otherguy', xRatio: 0.3, yRatio: 0.3, color: 'hsl(60,72%,50%)', painting: false });
     });
     expect(screen.getByText('otherguy')).toBeInTheDocument();
 
@@ -203,5 +333,10 @@ describe('LiveBoard', () => {
       });
     });
     expect(screen.getByText('pre-existing')).toBeInTheDocument();
+  });
+
+  test('trail canvas element is rendered', () => {
+    renderBoard();
+    expect(screen.getByTestId('trail-canvas')).toBeInTheDocument();
   });
 });

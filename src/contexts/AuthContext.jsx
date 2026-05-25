@@ -82,6 +82,7 @@ export const AuthProvider = ({ children }) => {
         const userData = {
           username: response.username,
           email: response.email,
+          boardColor: response.boardColor,
         };
 
         setUser(userData);
@@ -137,6 +138,7 @@ export const AuthProvider = ({ children }) => {
         const updatedUserData = {
           username: response.username,
           email: response.email,
+          boardColor: response.boardColor ?? user?.boardColor,
         };
 
         setUser(updatedUserData);

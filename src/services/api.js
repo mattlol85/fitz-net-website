@@ -134,6 +134,7 @@ export const loginUser = async (username, password) => {
       username: data.username,
       email: data.email,
       token: data.token,
+      boardColor: data.boardColor,
     };
   } catch (error) {
     console.error('❌ Login error:', error);
@@ -246,6 +247,7 @@ export const updateUserProfile = async (updates, token) => {
       message: data.message || 'Profile updated successfully',
       username: data.username,
       email: data.email,
+      boardColor: data.boardColor,
     };
   } catch (error) {
     console.error('❌ Update profile error:', error);

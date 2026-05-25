@@ -10,11 +10,13 @@ const MOCK_USERS = {
     username: 'changmin',
     password: 'testing123',
     email: 'changminlee@gmail.com',
+    boardColor: 'hsl(210,72%,50%)',
   },
   testuser: {
     username: 'testuser',
     password: 'password123',
     email: 'testuser@example.com',
+    boardColor: 'hsl(340,72%,50%)',
   },
 };
 
@@ -74,6 +76,7 @@ export const mockApi = {
       message: 'Login successful',
       username: user.username,
       email: user.email,
+      boardColor: user.boardColor,
       token: generateMockToken(user.username),
     };
   },
@@ -123,6 +126,7 @@ export const mockApi = {
       message: 'Profile updated successfully',
       username: updates.username,
       email: updates.email,
+      boardColor: updates.boardColor || 'hsl(210,72%,50%)',
     };
   },
 
