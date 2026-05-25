@@ -35,5 +35,17 @@ describe('LiveCursor', () => {
     const cursor = screen.getByTestId('live-cursor');
     expect(cursor.style.pointerEvents).toBe('none');
   });
+
+  test('applies custom color to the cursor label background', () => {
+    render(<LiveCursor username="coloruser" xRatio={0.5} yRatio={0.5} color="hsl(120,72%,50%)" />);
+    const label = screen.getByTestId('live-cursor-label');
+    expect(label.style.background).toBeTruthy();
+  });
+
+  test('falls back to CSS variable when no color provided', () => {
+    render(<LiveCursor username="nocolor" xRatio={0.5} yRatio={0.5} />);
+    // Should not throw, and label should still be present
+    expect(screen.getByTestId('live-cursor-label')).toBeInTheDocument();
+  });
 });
 

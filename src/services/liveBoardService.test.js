@@ -66,7 +66,18 @@ describe('liveBoardService', () => {
     expect(mockClientInstance.publish).toHaveBeenCalledWith(
       expect.objectContaining({
         destination: '/app/board/cursor',
-        body: JSON.stringify({ xRatio: 0.3, yRatio: 0.7 }),
+        body: JSON.stringify({ xRatio: 0.3, yRatio: 0.7, painting: false, color: '' }),
+      })
+    );
+  });
+
+  test('sendCursor includes painting=true and color when provided', () => {
+    init('test-jwt-token');
+    sendCursor(0.5, 0.5, true, 'hsl(200,72%,50%)');
+    expect(mockClientInstance.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        destination: '/app/board/cursor',
+        body: JSON.stringify({ xRatio: 0.5, yRatio: 0.5, painting: true, color: 'hsl(200,72%,50%)' }),
       })
     );
   });

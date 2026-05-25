@@ -115,6 +115,21 @@ function EditProfile() {
             />
           </div>
 
+          <div className="form-group">
+            <label>Board Color</label>
+            <div className="board-color-display" data-testid="board-color-display">
+              <span
+                className="board-color-swatch"
+                style={{ background: user?.boardColor || 'hsl(200,72%,50%)' }}
+                data-testid="board-color-swatch"
+              />
+              <span className="board-color-label">
+                {user?.boardColor || '—'}
+              </span>
+              <span className="board-color-hint">(auto-assigned, permanent)</span>
+            </div>
+          </div>
+
           <div className="form-divider">Change Password (Optional)</div>
 
           <div className="form-group">
