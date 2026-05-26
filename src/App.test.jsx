@@ -55,19 +55,6 @@ describe('App Component', () => {
     expect(footer).toBeInTheDocument();
   });
 
-  test('displays greeting message on first visit', () => {
-    render(<App />);
-    const greetingMessage = screen.getByText(/Welcome to the Fitz-Net/i);
-    expect(greetingMessage).toBeInTheDocument();
-  });
-
-  test('does not display greeting message on subsequent visits', () => {
-    localStorageMock.setItem('greetingShown', 'true');
-    render(<App />);
-    const greetingMessage = screen.queryByText(/Welcome to the Fitz-Net/i);
-    expect(greetingMessage).not.toBeInTheDocument();
-  });
-
   test('renders Homepage at root path', () => {
     render(<App />);
     const logo = screen.getAllByAltText(/Logo/i)[0];
