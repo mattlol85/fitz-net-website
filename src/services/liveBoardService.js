@@ -7,7 +7,7 @@
  */
 import { Client } from '@stomp/stompjs';
 
-export const FADE_DURATION_MS = 90_000;
+export const FADE_DURATION_MS = 86_400_000; // 24 hours
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === 'true';
 

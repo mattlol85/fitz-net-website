@@ -33,8 +33,8 @@ describe('liveBoardService', () => {
     disconnect();
   });
 
-  test('FADE_DURATION_MS is 90000', () => {
-    expect(FADE_DURATION_MS).toBe(90_000);
+  test('FADE_DURATION_MS is 86400000 (24 hours)', () => {
+    expect(FADE_DURATION_MS).toBe(86_400_000);
   });
 
   test('subscribeCursors registers a callback and returns an unsubscribe function', () => {
