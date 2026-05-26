@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { afterEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
 import Navbar from './Navbar.jsx';
@@ -21,6 +22,11 @@ describe('Navbar Component', () => {
     // Reset mocks before each test
     vi.clearAllMocks();
     localStorageMock.getItem.mockReturnValue(null);
+    document.documentElement.style.removeProperty('--navbar-height');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   const renderNavbar = () => {
@@ -34,10 +40,12 @@ describe('Navbar Component', () => {
   };
 
   test('renders navigation links', () => {
-    renderNavbar();
+    const { container } = renderNavbar();
 
     const aboutLink = screen.getByText(/About/i);
     expect(aboutLink).toBeInTheDocument();
+    expect(container.querySelector('.site-nav-list--guest')).toBeInTheDocument();
+    expect(container.querySelector('.nav-spacer')).toBeInTheDocument();
   });
 
   test('renders logo image', () => {
@@ -66,5 +74,23 @@ describe('Navbar Component', () => {
 
     const themeToggle = screen.getByRole('button', { name: /Toggle theme/i });
     expect(themeToggle).toBeInTheDocument();
+  });
+
+  test('updates navbar height CSS variable from rendered height', () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      height: 96,
+      width: 800,
+      top: 0,
+      right: 800,
+      bottom: 96,
+      left: 0,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    });
+
+    renderNavbar();
+
+    expect(document.documentElement.style.getPropertyValue('--navbar-height')).toBe('96px');
   });
 });
