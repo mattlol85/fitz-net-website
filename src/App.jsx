@@ -7,7 +7,6 @@ import NoPage from './components/NoPage.jsx';
 import Navbar from './components/Navbar.jsx';
 import InfoPanelContent from './components/InfoPanelContent.jsx';
 import Footer from './components/Footer.jsx';
-import GreetingMessage from './components/GreetingMessage.jsx';
 import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
 import EditProfile from './components/EditProfile.jsx';
@@ -17,21 +16,10 @@ import OverwatchTracker from './components/OverwatchTracker.jsx';
 import LiveBoard from './components/LiveBoard.jsx';
 
 function App() {
-  const [greetingShown, setGreetingShown] = useState(false);
   const [theme, setTheme] = useState(() => {
     // Initialize theme from localStorage or default to 'light'
     return localStorage.getItem('theme') || 'light';
   });
-
-  useEffect(() => {
-    // check whether the visitor has already seen the greeting message
-    if (!localStorage.getItem('greetingShown')) {
-      // set a cookie or local storage item to remember that the message has been shown
-      localStorage.setItem('greetingShown', 'true');
-      // update the state variable to show the greeting message
-      setGreetingShown(true);
-    }
-  }, []);
 
   useEffect(() => {
     // Apply theme to document root
@@ -46,7 +34,6 @@ function App() {
 
   return (
     <div className="app">
-      {greetingShown && <GreetingMessage />}
       <AuthProvider>
         <BrowserRouter>
           <Navbar theme={theme} toggleTheme={toggleTheme} />
