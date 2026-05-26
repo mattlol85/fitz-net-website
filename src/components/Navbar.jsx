@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../img/FN_Logo_Straight.png';
 import ThemeToggle from './ThemeToggle.jsx';
@@ -8,6 +8,35 @@ import '../css/Navbar.css';
 function Navbar({ theme, toggleTheme }) {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const navRef = useRef(null);
+  const authenticated = isAuthenticated();
+
+  useLayoutEffect(() => {
+    const updateNavbarHeight = () => {
+      const height = navRef.current?.getBoundingClientRect().height;
+
+      if (height) {
+        document.documentElement.style.setProperty('--navbar-height', `${Math.ceil(height)}px`);
+      }
+    };
+
+    updateNavbarHeight();
+
+    const resizeObserver = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(updateNavbarHeight)
+      : null;
+
+    if (resizeObserver && navRef.current) {
+      resizeObserver.observe(navRef.current);
+    }
+
+    window.addEventListener('resize', updateNavbarHeight);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', updateNavbarHeight);
+    };
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -15,8 +44,8 @@ function Navbar({ theme, toggleTheme }) {
   };
 
   return (
-    <nav>
-      <ul>
+    <nav ref={navRef} className="site-nav">
+      <ul className={`site-nav-list ${authenticated ? 'site-nav-list--authenticated' : 'site-nav-list--guest'}`}>
         <li>
           <Link to="/" className="logo-link">
             <img src={logo} alt="Fitz-Net Logo" className="logo-img" />
@@ -28,7 +57,7 @@ function Navbar({ theme, toggleTheme }) {
         <li>
           <Link to="/status">Status</Link>
         </li>
-        {isAuthenticated() && (
+        {authenticated && (
           <>
             <li>
               <Link to="/overwatch">Overwatch Tracker</Link>
@@ -42,7 +71,7 @@ function Navbar({ theme, toggleTheme }) {
           </>
         )}
         <li className="nav-spacer"></li>
-        {isAuthenticated() ? (
+        {authenticated ? (
           <>
             <li className="user-info">
               <Link to="/profile" className="username username-clickable">
