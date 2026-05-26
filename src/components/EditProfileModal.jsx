@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { DEFAULT_BOARD_COLOR } from '../constants';
 import '../css/EditProfileModal.css';
 
 function EditProfileModal({ isOpen, onClose, currentUser }) {
@@ -113,11 +114,11 @@ function EditProfileModal({ isOpen, onClose, currentUser }) {
             <div className="board-color-display" data-testid="board-color-display">
               <span
                 className="board-color-swatch"
-                style={{ background: currentUser?.boardColor || 'hsl(200,72%,50%)' }}
+                style={{ background: currentUser?.boardColor || DEFAULT_BOARD_COLOR }}
                 data-testid="board-color-swatch"
               />
               <span className="board-color-label">
-                {currentUser?.boardColor || '—'}
+                {currentUser?.boardColor || DEFAULT_BOARD_COLOR}
               </span>
               <span className="board-color-hint">(auto-assigned, permanent)</span>
             </div>

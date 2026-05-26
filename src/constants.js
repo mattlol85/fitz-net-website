@@ -9,6 +9,8 @@ export const API_URLS = {
   GAMERBELL: import.meta.env.VITE_GAMERBELL_URL || 'https://gamerbell.com',
 };
 
+export const DEFAULT_BOARD_COLOR = 'hsl(200,72%,50%)';
+
 // API Configurations for Status Dashboard
 export const API_CONFIGS = [
   { name: 'fitz-net-website', url: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000', local: true },

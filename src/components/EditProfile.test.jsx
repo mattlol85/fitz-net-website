@@ -52,6 +52,7 @@ describe('EditProfile', () => {
 
     expect(screen.getByDisplayValue('testuser')).toBeInTheDocument();
     expect(screen.getByDisplayValue('test@example.com')).toBeInTheDocument();
+    expect(screen.getByText('hsl(200,72%,50%)')).toBeInTheDocument();
   });
 
   it('submits profile updates', async () => {
@@ -86,4 +87,3 @@ describe('EditProfile', () => {
     expect(screen.getByText('Profile updated successfully.')).toBeInTheDocument();
   });
 });
-
