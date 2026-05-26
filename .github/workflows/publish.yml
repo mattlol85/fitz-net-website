@@ -1,5 +1,5 @@
 name: 🚀 Publish Release
-run-name: 🏷️ ${{ github.event.inputs.increment-type }} version release (${{ github.ref_name }})
+run-name: 🏷️ ${{ github.event.inputs.increment-type }} version release ${{ github.event.inputs.version }}
 
 on:
   workflow_dispatch:
@@ -13,6 +13,10 @@ on:
           - major
           - minor
           - patch
+      version:
+        description: "Target version (e.g. 0.3.0) - leave empty to auto-calculate"
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -85,47 +89,63 @@ jobs:
         id: version_calc
         env:
           INCREMENT_TYPE: ${{ github.event.inputs.increment-type }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
           set -euo pipefail
           echo "::group::Calculating version"
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          echo "Latest tag: $LATEST_TAG"
-          VERSION=${LATEST_TAG#v}
-          IFS='.' read -ra PARTS <<< "$VERSION"
-          MAJOR=${PARTS[0]:-0}
-          MINOR=${PARTS[1]:-0}
-          PATCH=${PARTS[2]:-0}
 
-          # Ensure numeric values
-          MAJOR=$((MAJOR + 0))
-          MINOR=$((MINOR + 0))
-          PATCH=$((PATCH + 0))
+          if [ -n "$INPUT_VERSION" ]; then
+            # Use user-provided version
+            NEW_VERSION_NO_V="${INPUT_VERSION#v}"
+            NEW_VERSION="v$NEW_VERSION_NO_V"
+            INCREMENT="$INCREMENT_TYPE"
+            case "$INCREMENT" in
+              major) EMOJI="🚀" ;;
+              minor) EMOJI="✨" ;;
+              patch) EMOJI="🐛" ;;
+              *) echo "Invalid increment type: $INCREMENT" >&2; exit 1 ;;
+            esac
+            echo "Using provided version: $NEW_VERSION"
+          else
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+            echo "Latest tag: $LATEST_TAG"
+            VERSION=${LATEST_TAG#v}
+            IFS='.' read -ra PARTS <<< "$VERSION"
+            MAJOR=${PARTS[0]:-0}
+            MINOR=${PARTS[1]:-0}
+            PATCH=${PARTS[2]:-0}
 
-          # Use input increment type
-          INCREMENT="$INCREMENT_TYPE"
-          case "$INCREMENT" in
-            major)
-              EMOJI="🚀"
-              MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
-            minor)
-              EMOJI="✨"
-              MINOR=$((MINOR + 1)); PATCH=0 ;;
-            patch)
-              EMOJI="🐛"
-              PATCH=$((PATCH + 1)) ;;
-            *)
-              echo "Invalid increment type: $INCREMENT" >&2
-              exit 1 ;;
-          esac
+            # Ensure numeric values
+            MAJOR=$((MAJOR + 0))
+            MINOR=$((MINOR + 0))
+            PATCH=$((PATCH + 0))
 
-          NEW_VERSION_NO_V="$MAJOR.$MINOR.$PATCH"
-          NEW_VERSION="v$NEW_VERSION_NO_V"
+            # Use input increment type
+            INCREMENT="$INCREMENT_TYPE"
+            case "$INCREMENT" in
+              major)
+                EMOJI="🚀"
+                MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+              minor)
+                EMOJI="✨"
+                MINOR=$((MINOR + 1)); PATCH=0 ;;
+              patch)
+                EMOJI="🐛"
+                PATCH=$((PATCH + 1)) ;;
+              *)
+                echo "Invalid increment type: $INCREMENT" >&2
+                exit 1 ;;
+            esac
+
+            NEW_VERSION_NO_V="$MAJOR.$MINOR.$PATCH"
+            NEW_VERSION="v$NEW_VERSION_NO_V"
+            echo "$EMOJI $LATEST_TAG -> $NEW_VERSION ($INCREMENT)"
+          fi
 
           echo "new-version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "new-version-no-v=$NEW_VERSION_NO_V" >> "$GITHUB_OUTPUT"
           echo "increment-type=$INCREMENT" >> "$GITHUB_OUTPUT"
           echo "emoji=$EMOJI" >> "$GITHUB_OUTPUT"
-          echo "$EMOJI $LATEST_TAG -> $NEW_VERSION ($INCREMENT)"
           echo "::endgroup::"
 
       - name: 📝 Update package.json version
