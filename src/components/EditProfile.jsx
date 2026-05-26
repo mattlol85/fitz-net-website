@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { DEFAULT_BOARD_COLOR } from '../constants';
 import '../css/EditProfile.css';
 
 function EditProfile() {
@@ -120,11 +121,11 @@ function EditProfile() {
             <div className="board-color-display" data-testid="board-color-display">
               <span
                 className="board-color-swatch"
-                style={{ background: user?.boardColor || 'hsl(200,72%,50%)' }}
+                style={{ background: user?.boardColor || DEFAULT_BOARD_COLOR }}
                 data-testid="board-color-swatch"
               />
               <span className="board-color-label">
-                {user?.boardColor || '—'}
+                {user?.boardColor || DEFAULT_BOARD_COLOR}
               </span>
               <span className="board-color-hint">(auto-assigned, permanent)</span>
             </div>
@@ -185,4 +186,3 @@ function EditProfile() {
 }
 
 export default EditProfile;
-

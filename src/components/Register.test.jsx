@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
+import Navbar from './Navbar.jsx';
 import Register from './Register';
 
 // Mock the API module
@@ -10,6 +11,7 @@ vi.mock('../services/api', () => ({
   loginUser: vi.fn(),
   validateToken: vi.fn(() => true),
   logoutUser: vi.fn(),
+  updateUserProfile: vi.fn(),
 }));
 
 describe('Register Component', () => {
@@ -25,6 +27,12 @@ describe('Register Component', () => {
         </AuthProvider>
       </BrowserRouter>
     );
+  };
+
+  const validToken = () => {
+    const header = btoa(JSON.stringify({ alg: 'HS384' }));
+    const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }));
+    return `${header}.${payload}.sig`;
   };
 
   it('renders registration form with all required fields', () => {
@@ -137,5 +145,44 @@ describe('Register Component', () => {
       expect(createUser).toHaveBeenCalledWith('testuser', 'test@example.com', 'password123');
     });
   });
-});
 
+  it('shows The Board nav link immediately after account creation and auto-login', async () => {
+    const { createUser, loginUser } = await import('../services/api');
+    createUser.mockResolvedValueOnce({
+      success: true,
+      message: 'Account created',
+      username: 'newuser',
+      email: 'new@example.com',
+      id: '123',
+    });
+    loginUser.mockResolvedValueOnce({
+      success: true,
+      message: 'Login successful',
+      username: 'newuser',
+      email: 'new@example.com',
+      token: validToken(),
+    });
+
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={['/register']}>
+          <Navbar theme="light" toggleTheme={vi.fn()} />
+          <Routes>
+            <Route path="/register" element={<Register />} />
+            <Route path="/" element={<div>Home</div>} />
+          </Routes>
+        </MemoryRouter>
+      </AuthProvider>
+    );
+
+    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'newuser' } });
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'new@example.com' } });
+    fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: /the board/i })).toBeInTheDocument();
+    });
+  });
+});

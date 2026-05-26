@@ -13,6 +13,7 @@ import {
 } from '../services/liveBoardService';
 import LiveCursor from './LiveCursor';
 import BoardMessage from './BoardMessage';
+import { DEFAULT_BOARD_COLOR } from '../constants';
 import '../css/LiveBoard.css';
 
 const SNAKE_MAX_AGE         = 1500;  // ms — always-on cursor trail duration
@@ -46,7 +47,7 @@ function LiveBoard() {
   const lastCursor = useRef({ xRatio: 0, yRatio: 0 });
   const lastPaintDotRef = useRef({});  // username → last paint-dot timestamp
 
-  const ownColor = useMemo(() => user?.boardColor || 'hsl(200,72%,50%)', [user?.boardColor]);
+  const ownColor = useMemo(() => user?.boardColor || DEFAULT_BOARD_COLOR, [user?.boardColor]);
 
   // ── Helper: push a point to snake trail for a user ───────────────────────
   const pushSnakePoint = useCallback((username, xPct, yPct, color) => {
@@ -405,4 +406,3 @@ function LiveBoard() {
 }
 
 export default LiveBoard;
-

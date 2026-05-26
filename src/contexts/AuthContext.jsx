@@ -1,5 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { flushSync } from 'react-dom';
 import { loginUser, logoutUser, validateToken, updateUserProfile } from '../services/api';
+import { DEFAULT_BOARD_COLOR } from '../constants';
 
 // Create the AuthContext
 const AuthContext = createContext(null);
@@ -18,6 +20,12 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const normalizeUserData = (data = {}, fallbackUser = {}) => ({
+    username: data.username ?? fallbackUser?.username ?? '',
+    email: data.email ?? fallbackUser?.email ?? '',
+    boardColor: data.boardColor || fallbackUser?.boardColor || DEFAULT_BOARD_COLOR,
+  });
 
   const getStorage = () => {
     if (typeof window === 'undefined') return null;
@@ -61,7 +69,7 @@ export const AuthProvider = ({ children }) => {
       // Validate token before restoring session
       if (validateToken(storedToken)) {
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        setUser(normalizeUserData(JSON.parse(storedUser)));
       } else {
         // Token expired, clear storage
         safeRemoveItem('authToken');
@@ -79,14 +87,12 @@ export const AuthProvider = ({ children }) => {
       console.log('🔑 Login response:', response);
 
       if (response.success) {
-        const userData = {
-          username: response.username,
-          email: response.email,
-          boardColor: response.boardColor,
-        };
+        const userData = normalizeUserData(response);
 
-        setUser(userData);
-        setToken(response.token);
+        flushSync(() => {
+          setUser(userData);
+          setToken(response.token);
+        });
 
         // Persist to localStorage
         safeSetItem('authToken', response.token);
@@ -135,11 +141,7 @@ export const AuthProvider = ({ children }) => {
       const response = await updateUserProfile(updates, token);
 
       if (response.success) {
-        const updatedUserData = {
-          username: response.username,
-          email: response.email,
-          boardColor: response.boardColor ?? user?.boardColor,
-        };
+        const updatedUserData = normalizeUserData(response, user);
 
         setUser(updatedUserData);
         safeSetItem('authUser', JSON.stringify(updatedUserData));
