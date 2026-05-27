@@ -6,7 +6,7 @@
 // API URLs
 export const API_URLS = {
   FITZ_NET_API: import.meta.env.VITE_API_BASE_URL || '/api',
-  GAMERBELL: import.meta.env.VITE_GAMERBELL_URL || 'https://gamerbell.com',
+  GAMERBELL: import.meta.env.VITE_GAMERBELL_URL || 'https://gamerbell.fitznet.doomdns.org',
 };
 
 // API Configurations for Status Dashboard
