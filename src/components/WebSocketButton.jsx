@@ -1,4 +1,4 @@
-erimport React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import '../css/WebSocketButton.css';
 
@@ -15,7 +15,7 @@ function WebSocketButton() {
     if (!isAuthenticated()) return;
 
     // Initialize WebSocket connection
-e?    const wsUrl = import.meta.env.VITE_GAMERBELL_WS_URL || 'wss://gamerbell.fitznet.doomdns.org/ws';
+    const wsUrl = import.meta.env.VITE_GAMERBELL_WS_URL || 'wss://gamerbell.fitznet.doomdns.org/ws';
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
