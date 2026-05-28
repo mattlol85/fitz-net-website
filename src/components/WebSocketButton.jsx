@@ -15,7 +15,7 @@ function WebSocketButton() {
     if (!isAuthenticated()) return;
 
     // Initialize WebSocket connection
-    const socket = new WebSocket('ws://fitznet.doomdns.org:8080/ws');
+    const socket = new WebSocket('wss://gamerbell.fitznet.doomdns.org/ws');
     socketRef.current = socket;
 
     socket.onopen = () => {
@@ -79,7 +79,13 @@ function WebSocketButton() {
   };
 
   if (!isAuthenticated()) {
-    return null;
+    return (
+      <div className="websocket-container">
+        <div className="websocket-card">
+          <p>Please <a href="/login">log in</a> to use the FitzNet Bell.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
