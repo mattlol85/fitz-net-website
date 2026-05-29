@@ -1,25 +1,91 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import '../css/WebSocketButton.css';
 
+function buildGamerbellWsUrl() {
+  const host = window.location.hostname;
+  if (host === 'localhost' || host.startsWith('127.')) {
+    return 'ws://localhost:8080/ws';
+  }
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const base = host.replace(/^www\./, '');
+  return `${proto}//gamerbell.${base}/ws`;
+}
+
 function WebSocketButton() {
   const { user, isAuthenticated } = useAuth();
-  const [isConnected, setIsConnected] = useState(false);
+  const isUserAuthenticated = isAuthenticated();
+  const [connectionState, setConnectionState] = useState('connecting');
   const [isPressed, setIsPressed] = useState(false);
   const [ledOn, setLedOn] = useState(false);
   const [screenText, setScreenText] = useState('');
   const socketRef = useRef(null);
+  const retryCountRef = useRef(0);
+  const retryTimeoutRef = useRef(null);
+  const isUnmountingRef = useRef(false);
   const deviceId = `web-${user?.username || 'anonymous'}`;
+  const isConnected = connectionState === 'connected';
 
-  useEffect(() => {
-    if (!isAuthenticated()) return;
+  const cleanupSocket = useCallback(() => {
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
 
-    // Initialize WebSocket connection
-    const socket = new WebSocket('ws://fitznet.doomdns.org:8080/ws');
+    const currentSocket = socketRef.current;
+    if (currentSocket) {
+      currentSocket.onopen = null;
+      currentSocket.onmessage = null;
+      currentSocket.onerror = null;
+      currentSocket.onclose = null;
+
+      if (currentSocket.readyState === WebSocket.OPEN || currentSocket.readyState === WebSocket.CONNECTING) {
+        currentSocket.close();
+      }
+
+      socketRef.current = null;
+    }
+  }, []);
+
+  const initializeSocket = useCallback(() => {
+    if (!isUserAuthenticated || isUnmountingRef.current) {
+      return;
+    }
+
+    cleanupSocket();
+    setConnectionState('connecting');
+
+    const socket = new WebSocket(buildGamerbellWsUrl());
     socketRef.current = socket;
+    let hasHandledFailure = false;
+
+    const handleSocketFailure = () => {
+      if (hasHandledFailure || isUnmountingRef.current) {
+        return;
+      }
+
+      hasHandledFailure = true;
+      setIsPressed(false);
+      setLedOn(false);
+      setScreenText('');
+
+      if (retryCountRef.current < 3) {
+        const nextRetryCount = retryCountRef.current + 1;
+        retryCountRef.current = nextRetryCount;
+        setConnectionState('connecting');
+        retryTimeoutRef.current = window.setTimeout(() => {
+          retryTimeoutRef.current = null;
+          initializeSocket();
+        }, nextRetryCount * 2000);
+        return;
+      }
+
+      setConnectionState('error');
+    };
 
     socket.onopen = () => {
-      setIsConnected(true);
+      retryCountRef.current = 0;
+      setConnectionState('connected');
       console.log('Connected to Fitz-Net Bell server');
     };
 
@@ -28,7 +94,6 @@ function WebSocketButton() {
         const data = JSON.parse(event.data);
         console.log('Received event:', data);
 
-        // Match original HTML behavior: respond to any device's button events
         if (data.deviceId && data.buttonEvent) {
           if (data.buttonEvent === 'PRESSED') {
             setIsPressed(true);
@@ -37,7 +102,7 @@ function WebSocketButton() {
           } else if (data.buttonEvent === 'RELEASED') {
             setIsPressed(false);
             setLedOn(false);
-            setScreenText(''); // Clear the screen on release
+            setScreenText('');
           }
         }
       } catch (error) {
@@ -47,20 +112,37 @@ function WebSocketButton() {
 
     socket.onerror = (error) => {
       console.error('WebSocket error:', error);
+      handleSocketFailure();
     };
 
     socket.onclose = () => {
-      setIsConnected(false);
       console.log('WebSocket disconnected');
+      handleSocketFailure();
     };
+  }, [cleanupSocket, isUserAuthenticated]);
 
-    // Cleanup on unmount
+  useEffect(() => {
+    isUnmountingRef.current = false;
+
+    if (!isUserAuthenticated) {
+      return () => {
+        isUnmountingRef.current = true;
+        cleanupSocket();
+      };
+    }
+
+    initializeSocket();
+
     return () => {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.close();
-      }
+      isUnmountingRef.current = true;
+      cleanupSocket();
     };
-  }, [isAuthenticated, user]);
+  }, [cleanupSocket, initializeSocket, isUserAuthenticated]);
+
+  const handleRetry = () => {
+    retryCountRef.current = 0;
+    initializeSocket();
+  };
 
   const sendButtonEvent = (buttonEvent) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
@@ -78,8 +160,29 @@ function WebSocketButton() {
     sendButtonEvent('RELEASED');
   };
 
-  if (!isAuthenticated()) {
-    return null;
+  if (!isUserAuthenticated) {
+    return (
+      <div className="websocket-container">
+        <div className="websocket-card">
+          <p>Please <a href="/login">log in</a> to use the FitzNet Bell.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (connectionState === 'error') {
+    return (
+      <div className="websocket-container">
+        <div className="websocket-card">
+          <h2 className="websocket-title">FitzNet Bell Web Edition</h2>
+          <div className="connection-error">
+            <div className="error-icon">⚠️</div>
+            <p className="error-message">Unable to connect to FitzNet Bell. The service may be offline.</p>
+            <button className="retry-button" onClick={handleRetry}>Retry Connection</button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
