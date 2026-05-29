@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import GamerBell3DScene from './GamerBell3DScene';
+import GamerBellWidget from './GamerBellWidget';
 import '../css/WebSocketButton.css';
 
 function buildGamerbellWsUrl() {
@@ -205,7 +205,7 @@ function WebSocketButton() {
         </div>
 
         <div className="gamerbell-scene-wrapper">
-          <GamerBell3DScene
+          <GamerBellWidget
             active={ledOn}
             isPressed={displayPressed}
             onPress={isConnected ? handlePress : undefined}

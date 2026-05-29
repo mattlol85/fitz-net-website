@@ -2,21 +2,6 @@ import '@testing-library/jest-dom';
 import React from 'react';
 import { vi } from 'vitest';
 
-// Mock @react-three/fiber — Canvas can't render WebGL in jsdom
-vi.mock('@react-three/fiber', () => ({
-  Canvas: () => React.createElement('div', { 'data-testid': 'gamerbell-canvas' }),
-  useThree: vi.fn(() => ({})),
-  useFrame: vi.fn(),
-  extend: vi.fn(),
-}));
-
-// Mock @react-three/drei components used in the scene
-vi.mock('@react-three/drei', () => ({
-  Text: ({ children }) => React.createElement('span', { 'data-testid': 'three-text' }, children),
-  OrbitControls: () => null,
-  PerspectiveCamera: () => null,
-}));
-
 
 // Mock the API service to prevent real API calls during tests
 vi.mock('./services/api', () => ({
