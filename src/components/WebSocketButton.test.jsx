@@ -94,7 +94,7 @@ describe('WebSocketButton Component', () => {
     renderComponent();
 
     expect(screen.getByText(/Device ID:/i)).toBeInTheDocument();
-    expect(screen.getByText(/web-testuser/i)).toBeInTheDocument();
+    expect(screen.getByText(/testuser/i)).toBeInTheDocument();
   });
 
   test('uses the local websocket URL on localhost', () => {

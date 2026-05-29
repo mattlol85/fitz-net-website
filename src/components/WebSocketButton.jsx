@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import GamerBell3DScene from './GamerBell3DScene';
 import '../css/WebSocketButton.css';
 
 function buildGamerbellWsUrl() {
@@ -17,13 +18,14 @@ function WebSocketButton() {
   const isUserAuthenticated = isAuthenticated();
   const [connectionState, setConnectionState] = useState('connecting');
   const [isPressed, setIsPressed] = useState(false);
+  const [localPressed, setLocalPressed] = useState(false);
   const [ledOn, setLedOn] = useState(false);
   const [screenText, setScreenText] = useState('');
   const socketRef = useRef(null);
   const retryCountRef = useRef(0);
   const retryTimeoutRef = useRef(null);
   const isUnmountingRef = useRef(false);
-  const deviceId = `web-${user?.username || 'anonymous'}`;
+  const deviceId = user?.username || 'anonymous';
   const isConnected = connectionState === 'connected';
 
   const cleanupSocket = useCallback(() => {
@@ -66,6 +68,7 @@ function WebSocketButton() {
 
       hasHandledFailure = true;
       setIsPressed(false);
+      setLocalPressed(false);
       setLedOn(false);
       setScreenText('');
 
@@ -153,12 +156,16 @@ function WebSocketButton() {
   };
 
   const handlePress = () => {
+    setLocalPressed(true);
     sendButtonEvent('PRESSED');
   };
 
   const handleRelease = () => {
+    setLocalPressed(false);
     sendButtonEvent('RELEASED');
   };
+
+  const displayPressed = isPressed || localPressed;
 
   if (!isUserAuthenticated) {
     return (
@@ -197,10 +204,21 @@ function WebSocketButton() {
           </span>
         </div>
 
-        <p className="instruction-text">Click and hold the button to send a press event.</p>
+        <div className="gamerbell-scene-wrapper">
+          <GamerBell3DScene
+            active={ledOn}
+            isPressed={displayPressed}
+            onPress={isConnected ? handlePress : undefined}
+            onRelease={isConnected ? handleRelease : undefined}
+          />
+        </div>
+
+        <p className="instruction-text">
+          Click the orange button above or press &amp; hold below.
+        </p>
 
         <button
-          className={`ws-button ${isPressed ? 'pressed' : ''}`}
+          className={`ws-button ${displayPressed ? 'pressed' : ''}`}
           onMouseDown={handlePress}
           onMouseUp={handleRelease}
           onMouseLeave={handleRelease}
@@ -211,16 +229,9 @@ function WebSocketButton() {
           Press Me
         </button>
 
-        <div className="output-section">
-          <div className="led-container">
-            <div className={`led ${ledOn ? 'on' : 'off'}`}></div>
-            <span className="led-label">Status LED</span>
-          </div>
-
-          <div className="screen">
-            {screenText || <span className="screen-placeholder">Waiting for button press...</span>}
-          </div>
-        </div>
+        {screenText && (
+          <div className="event-log">{screenText}</div>
+        )}
 
         <div className="device-info">
           <small>Device ID: <code>{deviceId}</code></small>
