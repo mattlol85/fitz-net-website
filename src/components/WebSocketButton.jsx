@@ -208,13 +208,14 @@ function WebSocketButton() {
           <GamerBellWidget
             active={ledOn}
             isPressed={displayPressed}
+            screenText={screenText}
             onPress={isConnected ? handlePress : undefined}
             onRelease={isConnected ? handleRelease : undefined}
           />
         </div>
 
         <p className="instruction-text">
-          Click the orange button above or press &amp; hold below.
+          Click the red button or press &amp; hold below.
         </p>
 
         <button
@@ -228,10 +229,6 @@ function WebSocketButton() {
         >
           Press Me
         </button>
-
-        {screenText && (
-          <div className="event-log">{screenText}</div>
-        )}
 
         <div className="device-info">
           <small>Device ID: <code>{deviceId}</code></small>
