@@ -1,0 +1,128 @@
+.gb-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.gb-panel {
+  background: #0f1923;
+  border: 1px solid #1e3a52;
+  border-radius: 10px;
+  padding: 0.75rem 1rem 1rem;
+}
+
+.gb-panel-label {
+  display: block;
+  font-size: 0.65rem;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+  color: #2d5a78;
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+}
+
+/* ── LED Ring ───────────────────────────── */
+
+.gb-panel--leds {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gb-led-ring {
+  position: relative;
+  width: 90px;
+  height: 90px;
+}
+
+.gb-led {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #0d1a0d;
+  border: 1px solid #112211;
+  top: 50%;
+  left: 50%;
+  /* offset from center then rotate around origin */
+  transform: rotate(var(--a)) translateY(-36px) translateX(-5.5px);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gb-led--on {
+  background: #2ecc71;
+  border-color: #27ae60;
+  box-shadow: 0 0 6px #2ecc71, 0 0 14px #27ae60;
+}
+
+/* ── Screen ─────────────────────────────── */
+
+.gb-lcd {
+  background: #040a0f;
+  border: 1px solid #0d2030;
+  border-radius: 4px;
+  padding: 0.55rem 0.75rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: #2ecc71;
+  min-height: 2.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
+.gb-lcd-cursor {
+  color: #1a5c30;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.gb-lcd-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Button ─────────────────────────────── */
+
+.gb-panel--button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gb-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: none;
+  background: radial-gradient(circle at 38% 35%, #e74c3c, #922b21);
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+  box-shadow: 0 5px 0 #6e1a12, 0 6px 14px rgba(231, 76, 60, 0.45);
+  outline: none;
+}
+
+.gb-btn:hover:not(:disabled) {
+  box-shadow: 0 5px 0 #6e1a12, 0 8px 20px rgba(231, 76, 60, 0.6);
+  transform: translateY(-1px);
+}
+
+.gb-btn--pressed,
+.gb-btn:active:not(:disabled) {
+  background: radial-gradient(circle at 38% 35%, #c0392b, #6e2018);
+  box-shadow: 0 1px 0 #6e1a12, 0 2px 6px rgba(231, 76, 60, 0.3);
+  transform: translateY(4px);
+}
+
+.gb-btn:disabled {
+  background: radial-gradient(circle at 38% 35%, #444, #222);
+  box-shadow: 0 3px 0 #111, 0 4px 8px rgba(0, 0, 0, 0.3);
+  cursor: not-allowed;
+}
+
+[data-theme='dark'] .gb-panel {
+  background: #0a1018;
+  border-color: #162840;
+}
