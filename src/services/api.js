@@ -485,12 +485,53 @@ export const getOverwatchHistory = async (token, playerId) => {
   }
 };
 
+export const forgotPassword = async (email) => {
+  try {
+    const url = `${API_BASE_URL}/user/forgot-password`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      mode: 'cors',
+      credentials: 'omit',
+      body: JSON.stringify({ email }),
+    });
+    const data = await parseResponseData(response);
+    return { success: response.ok, message: data.message || 'Check your email for a reset link.' };
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return { success: false, message: 'Network error. Please try again.' };
+  }
+};
+
+export const resetPassword = async (token, newPassword) => {
+  try {
+    const url = `${API_BASE_URL}/user/reset-password`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      mode: 'cors',
+      credentials: 'omit',
+      body: JSON.stringify({ token, newPassword }),
+    });
+    const data = await parseResponseData(response);
+    if (!response.ok) {
+      return { success: false, message: data.message || 'Invalid or expired reset link.' };
+    }
+    return { success: true, message: data.message || 'Password reset successfully.' };
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return { success: false, message: 'Network error. Please try again.' };
+  }
+};
+
 export const api = {
   createUser,
   loginUser,
   validateToken,
   logoutUser,
   updateUserProfile,
+  forgotPassword,
+  resetPassword,
   searchOverwatchPlayers,
   saveOverwatchProfile,
   getOverwatchProfile,

@@ -10,6 +10,8 @@ import Footer from './components/Footer.jsx';
 import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
 import EditProfile from './components/EditProfile.jsx';
+import ForgotPassword from './components/ForgotPassword.jsx';
+import ResetPassword from './components/ResetPassword.jsx';
 import WebSocketButton from './components/WebSocketButton.jsx';
 import StatusDashboard from './components/StatusDashboard.jsx';
 import OverwatchTracker from './components/OverwatchTracker.jsx';
@@ -47,6 +49,8 @@ function App() {
             <Route path="/liveboard" element={<LiveBoard />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/profile" element={<EditProfile />} />
             <Route path="*" element={<NoPage />} />
           </Routes>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import {Link, useNavigate} from 'react-router-dom';
+import {Link, useLocation, useNavigate} from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import '../css/Login.css';
 
@@ -9,7 +9,9 @@ function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
+  const successMessage = location.state?.message;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -65,6 +67,12 @@ function Login() {
             />
           </div>
 
+          {successMessage && (
+            <div style={{ background: '#efe', border: '1px solid #6c6', color: '#363', padding: '0.75rem', borderRadius: '6px', fontSize: '0.9rem', textAlign: 'center' }}>
+              {successMessage}
+            </div>
+          )}
+
           {error && <div className="error-message">{error}</div>}
 
           <button type="submit" className="login-button" disabled={loading}>
@@ -75,6 +83,9 @@ function Login() {
         <div className="login-help">
           <p>
             Don't have an account? <Link to="/register" className="register-link">Sign up</Link>
+          </p>
+          <p>
+            <Link to="/forgot-password" className="register-link">Forgot your password?</Link>
           </p>
         </div>
       </div>
