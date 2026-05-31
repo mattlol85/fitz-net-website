@@ -5,7 +5,6 @@ import { AuthProvider } from './contexts/AuthContext';
 import Homepage from './components/Homepage.jsx';
 import NoPage from './components/NoPage.jsx';
 import Navbar from './components/Navbar.jsx';
-import InfoPanelContent from './components/InfoPanelContent.jsx';
 import Footer from './components/Footer.jsx';
 import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
@@ -40,7 +39,6 @@ function App() {
           <Routes>
             <Route path="/home" element={<Homepage />} />
             <Route index element={<Homepage />} />
-            <Route path="/info" element={<InfoPanelContent />} />
             <Route path="/status" element={<StatusDashboard />} />
             <Route path="/overwatch" element={<OverwatchTracker />} />
             <Route path="/websocket" element={<WebSocketButton />} />
