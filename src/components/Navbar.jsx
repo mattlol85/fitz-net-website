@@ -52,9 +52,6 @@ function Navbar({ theme, toggleTheme }) {
           </Link>
         </li>
         <li>
-          <Link to="/info">About</Link>
-        </li>
-        <li>
           <Link to="/status">Status</Link>
         </li>
         {authenticated && (

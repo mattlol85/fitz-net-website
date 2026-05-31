@@ -42,8 +42,8 @@ describe('Navbar Component', () => {
   test('renders navigation links', () => {
     const { container } = renderNavbar();
 
-    const aboutLink = screen.getByText(/About/i);
-    expect(aboutLink).toBeInTheDocument();
+    const statusLink = screen.getByText(/Status/i);
+    expect(statusLink).toBeInTheDocument();
     expect(container.querySelector('.site-nav-list--guest')).toBeInTheDocument();
     expect(container.querySelector('.nav-spacer')).toBeInTheDocument();
   });
@@ -62,12 +62,7 @@ describe('Navbar Component', () => {
     expect(logoLink).toHaveAttribute('href', '/');
   });
 
-  test('About link has correct href', () => {
-    renderNavbar();
 
-    const aboutLink = screen.getByRole('link', { name: /About/i });
-    expect(aboutLink).toHaveAttribute('href', '/info');
-  });
 
   test('renders theme toggle button', () => {
     renderNavbar();
