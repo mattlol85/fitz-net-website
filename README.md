@@ -99,6 +99,15 @@ The included `docker-compose.yml` supports running multiple services together. S
 - Running with other services
 - Production deployment
 
+### 📈 Operational Telemetry
+
+The production Nginx layer now exposes two lightweight operational signals:
+
+- **Structured JSON access logs to stdout/stderr** for Loki-friendly dashboards covering request rate, status codes, request latency, and upstream API latency/errors.
+- **`/nginx_status`** for basic live Nginx connection telemetry (`active`, `reading`, `writing`, `waiting`) from private network ranges and localhost.
+
+This keeps telemetry low-risk and easy to operate without adding a frontend analytics subsystem.
+
 ## 🔐 Environment Variables
 
 The application requires the following environment variables to be configured in a `.env` file:
