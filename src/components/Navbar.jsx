@@ -57,9 +57,6 @@ function Navbar({ theme, toggleTheme }) {
         {authenticated && (
           <>
             <li>
-              <Link to="/overwatch">Overwatch Tracker</Link>
-            </li>
-            <li>
               <Link to="/liveboard">&ldquo;The Board&rdquo;</Link>
             </li>
             <li>

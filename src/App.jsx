@@ -11,7 +11,6 @@ import Register from './components/Register.jsx';
 import EditProfile from './components/EditProfile.jsx';
 import WebSocketButton from './components/WebSocketButton.jsx';
 import StatusDashboard from './components/StatusDashboard.jsx';
-import OverwatchTracker from './components/OverwatchTracker.jsx';
 import LiveBoard from './components/LiveBoard.jsx';
 
 function App() {
@@ -40,7 +39,6 @@ function App() {
             <Route path="/home" element={<Homepage />} />
             <Route index element={<Homepage />} />
             <Route path="/status" element={<StatusDashboard />} />
-            <Route path="/overwatch" element={<OverwatchTracker />} />
             <Route path="/websocket" element={<WebSocketButton />} />
             <Route path="/liveboard" element={<LiveBoard />} />
             <Route path="/login" element={<Login />} />
