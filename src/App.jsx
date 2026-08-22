@@ -12,6 +12,7 @@ import EditProfile from './components/EditProfile.jsx';
 import WebSocketButton from './components/WebSocketButton.jsx';
 import StatusDashboard from './components/StatusDashboard.jsx';
 import LiveBoard from './components/LiveBoard.jsx';
+import AiChat from './components/AiChat.jsx';
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -41,6 +42,7 @@ function App() {
             <Route path="/status" element={<StatusDashboard />} />
             <Route path="/websocket" element={<WebSocketButton />} />
             <Route path="/liveboard" element={<LiveBoard />} />
+            <Route path="/ai" element={<AiChat />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<EditProfile />} />

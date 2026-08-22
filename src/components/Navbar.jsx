@@ -62,6 +62,9 @@ function Navbar({ theme, toggleTheme }) {
             <li>
               <Link to="/websocket">WebSocket</Link>
             </li>
+            <li>
+              <Link to="/ai">AI</Link>
+            </li>
           </>
         )}
         <li className="nav-spacer"></li>
