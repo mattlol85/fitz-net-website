@@ -3,6 +3,12 @@ import { render, screen, waitFor } from '@testing-library/react';
 import StatusDashboard from './StatusDashboard';
 import packageJson from '../../package.json';
 
+// AiNodesGraph has its own fetch/WebGL lifecycle covered by AiNodesGraph.test.jsx;
+// stub it here so it doesn't consume this file's mocked global.fetch responses.
+vi.mock('./AiNodesGraph', () => ({
+  default: () => <div data-testid="ai-nodes-graph-stub" />,
+}));
+
 // Mock fetch
 global.fetch = vi.fn();
 
