@@ -16,7 +16,7 @@ export default function AiChat() {
     {
       id: nextId++,
       role: 'assistant',
-      content: "Hi! This is a preview of the Fitz-Net AI chat — nothing is connected to a real model yet, but ask away.",
+      content: "Hi, I'm Matt-GPT — nothing's connected to a real model yet, but ask away.",
       done: true,
     },
   ]);
@@ -102,45 +102,51 @@ export default function AiChat() {
   return (
     <div className="ai-chat">
       <div className="ai-chat__header">
-        <h1>AI</h1>
+        <h1>Matt-GPT</h1>
         <span className="ai-chat__badge">{badge}</span>
-      </div>
 
-      {authed && nodes.length > 0 && (
-        <div className="ai-chat__node-picker">
-          <select
-            value={selectedNodeId}
-            onChange={(e) => setSelectedNodeId(e.target.value)}
-            aria-label="Node"
-          >
-            <option value="">Preview (no node)</option>
-            {nodes.map((n) => (
-              <option key={n.id} value={n.id}>
-                {n.name}
-              </option>
-            ))}
-          </select>
-          {selectedNode && (
+        {authed && nodes.length > 0 && (
+          <div className="ai-chat__node-picker">
             <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              aria-label="Model"
+              value={selectedNodeId}
+              onChange={(e) => setSelectedNodeId(e.target.value)}
+              aria-label="Node"
             >
-              {(selectedNode.models || []).map((m) => (
-                <option key={m} value={m}>
-                  {m}
+              <option value="">Preview (no node)</option>
+              {nodes.map((n) => (
+                <option key={n.id} value={n.id}>
+                  {n.name}
                 </option>
               ))}
             </select>
-          )}
-        </div>
-      )}
+            {selectedNode && (
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                aria-label="Model"
+              >
+                {(selectedNode.models || []).map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="ai-chat__messages" ref={listRef} data-testid="ai-chat-messages">
         {messages.map((m) => (
-          <div key={m.id} className={`ai-chat__message ai-chat__message--${m.role}`}>
-            <span className="ai-chat__message-author">{m.role === 'user' ? 'You' : 'Fitz-Net AI'}</span>
-            <div className="ai-chat__message-content">
+          <div
+            key={m.id}
+            className={`ai-chat__message ai-chat__message--${m.role}`}
+            aria-label={m.role === 'user' ? 'You' : 'Matt-GPT'}
+          >
+            {m.role === 'assistant' && (
+              <div className="ai-chat__avatar" aria-hidden="true">M</div>
+            )}
+            <div className="ai-chat__bubble">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
@@ -159,11 +165,11 @@ export default function AiChat() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask something…"
+          placeholder="Message Matt-GPT…"
           aria-label="Message"
         />
-        <button type="submit" disabled={sending || !input.trim()}>
-          Send
+        <button type="submit" disabled={sending || !input.trim()} aria-label="Send">
+          ↑
         </button>
       </form>
     </div>

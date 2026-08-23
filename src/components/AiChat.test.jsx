@@ -24,7 +24,7 @@ describe('AiChat Component', () => {
   it('renders the preview badge and an initial assistant greeting', () => {
     render(<AiChat />);
     expect(screen.getByText(/not yet connected to a live model/i)).toBeInTheDocument();
-    expect(screen.getByText(/preview of the Fitz-Net AI chat/i)).toBeInTheDocument();
+    expect(screen.getByText(/i'm matt-gpt/i)).toBeInTheDocument();
   });
 
   it('sends a message and eventually shows a mock assistant reply', async () => {
