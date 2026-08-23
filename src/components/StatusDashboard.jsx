@@ -3,6 +3,7 @@ import '../css/StatusDashboard.css';
 import {API_CONFIGS} from '../constants';
 import {getActuatorHealth, getActuatorInfo} from '../services/actuatorService';
 import AiNodesGraph from './AiNodesGraph';
+import EnrollmentTokenPanel from './EnrollmentTokenPanel';
 
 export default function StatusDashboard() {
   const [apiStatuses, setApiStatuses] = useState([]);
@@ -294,6 +295,7 @@ export default function StatusDashboard() {
         ))}
       </div>
 
+      <EnrollmentTokenPanel />
       <AiNodesGraph />
     </div>
   );

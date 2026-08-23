@@ -44,3 +44,34 @@ export async function fetchNodes() {
 
   return response.json();
 }
+
+/**
+ * Generates a one-time node enrollment token (POST /node/enrollment-token).
+ * Requires the caller's JWT — only a logged-in user can mint these.
+ */
+export async function generateEnrollmentToken(authToken, label) {
+  if (USE_MOCK) {
+    return {
+      token: `mock-token-${Date.now()}`,
+      expiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
+    };
+  }
+
+  const response = await fetch(`${API_URLS.FITZ_NET_API}/node/enrollment-token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${authToken}`,
+    },
+    body: JSON.stringify(label ? { label } : {}),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || `Failed to generate enrollment token: ${response.status}`);
+  }
+
+  return data;
+}

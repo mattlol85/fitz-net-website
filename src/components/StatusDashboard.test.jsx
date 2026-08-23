@@ -9,6 +9,13 @@ vi.mock('./AiNodesGraph', () => ({
   default: () => <div data-testid="ai-nodes-graph-stub" />,
 }));
 
+// EnrollmentTokenPanel needs an AuthProvider (via useAuth()) that this file's
+// bare render(<StatusDashboard />) doesn't supply; it has its own dedicated
+// test file, so stub it here too.
+vi.mock('./EnrollmentTokenPanel', () => ({
+  default: () => <div data-testid="enrollment-token-panel-stub" />,
+}));
+
 // Mock fetch
 global.fetch = vi.fn();
 
