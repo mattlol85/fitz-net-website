@@ -75,3 +75,27 @@ export async function generateEnrollmentToken(authToken, label) {
 
   return data;
 }
+
+/**
+ * Sends a prompt to a specific node's Ollama instance via fitz-net-api
+ * (POST /node/{id}/chat). Requires the caller's JWT.
+ */
+export async function chatWithNode(nodeId, prompt, model, authToken) {
+  const response = await fetch(`${API_URLS.FITZ_NET_API}/node/${nodeId}/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${authToken}`,
+    },
+    body: JSON.stringify(model ? { prompt, model } : { prompt }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || `Failed to reach node: ${response.status}`);
+  }
+
+  return data;
+}
