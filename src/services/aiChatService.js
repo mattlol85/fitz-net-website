@@ -1,12 +1,16 @@
 /**
- * AI Chat service — Phase 1 preview.
+ * AI Chat service.
  *
- * There is no live model wired up yet, so this always runs in mock mode:
- * it returns canned responses with a simulated "thinking" delay and a
- * char-by-char reveal, previewing what streaming will feel like once a
- * real backend (Fitz-Net node delegate) is connected. Swapping in a real
- * call later only touches sendMessage()/the reveal loop below.
+ * Two modes:
+ * - sendMessage(): mock mode, used when no node is selected. Canned
+ *   responses with a simulated "thinking" delay and a char-by-char reveal.
+ * - sendMessageToNode(): real mode, routes through fitz-net-api to a
+ *   specific node's Ollama instance (POST /node/{id}/chat). The backend
+ *   call is non-streaming (returns the full reply at once), so the real
+ *   reply is fed through the same char-by-char reveal as the mock path,
+ *   keeping the typing UX identical either way.
  */
+import { chatWithNode } from './nodeService';
 
 const MOCK_REPLIES = [
   "I'm just a preview right now — no local model is connected yet. Once Fitz-Net nodes come online, I'll route this to one of them.",
@@ -24,33 +28,79 @@ function nextReply() {
 }
 
 /**
- * Simulates sending a message and streaming back a reply.
+ * Reveals `text` to `onToken` a few characters at a time, as if it were
+ * streaming in. Returns a cancel function.
+ */
+function revealText(text, onToken) {
+  let cancelled = false;
+  let i = 0;
+  const intervalId = setInterval(() => {
+    if (cancelled) {
+      clearInterval(intervalId);
+      return;
+    }
+    i += Math.max(1, Math.round(text.length / 60));
+    const done = i >= text.length;
+    onToken(text.slice(0, i), done);
+    if (done) clearInterval(intervalId);
+  }, 20);
+
+  return () => {
+    cancelled = true;
+    clearInterval(intervalId);
+  };
+}
+
+/**
+ * Simulates sending a message and streaming back a mock reply.
  * @param {string} content - the user's message
  * @param {(partial: string, done: boolean) => void} onToken - called as each chunk of the reply arrives
  * @returns {() => void} cancel function
  */
 export function sendMessage(content, onToken) {
   let cancelled = false;
+  let stopReveal = null;
   const reply = nextReply();
 
   const thinkingDelay = 500 + Math.random() * 500;
   const revealTimer = setTimeout(() => {
     if (cancelled) return;
-    let i = 0;
-    const intervalId = setInterval(() => {
-      if (cancelled) {
-        clearInterval(intervalId);
-        return;
-      }
-      i += Math.max(1, Math.round(reply.length / 60));
-      const done = i >= reply.length;
-      onToken(reply.slice(0, i), done);
-      if (done) clearInterval(intervalId);
-    }, 20);
+    stopReveal = revealText(reply, onToken);
   }, thinkingDelay);
 
   return () => {
     cancelled = true;
     clearTimeout(revealTimer);
+    stopReveal?.();
+  };
+}
+
+/**
+ * Sends a real prompt to a node's Ollama instance via fitz-net-api, then
+ * reveals the reply the same way sendMessage() does for mock replies.
+ * @param {string} nodeId
+ * @param {string} model
+ * @param {string} content - the user's message
+ * @param {string} authToken - the caller's JWT
+ * @param {(partial: string, done: boolean) => void} onToken
+ * @returns {() => void} cancel function
+ */
+export function sendMessageToNode(nodeId, model, content, authToken, onToken) {
+  let cancelled = false;
+  let stopReveal = null;
+
+  chatWithNode(nodeId, content, model, authToken)
+    .then((res) => {
+      if (cancelled) return;
+      stopReveal = revealText(res.reply || '', onToken);
+    })
+    .catch((err) => {
+      if (cancelled) return;
+      onToken(`⚠️ ${err.message}`, true);
+    });
+
+  return () => {
+    cancelled = true;
+    stopReveal?.();
   };
 }

@@ -29,6 +29,21 @@
   padding: 0.2rem 0.7rem;
 }
 
+.ai-chat__node-picker {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.ai-chat__node-picker select {
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
 .ai-chat__messages {
   flex: 1;
   overflow-y: auto;
