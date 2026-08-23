@@ -63,7 +63,7 @@ function Navbar({ theme, toggleTheme }) {
               <Link to="/websocket">WebSocket</Link>
             </li>
             <li>
-              <Link to="/ai">AI</Link>
+              <Link to="/ai">Matt-GPT</Link>
             </li>
           </>
         )}

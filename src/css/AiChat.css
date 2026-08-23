@@ -1,22 +1,31 @@
 .ai-chat {
-  max-width: 800px;
+  max-width: 820px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.5rem 1.5rem 0;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--navbar-height, 60px) - 4rem);
+  /* min-height (not height): the site's Footer is position:fixed at the
+     viewport bottom and isn't part of the document flow, so there's no
+     reliable way to subtract its height here. Using min-height lets this
+     page grow past one viewport for long conversations (the whole page
+     scrolls) instead of silently clipping content behind the footer. */
+  min-height: calc(100vh - var(--navbar-height, 60px));
 }
 
 .ai-chat__header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
   margin-bottom: 1rem;
 }
 
 .ai-chat__header h1 {
   margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
@@ -32,7 +41,7 @@
 .ai-chat__node-picker {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-left: auto;
 }
 
 .ai-chat__node-picker select {
@@ -41,78 +50,114 @@
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .ai-chat__messages {
   flex: 1;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 1px 3px var(--shadow-color);
+  gap: 1.5rem;
+  padding: 0.5rem 0.25rem 1rem;
 }
 
 .ai-chat__message {
-  max-width: 80%;
-  padding: 0.6rem 0.9rem;
-  border-radius: 10px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
 }
 
 .ai-chat__message--user {
-  align-self: flex-end;
+  justify-content: flex-end;
+}
+
+.ai-chat__avatar {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--link-hover), var(--button-bg));
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.ai-chat__bubble {
+  max-width: 75%;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.ai-chat__message--user .ai-chat__bubble {
   background: var(--button-bg);
   color: var(--button-text);
+  padding: 0.65rem 1rem;
+  border-radius: 18px 18px 4px 18px;
 }
 
-.ai-chat__message-author {
-  display: block;
-  font-size: 0.75rem;
-  opacity: 0.7;
-  margin-bottom: 0.15rem;
+.ai-chat__message--assistant .ai-chat__bubble {
+  padding-top: 0.1rem;
 }
 
-.ai-chat__message-content :first-child {
+.ai-chat__bubble :first-child {
   margin-top: 0;
 }
 
-.ai-chat__message-content :last-child {
+.ai-chat__bubble :last-child {
   margin-bottom: 0;
 }
 
 .ai-chat__input-row {
+  /* Sticky rather than fixed: stays clear of the site's fixed Footer while
+     still tracking the bottom of the viewport as the page scrolls. */
+  position: sticky;
+  bottom: 68px;
   display: flex;
+  align-items: center;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin: 0.5rem 0 1rem;
+  padding: 0.4rem 0.4rem 0.4rem 1.1rem;
+  border-radius: 26px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  box-shadow: 0 2px 10px var(--shadow-color);
 }
 
 .ai-chat__input-row input {
   flex: 1;
-  padding: 0.6rem 0.8rem;
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-primary);
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
   color: var(--text-primary);
   font-size: 1rem;
+  padding: 0.5rem 0;
+}
+
+.ai-chat__input-row input::placeholder {
+  color: var(--text-secondary);
 }
 
 .ai-chat__input-row button {
-  padding: 0.6rem 1.2rem;
-  border-radius: 6px;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   border: none;
   background: var(--button-bg);
   color: var(--button-text);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ai-chat__input-row button:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
