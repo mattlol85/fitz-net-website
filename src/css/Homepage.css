@@ -2,7 +2,9 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  /* .app-main stretches this to exactly the space left between navbar and
+     footer — no viewport maths, so it can never overshoot and hide the footer. */
+  min-height: 0;
   background-color: var(--bg-primary);
   transition: background-color 0.3s ease;
 }

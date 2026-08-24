@@ -4,12 +4,11 @@
   padding: 1.5rem 1.5rem 0;
   display: flex;
   flex-direction: column;
-  /* min-height (not height): the site's Footer is position:fixed at the
-     viewport bottom and isn't part of the document flow, so there's no
-     reliable way to subtract its height here. Using min-height lets this
-     page grow past one viewport for long conversations (the whole page
-     scrolls) instead of silently clipping content behind the footer. */
-  min-height: calc(100vh - var(--navbar-height, 60px));
+  /* .app-main stretches this to the space left between navbar and footer;
+     min-height: 0 lets it grow past that for long conversations (the whole
+     page scrolls) instead of clipping. The footer is in flow, so it simply
+     follows the content rather than covering it. */
+  min-height: 0;
 }
 
 .ai-chat__header {

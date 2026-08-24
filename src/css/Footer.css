@@ -1,3 +1,6 @@
+/* In normal document flow (not position: fixed) so it can never sit on top of
+   page content. The .app flex column below keeps it at the bottom of short
+   pages; on long pages it simply follows the content. */
 .footer {
     background-color: var(--footer-bg);
     color: var(--footer-text);
@@ -6,8 +9,7 @@
     align-items: center;
     justify-content: center;
     padding: 1rem;
-    position: fixed;
-    bottom: 0;
+    flex: 0 0 auto;
     width: 100%;
     font-size: 0.8rem;
     text-align: center;

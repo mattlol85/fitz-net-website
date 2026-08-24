@@ -12,6 +12,29 @@ body {
   margin: 0 auto;
 }
 
+/* Sticky-footer column: the content area absorbs the leftover height, so the
+   footer sits at the bottom of short pages and after the content on long ones
+   — either way it's in flow and never overlaps anything. */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app-main {
+  flex: 1 0 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Full-height pages fill the leftover column space exactly, so they never
+   overshoot the viewport and push the footer out of sight. */
+.app-main > * {
+  flex: 1 0 auto;
+}
+
 header {
   display: flex;
   align-items: center;

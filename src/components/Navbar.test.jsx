@@ -48,6 +48,33 @@ describe('Navbar Component', () => {
     expect(container.querySelector('.nav-spacer')).toBeInTheDocument();
   });
 
+  test('keeps the auth controls in a single group after the spacer', () => {
+    const { container } = renderNavbar();
+
+    const items = [...container.querySelectorAll('.site-nav-list > li')];
+    const spacerIndex = items.findIndex((li) => li.classList.contains('nav-spacer'));
+    const authIndex = items.findIndex((li) => li.classList.contains('nav-auth'));
+
+    // The auth group is the last thing in the nav, so it renders top-right.
+    expect(authIndex).toBe(items.length - 1);
+    expect(authIndex).toBeGreaterThan(spacerIndex);
+
+    const authGroup = container.querySelector('.nav-auth .nav-auth-list');
+    expect(authGroup).toBeInTheDocument();
+    expect(authGroup.querySelector('a[href="/login"]')).toBeInTheDocument();
+    expect(authGroup.querySelector('a[href="/register"]')).toBeInTheDocument();
+    expect(authGroup.querySelector('button[aria-label="Toggle theme"]')).toBeInTheDocument();
+  });
+
+  test('keeps the primary links in their own wrapping group', () => {
+    const { container } = renderNavbar();
+
+    const primary = container.querySelector('.nav-primary .nav-primary-list');
+    expect(primary).toBeInTheDocument();
+    expect(primary.querySelector('a[href="/status"]')).toBeInTheDocument();
+    expect(primary.querySelector('a[href="/login"]')).not.toBeInTheDocument();
+  });
+
   test('renders logo image', () => {
     renderNavbar();
 
