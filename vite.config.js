@@ -25,6 +25,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/actuator-gamerbell/, '/actuator')
+      },
+      '/gamerbell-firmware': {
+        target: 'https://gamerbell.fitznet.doomdns.org',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/gamerbell-firmware/, '/api/firmware')
       }
     }
   },
