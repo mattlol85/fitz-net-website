@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { fetchNodes } from '../services/nodeService';
+import { createRendererOrNull } from '../utils/webgl';
+import { useThreeHoverRaycast } from '../hooks/useThreeHoverRaycast';
 import '../css/AiNodesGraph.css';
 
 const STATUS_COLOR = {
@@ -17,7 +19,7 @@ export default function AiNodesGraph() {
   const containerRef = useRef(null);
   const nodesRef = useRef([]); // [{ mesh, node }]
   const [nodes, setNodes] = useState([]);
-  const [hovered, setHovered] = useState(null); // { node, x, y }
+  const { hovered, setHovered, bindPointerEvents } = useThreeHoverRaycast();
   const [error, setError] = useState(null);
   const [webglUnavailable, setWebglUnavailable] = useState(false);
 
@@ -58,10 +60,8 @@ export default function AiNodesGraph() {
     camera.position.set(0, 2.5, 9);
     camera.lookAt(0, 0, 0);
 
-    let renderer;
-    try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    } catch (err) {
+    const renderer = createRendererOrNull({ antialias: true, alpha: true });
+    if (!renderer) {
       setWebglUnavailable(true);
       return undefined;
     }
@@ -78,9 +78,6 @@ export default function AiNodesGraph() {
     const hubMaterial = new THREE.MeshStandardMaterial({ color: 0x4da3d9, wireframe: true });
     const hub = new THREE.Mesh(hubGeometry, hubMaterial);
     scene.add(hub);
-
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
 
     let animationId;
     const clock = new THREE.Clock();
@@ -114,24 +111,7 @@ export default function AiNodesGraph() {
     };
     window.addEventListener('resize', handleResize);
 
-    const handlePointerMove = (event) => {
-      const rect = renderer.domElement.getBoundingClientRect();
-      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      raycaster.setFromCamera(pointer, camera);
-      const meshes = nodesRef.current.map((n) => n.mesh);
-      const intersects = raycaster.intersectObjects(meshes);
-
-      if (intersects.length > 0) {
-        const hit = nodesRef.current.find((n) => n.mesh === intersects[0].object);
-        setHovered(hit ? { node: hit.node, x: event.clientX, y: event.clientY } : null);
-      } else {
-        setHovered(null);
-      }
-    };
-    renderer.domElement.addEventListener('pointermove', handlePointerMove);
-    renderer.domElement.addEventListener('pointerleave', () => setHovered(null));
+    const unbindPointerEvents = bindPointerEvents(renderer.domElement, camera, nodesRef);
 
     // Expose for the nodes-sync effect below
     container.__scene = scene;
@@ -139,7 +119,7 @@ export default function AiNodesGraph() {
     return () => {
       cancelAnimationFrame(animationId);
       window.removeEventListener('resize', handleResize);
-      renderer.domElement.removeEventListener('pointermove', handlePointerMove);
+      unbindPointerEvents();
       nodesRef.current.forEach(({ mesh }) => {
         mesh.geometry.dispose();
         mesh.material.dispose();

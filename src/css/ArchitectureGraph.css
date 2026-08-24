@@ -1,0 +1,270 @@
+.architecture-graph {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.architecture-graph__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.architecture-graph h2 {
+  color: var(--text-primary);
+  margin: 0 0 0.25rem;
+}
+
+.architecture-graph__hint {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.architecture-graph__controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.architecture-graph__controls button {
+  background: var(--card-bg, #fff);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.architecture-graph__controls button:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.architecture-graph__canvas {
+  width: 100%;
+  height: 640px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--card-bg);
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+
+.architecture-graph__canvas:active {
+  cursor: grabbing;
+}
+
+.architecture-graph__empty {
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+/* ---- legend ---- */
+.architecture-graph__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 2rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--card-bg);
+}
+
+.architecture-graph__legend-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.85rem;
+}
+
+.architecture-graph__legend-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.architecture-graph__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.architecture-graph__chip i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.architecture-graph__chip i.dashed {
+  height: 3px;
+  border-radius: 0;
+  width: 16px;
+  mask-image: repeating-linear-gradient(to right, #000 0 4px, transparent 4px 7px);
+  -webkit-mask-image: repeating-linear-gradient(to right, #000 0 4px, transparent 4px 7px);
+}
+
+.architecture-graph__legend-note {
+  font-size: 0.75rem;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+/* ---- fallback list ---- */
+.architecture-graph__fallback-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  color: var(--text-primary);
+}
+
+.architecture-graph__fallback-list li {
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* ---- tooltip ---- */
+.architecture-graph__tooltip {
+  position: fixed;
+  z-index: 10;
+  pointer-events: none;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 14px var(--shadow-color);
+  max-width: 280px;
+}
+
+.architecture-graph__tooltip-status {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.15rem 0;
+  color: var(--text-secondary);
+}
+
+.architecture-graph__tooltip-status i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+/* ---- detail panel ---- */
+.architecture-graph__detail-panel {
+  position: absolute;
+  top: 5.5rem;
+  right: 1rem;
+  width: min(360px, calc(100% - 2rem));
+  max-height: calc(100% - 12rem);
+  overflow-y: auto;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 12px;
+  padding: 1.25rem 1.4rem;
+  box-shadow: 0 12px 32px var(--shadow-color, rgba(0, 0, 0, 0.25));
+  z-index: 5;
+}
+
+.architecture-graph__close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.architecture-graph__facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.architecture-graph__facts li {
+  position: relative;
+  padding: 0.3rem 0 0.3rem 0.9rem;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.architecture-graph__facts li:last-child {
+  border-bottom: none;
+}
+
+.architecture-graph__facts li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.75rem;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+}
+
+.architecture-graph__facts em {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.architecture-graph__link-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.architecture-graph__link-button {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.95rem;
+}
+
+.architecture-graph__link-button:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+[data-theme='dark'] .architecture-graph__link-button {
+  color: #60a5fa;
+}
+
+[data-theme='dark'] .architecture-graph__link-button:hover {
+  color: #93c5fd;
+}
+
+@media (max-width: 768px) {
+  .architecture-graph__canvas {
+    height: 440px;
+  }
+
+  .architecture-graph__detail-panel {
+    position: static;
+    width: 100%;
+    max-height: none;
+    margin-top: 1rem;
+  }
+}

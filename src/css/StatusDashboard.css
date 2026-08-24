@@ -32,32 +32,6 @@
   color: var(--text-secondary, #6b7280);
 }
 
-.status-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-  gap: 2rem;
-  margin-bottom: 2rem;
-}
-
-.status-card {
-  background: var(--bg-secondary, #ffffff);
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.status-card:hover {
-  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
-}
-
-.status-card.offline {
-  border-color: #ef4444;
-  opacity: 0.8;
-}
-
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -72,28 +46,6 @@
   font-size: 1.5rem;
   color: var(--text-primary, #1f2937);
   flex: 1;
-}
-
-.status-indicator {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-  50% {
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.2);
-  }
 }
 
 .status-section {
@@ -202,15 +154,6 @@
 }
 
 /* Dark theme support */
-[data-theme='dark'] .status-card {
-  background: #1f2937;
-  border-color: #374151;
-}
-
-[data-theme='dark'] .status-card h2 {
-  color: #f3f4f6;
-}
-
 [data-theme='dark'] .status-section h3 {
   color: #e5e7eb;
 }
@@ -253,10 +196,6 @@
 }
 
 @media (max-width: 768px) {
-  .status-grid {
-    grid-template-columns: 1fr;
-  }
-
   .status-dashboard {
     padding: 1rem;
   }
@@ -265,10 +204,6 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
-  }
-
-  .status-indicator {
-    align-self: flex-end;
   }
 
   .info-row {

@@ -3,10 +3,18 @@ import { render, screen, waitFor } from '@testing-library/react';
 import StatusDashboard from './StatusDashboard';
 import packageJson from '../../package.json';
 
-// AiNodesGraph has its own fetch/WebGL lifecycle covered by AiNodesGraph.test.jsx;
-// stub it here so it doesn't consume this file's mocked global.fetch responses.
+// AiNodesGraph and ArchitectureGraph each have their own fetch/WebGL
+// lifecycle covered by their own test files; stub them here so they don't
+// consume this file's mocked global.fetch responses. ArchitectureGraph's
+// stub renders the apiStatuses prop as JSON so this file can still assert
+// StatusDashboard's fetch/polling behavior fed it the right data.
 vi.mock('./AiNodesGraph', () => ({
   default: () => <div data-testid="ai-nodes-graph-stub" />,
+}));
+vi.mock('./ArchitectureGraph', () => ({
+  default: ({ apiStatuses }) => (
+    <div data-testid="architecture-graph-stub">{JSON.stringify(apiStatuses)}</div>
+  ),
 }));
 
 // EnrollmentTokenPanel needs an AuthProvider (via useAuth()) that this file's
@@ -89,22 +97,24 @@ describe('StatusDashboard', () => {
     render(<StatusDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'fitz-net-api' })).toBeInTheDocument();
+      // fitz-net-api's fetched health/build info should reach ArchitectureGraph as a prop
+      expect(screen.getByTestId('architecture-graph-stub')).toHaveTextContent('"name":"fitz-net-api"');
+      expect(screen.getByTestId('architecture-graph-stub')).toHaveTextContent('"online":true');
     });
 
     await waitFor(() => {
       // Check for the website version from embedded actuator (dynamically from package.json)
-      expect(screen.getByText(new RegExp(packageJson.version))).toBeInTheDocument();
+      expect(screen.getByTestId('architecture-graph-stub')).toHaveTextContent(packageJson.version);
     });
   });
 
-  it('should display offline message when API is unreachable', async () => {
+  it('should mark an API offline when unreachable', async () => {
     fetch.mockRejectedValue(new Error('Network error'));
 
     render(<StatusDashboard />);
 
     await waitFor(() => {
-      expect(screen.getAllByText(/offline/i).length).toBeGreaterThan(0);
+      expect(screen.getByTestId('architecture-graph-stub')).toHaveTextContent('"online":false');
     });
   });
 });
