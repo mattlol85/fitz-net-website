@@ -1,0 +1,34 @@
+.no-page-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 0;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.no-page-title {
+  font-size: 5rem;
+  margin: 0;
+}
+
+.no-page-message {
+  color: var(--text-secondary, #666);
+  margin: 0 0 1rem;
+}
+
+.no-page-link {
+  color: var(--link-color, #007bff);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.no-page-link:hover {
+  color: var(--link-hover, #0056b3);
+  text-decoration: underline;
+}

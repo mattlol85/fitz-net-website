@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import {
   ALL_NODES,
@@ -520,10 +520,14 @@ export default function ArchitectureGraph({ apiStatuses }) {
   const [isDragging, setIsDragging] = useState(false);
   const { hovered, setHovered, bindPointerEvents } = useThreeHoverRaycast();
 
-  const nodeStatuses = ALL_NODES.reduce((acc, node) => {
-    acc[node.id] = deriveNodeStatus(node, apiStatuses, inferredStatuses);
-    return acc;
-  }, {});
+  const nodeStatuses = useMemo(
+    () =>
+      ALL_NODES.reduce((acc, node) => {
+        acc[node.id] = deriveNodeStatus(node, apiStatuses, inferredStatuses);
+        return acc;
+      }, {}),
+    [apiStatuses, inferredStatuses]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -847,7 +851,6 @@ export default function ArchitectureGraph({ apiStatuses }) {
       renderer.dispose();
       if (dom.parentNode === container) container.removeChild(dom);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ---- Per-render sync: status colours, visibility, hover/selection --------
@@ -1100,7 +1103,7 @@ export default function ArchitectureGraph({ apiStatuses }) {
 
           {selectedApi && !selectedApi.online && (
             <div className="offline-message">
-              <p>❌ Currently offline or unreachable</p>
+              <p>Currently offline or unreachable</p>
               <p className="error-detail">{selectedApi.error}</p>
             </div>
           )}

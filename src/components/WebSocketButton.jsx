@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import '../css/WebSocketButton.css';
 
@@ -164,7 +165,7 @@ function WebSocketButton() {
     return (
       <div className="websocket-container">
         <div className="websocket-card">
-          <p>Please <a href="/login">log in</a> to use the FitzNet Bell.</p>
+          <p>Please <Link to="/login">log in</Link> to use the FitzNet Bell.</p>
         </div>
       </div>
     );

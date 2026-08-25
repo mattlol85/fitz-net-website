@@ -1,5 +1,5 @@
 import './css/App.css';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Homepage from './components/Homepage.jsx';
@@ -10,9 +10,12 @@ import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
 import EditProfile from './components/EditProfile.jsx';
 import WebSocketButton from './components/WebSocketButton.jsx';
-import StatusDashboard from './components/StatusDashboard.jsx';
-import LiveBoard from './components/LiveBoard.jsx';
-import AiChat from './components/AiChat.jsx';
+
+// These pages pull in the Three.js-based graph components and other heavy
+// dependencies, so they're loaded on demand instead of in the main bundle.
+const StatusDashboard = lazy(() => import('./components/StatusDashboard.jsx'));
+const LiveBoard = lazy(() => import('./components/LiveBoard.jsx'));
+const AiChat = lazy(() => import('./components/AiChat.jsx'));
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -25,6 +28,12 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
     // Save theme preference to localStorage
     localStorage.setItem('theme', theme);
+
+    // Keep the browser chrome (address bar, task switcher) in sync with the theme
+    const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeColorMeta) {
+      themeColorMeta.setAttribute('content', theme === 'dark' ? '#1a1a1a' : '#ffffff');
+    }
   }, [theme]);
 
   const toggleTheme = () => {
@@ -37,18 +46,20 @@ function App() {
         <BrowserRouter>
           <Navbar theme={theme} toggleTheme={toggleTheme} />
           <main className="app-main">
-            <Routes>
-              <Route path="/home" element={<Homepage />} />
-              <Route index element={<Homepage />} />
-              <Route path="/status" element={<StatusDashboard />} />
-              <Route path="/websocket" element={<WebSocketButton />} />
-              <Route path="/liveboard" element={<LiveBoard />} />
-              <Route path="/ai" element={<AiChat />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/profile" element={<EditProfile />} />
-              <Route path="*" element={<NoPage />} />
-            </Routes>
+            <Suspense fallback={null}>
+              <Routes>
+                <Route path="/home" element={<Homepage />} />
+                <Route index element={<Homepage />} />
+                <Route path="/status" element={<StatusDashboard />} />
+                <Route path="/websocket" element={<WebSocketButton />} />
+                <Route path="/liveboard" element={<LiveBoard />} />
+                <Route path="/ai" element={<AiChat />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/profile" element={<EditProfile />} />
+                <Route path="*" element={<NoPage />} />
+              </Routes>
+            </Suspense>
           </main>
           <Footer />
           <Outlet />

@@ -28,7 +28,7 @@ function BoardMessage({ id, username, xRatio, yRatio, content, postedAt, onExpir
     }, remaining);
     return () => clearTimeout(timer);
   // remaining is now stable (ref), so this effect only runs once per mount
-  }, [id, onExpire]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, onExpire]);
 
   if (!visible) return null;
 
