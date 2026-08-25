@@ -36,18 +36,20 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Navbar theme={theme} toggleTheme={toggleTheme} />
-          <Routes>
-            <Route path="/home" element={<Homepage />} />
-            <Route index element={<Homepage />} />
-            <Route path="/status" element={<StatusDashboard />} />
-            <Route path="/websocket" element={<WebSocketButton />} />
-            <Route path="/liveboard" element={<LiveBoard />} />
-            <Route path="/ai" element={<AiChat />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/profile" element={<EditProfile />} />
-            <Route path="*" element={<NoPage />} />
-          </Routes>
+          <main className="app-main">
+            <Routes>
+              <Route path="/home" element={<Homepage />} />
+              <Route index element={<Homepage />} />
+              <Route path="/status" element={<StatusDashboard />} />
+              <Route path="/websocket" element={<WebSocketButton />} />
+              <Route path="/liveboard" element={<LiveBoard />} />
+              <Route path="/ai" element={<AiChat />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/profile" element={<EditProfile />} />
+              <Route path="*" element={<NoPage />} />
+            </Routes>
+          </main>
           <Footer />
           <Outlet />
         </BrowserRouter>

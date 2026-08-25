@@ -46,53 +46,66 @@ function Navbar({ theme, toggleTheme }) {
   return (
     <nav ref={navRef} className="site-nav">
       <ul className={`site-nav-list ${authenticated ? 'site-nav-list--authenticated' : 'site-nav-list--guest'}`}>
-        <li>
-          <Link to="/" className="logo-link">
-            <img src={logo} alt="Fitz-Net Logo" className="logo-img" />
-          </Link>
-        </li>
-        <li>
-          <Link to="/status">Status</Link>
-        </li>
-        {authenticated && (
-          <>
+        {/* Primary links wrap inside their own group so a long link list can
+            never push the auth controls off the first row. */}
+        <li className="nav-primary">
+          <ul className="nav-primary-list">
             <li>
-              <Link to="/liveboard">&ldquo;The Board&rdquo;</Link>
-            </li>
-            <li>
-              <Link to="/websocket">WebSocket</Link>
-            </li>
-            <li>
-              <Link to="/ai">Matt-GPT</Link>
-            </li>
-          </>
-        )}
-        <li className="nav-spacer"></li>
-        {authenticated ? (
-          <>
-            <li className="user-info">
-              <Link to="/profile" className="username username-clickable">
-                Welcome, {user?.username}
+              <Link to="/" className="logo-link">
+                <img src={logo} alt="Fitz-Net Logo" className="logo-img" />
               </Link>
             </li>
             <li>
-              <button onClick={handleLogout} className="logout-button">
-                Logout
-              </button>
+              <Link to="/status">Status</Link>
             </li>
-          </>
-        ) : (
-          <>
+            {authenticated && (
+              <>
+                <li>
+                  <Link to="/liveboard">&ldquo;The Board&rdquo;</Link>
+                </li>
+                <li>
+                  <Link to="/websocket">WebSocket</Link>
+                </li>
+                <li>
+                  <Link to="/ai">Matt-GPT</Link>
+                </li>
+              </>
+            )}
+          </ul>
+        </li>
+        <li className="nav-spacer"></li>
+        {/* Every auth control lives in one non-wrapping group pinned to the
+            right edge, so Login/Sign Up stay in the top-right corner instead
+            of breaking apart onto a second row at narrow widths. */}
+        <li className="nav-auth">
+          <ul className="nav-auth-list">
+            {authenticated ? (
+              <>
+                <li className="user-info">
+                  <Link to="/profile" className="username username-clickable">
+                    Welcome, {user?.username}
+                  </Link>
+                </li>
+                <li>
+                  <button onClick={handleLogout} className="logout-button">
+                    Logout
+                  </button>
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  <Link to="/login">Login</Link>
+                </li>
+                <li>
+                  <Link to="/register">Sign Up</Link>
+                </li>
+              </>
+            )}
             <li>
-              <Link to="/login">Login</Link>
+              <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
             </li>
-            <li>
-              <Link to="/register">Sign Up</Link>
-            </li>
-          </>
-        )}
-        <li>
-          <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+          </ul>
         </li>
       </ul>
     </nav>

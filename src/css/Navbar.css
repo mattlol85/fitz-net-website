@@ -69,14 +69,18 @@
 .site-nav {
   background-color: var(--nav-bg);
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 30;
 }
 
+/* Single, never-wrapping row: primary links on the left, auth controls pinned
+   to the right. Wrapping happens inside .nav-primary-list only, so the auth
+   cluster can never be bumped out of the top-right corner. */
 .site-nav-list {
   list-style: none;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.75rem 1rem;
   margin: 0;
   padding: 0;
@@ -88,13 +92,49 @@
   flex: 0 0 auto;
 }
 
+.nav-primary {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.nav-primary-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-primary-list > li {
+  margin-right: 0;
+  flex: 0 0 auto;
+}
+
 .nav-spacer {
   flex: 1 1 auto;
   min-width: 1rem;
 }
 
-.site-nav-list--guest .nav-spacer {
+/* margin-left: auto holds the right edge even if the spacer collapses. */
+.nav-auth {
   margin-left: auto;
+}
+
+.nav-auth-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-auth-list > li {
+  margin-right: 0;
+  flex: 0 0 auto;
 }
 
 .user-info {
@@ -166,12 +206,42 @@
   background: #b21f2d;
 }
 
-@media (max-width: 900px) {
-  .site-nav-list--authenticated .nav-spacer {
-    display: none;
+/* Narrow viewports: shrink the auth controls rather than moving them — they
+   stay in the top-right corner at every width. */
+@media (max-width: 600px) {
+  .nav-auth-list {
+    gap: 0.5rem;
   }
 
-  .site-nav-list--authenticated {
-    justify-content: center;
+  .nav-auth-list .username {
+    max-width: 8rem;
+  }
+
+  .nav-auth-list .logout-button {
+    padding: 0.5rem 0.75rem;
+    font-size: 14px;
+  }
+}
+
+/* Phone widths: tighten padding and type so logo + links + auth still fit on
+   one row instead of overflowing the nav. */
+@media (max-width: 480px) {
+  .site-nav {
+    padding: 0.75rem;
+  }
+
+  .site-nav-list,
+  .nav-primary-list {
+    gap: 0.5rem;
+  }
+
+  .site-nav-list a,
+  .nav-primary-list a,
+  .nav-auth-list a {
+    font-size: 15px;
+  }
+
+  .logo-img {
+    max-height: 36px;
   }
 }
