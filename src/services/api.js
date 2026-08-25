@@ -37,8 +37,6 @@ const parseResponseData = async (response) => {
 export const createUser = async (username, email, password) => {
   try {
     const url = `${API_BASE_URL}/user/create`;
-    console.log('👤 Creating user account at:', url);
-    console.log('📤 Request body:', { username, email, password: '***' });
 
     const response = await fetch(url, {
       method: 'POST',
@@ -55,9 +53,7 @@ export const createUser = async (username, email, password) => {
       }),
     });
 
-    console.log('📥 Response status:', response.status);
     const data = await response.json();
-    console.log('📦 Response data:', data);
 
     if (!response.ok) {
       return {
@@ -73,8 +69,7 @@ export const createUser = async (username, email, password) => {
       username: data.username,
       email: data.email,
     };
-  } catch (error) {
-    console.error('❌ Create user error:', error);
+  } catch (_error) {
     return {
       success: false,
       message: 'Network error. Please check your connection and try again.',
@@ -90,14 +85,11 @@ export const createUser = async (username, email, password) => {
  */
 export const loginUser = async (username, password) => {
   if (USE_MOCK_API) {
-    console.log('🎭 Using mock API for login');
     return mockApi.login(username, password);
   }
 
   try {
     const url = `${API_BASE_URL}/user/login`;
-    console.log('🔐 Attempting login to:', url);
-    console.log('📤 Request body:', { username, password: '***' });
 
     const response = await fetch(url, {
       method: 'POST',
@@ -113,9 +105,7 @@ export const loginUser = async (username, password) => {
       }),
     });
 
-    console.log('📥 Response status:', response.status);
     const data = await parseResponseData(response);
-    console.log('📦 Response data:', data);
 
     if (!response.ok) {
       const authFallback = response.status === 401 || response.status === 403
@@ -136,8 +126,7 @@ export const loginUser = async (username, password) => {
       token: data.token,
       boardColor: data.boardColor,
     };
-  } catch (error) {
-    console.error('❌ Login error:', error);
+  } catch (_error) {
     return {
       success: false,
       message: 'Network error. Please check your connection and try again.',
@@ -163,8 +152,7 @@ export const validateToken = (token) => {
 
     // Check if token is expired
     return payload.exp > now;
-  } catch (error) {
-    console.error('Token validation error:', error);
+  } catch (_error) {
     return false;
   }
 };
@@ -193,7 +181,6 @@ export const logoutUser = async () => {
  */
 export const updateUserProfile = async (updates, token) => {
   if (USE_MOCK_API) {
-    console.log('🎭 Using mock API for profile update');
     return mockApi.updateProfile(updates, token);
   }
 
@@ -206,8 +193,6 @@ export const updateUserProfile = async (updates, token) => {
 
   try {
     const url = `${API_BASE_URL}/user/update`;
-    console.log('👤 Updating user profile at:', url);
-    console.log('📤 Request body:', { ...updates, password: updates.password ? '***' : undefined });
 
     const requestBody = {
       username: updates.username,
@@ -231,9 +216,7 @@ export const updateUserProfile = async (updates, token) => {
       body: JSON.stringify(requestBody),
     });
 
-    console.log('📥 Response status:', response.status);
     const data = await parseResponseData(response);
-    console.log('📦 Response data:', data);
 
     if (!response.ok) {
       return {
@@ -249,8 +232,7 @@ export const updateUserProfile = async (updates, token) => {
       email: data.email,
       boardColor: data.boardColor,
     };
-  } catch (error) {
-    console.error('❌ Update profile error:', error);
+  } catch (_error) {
     return {
       success: false,
       message: 'Network error. Please check your connection and try again.',

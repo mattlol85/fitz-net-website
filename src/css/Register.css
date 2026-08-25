@@ -75,8 +75,8 @@
 
 .register-button {
   padding: 0.875rem;
-  background: var(--link-color, #007bff);
-  color: white;
+  background: var(--button-bg, #007bff);
+  color: var(--button-text, white);
   border: none;
   border-radius: 6px;
   font-size: 1rem;

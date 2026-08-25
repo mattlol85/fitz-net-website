@@ -64,6 +64,14 @@
   max-width: 100%;
   height: auto;
   max-height: 50px;
+  border-radius: 6px;
+}
+
+/* The logo artwork sits on an opaque white canvas; give it an explicit light
+   chip in dark mode so it reads as a badge instead of a stray white box. */
+[data-theme='dark'] .logo-img {
+  background: #ffffff;
+  padding: 4px 6px;
 }
 
 .site-nav {

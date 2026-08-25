@@ -82,9 +82,7 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = async (username, password) => {
     try {
-      console.log('🔑 Login initiated for user:', username);
       const response = await loginUser(username, password);
-      console.log('🔑 Login response:', response);
 
       if (response.success) {
         const userData = normalizeUserData(response);
@@ -98,14 +96,11 @@ export const AuthProvider = ({ children }) => {
         safeSetItem('authToken', response.token);
         safeSetItem('authUser', JSON.stringify(userData));
 
-        console.log('✅ Login successful, user data stored');
         return { success: true, message: response.message };
       } else {
-        console.log('❌ Login failed:', response.message);
         return { success: false, message: response.message };
       }
-    } catch (error) {
-      console.error('❌ Login error caught:', error);
+    } catch (_error) {
       return { success: false, message: 'An error occurred during login' };
     }
   };
@@ -137,7 +132,6 @@ export const AuthProvider = ({ children }) => {
   // Update user profile
   const updateProfile = async (updates) => {
     try {
-      console.log('🔄 Updating user profile');
       const response = await updateUserProfile(updates, token);
 
       if (response.success) {
@@ -145,14 +139,11 @@ export const AuthProvider = ({ children }) => {
 
         setUser(updatedUserData);
         safeSetItem('authUser', JSON.stringify(updatedUserData));
-        console.log('✅ Profile updated successfully');
         return { success: true, message: response.message };
       } else {
-        console.log('❌ Profile update failed:', response.message);
         return { success: false, message: response.message };
       }
-    } catch (error) {
-      console.error('❌ Profile update error caught:', error);
+    } catch (_error) {
       return { success: false, message: 'An error occurred during profile update' };
     }
   };

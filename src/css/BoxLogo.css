@@ -1,5 +1,12 @@
 .logo {
-    width: 30rem;
+    width: min(20rem, 60vw);
     height: auto;
+    border-radius: 12px;
   }
-  
+
+/* The logo artwork sits on an opaque white canvas; give it an explicit light
+   chip in dark mode so it reads as a badge instead of a stray white box. */
+[data-theme='dark'] .logo {
+    background: #ffffff;
+    padding: 0.5rem;
+}

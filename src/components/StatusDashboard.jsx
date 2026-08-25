@@ -91,7 +91,7 @@ export default function StatusDashboard() {
 
   return (
     <div className="status-dashboard">
-      <h1>🚀 API Status Dashboard</h1>
+      <h1>API Status Dashboard</h1>
 
       {error && (
         <div className="error-banner">

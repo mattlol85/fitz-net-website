@@ -6,9 +6,7 @@ function Homepage() {
   return (
     <div className="homepage-container">
       <h1 className="homepage-title">
-        <div style={{width: ".1%", height: ".1%"}}>
-          <BoxLogo />
-        </div>
+        <BoxLogo />
       </h1>
     </div>
   );

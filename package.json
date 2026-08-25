@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@babel/plugin-transform-private-property-in-object": "^7.29.7",
+    "@eslint/js": "^10.0.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.4",
@@ -23,6 +24,7 @@
     "@vitejs/plugin-react-swc": "^3.11.0",
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.8.1",
+    "globals": "^17.11.0",
     "jsdom": "^26.1.0",
     "typescript": "^7.0.2",
     "vite": "^6.4.3",
@@ -34,13 +36,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest --config ./vite.config.js",
-    "test:coverage": "vitest --coverage --config ./vite.config.js"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "test:coverage": "vitest --coverage --config ./vite.config.js",
+    "lint": "eslint ."
   },
   "browserslist": {
     "production": [

@@ -5,7 +5,7 @@ import '../css/BoxLogo.css';
 function BoxLogo() {
   return (
     <div>
-      <img src={logo} alt="Logo" className="logo" />
+      <img src={logo} alt="Fitz-Net Logo" className="logo" />
     </div>
   );
 }

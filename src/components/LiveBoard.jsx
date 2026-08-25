@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   init,
@@ -222,7 +223,6 @@ function LiveBoard() {
       cancelAnimationFrame(rafId);
       ro.disconnect();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   // ── STOMP subscriptions & init ────────────────────────────────────────────
@@ -299,7 +299,7 @@ function LiveBoard() {
   if (!isAuthenticated()) {
     return (
       <div className="liveboard-gate">
-        <p>Please <a href="/login">log in</a> to join the Live Board.</p>
+        <p>Please <Link to="/login">log in</Link> to join the Live Board.</p>
       </div>
     );
   }
