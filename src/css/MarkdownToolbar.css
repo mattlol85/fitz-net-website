@@ -1,0 +1,68 @@
+/* ── Markdown formatting toolbar on the board compose bubble ───────────────── */
+
+.md-toolbar {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  z-index: 21;
+}
+
+.md-toolbar__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 7px;
+  background: var(--bg-primary, rgba(0, 0, 0, 0.15));
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.md-toolbar__trigger:hover,
+.md-toolbar__trigger[aria-expanded='true'] {
+  color: var(--text-primary);
+  background: var(--link-hover);
+}
+
+.md-toolbar__menu {
+  position: absolute;
+  right: 0;
+  bottom: 26px;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--link-hover);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px var(--shadow-color);
+  animation: md-toolbar-pop 140ms ease forwards;
+}
+
+@keyframes md-toolbar-pop {
+  from { opacity: 0; transform: translateY(4px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.md-toolbar__item {
+  min-width: 26px;
+  height: 26px;
+  padding: 0 5px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.md-toolbar__item:hover {
+  background: var(--link-hover);
+}
