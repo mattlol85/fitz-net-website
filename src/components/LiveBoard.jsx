@@ -14,6 +14,7 @@ import {
 } from '../services/liveBoardService';
 import LiveCursor from './LiveCursor';
 import BoardMessage from './BoardMessage';
+import MarkdownToolbar from './MarkdownToolbar';
 import { DEFAULT_BOARD_COLOR } from '../constants';
 import '../css/LiveBoard.css';
 
@@ -38,6 +39,7 @@ function LiveBoard() {
   const [paintDots, setPaintDots]   = useState([]);
 
   const composeRef      = useRef(null);
+  const composeWrapRef  = useRef(null);
   const cursorsRef      = useRef({});    // mirrors cursors state, safe to read in callbacks
   const snakeTrailRef   = useRef(new Map()); // username → [{xPct,yPct,t,color}]
   const lastSparkleRef  = useRef({});    // pairKey → timestamp
@@ -120,7 +122,7 @@ function LiveBoard() {
   // ── Left-click → ripple ──────────────────────────────────────────────────
   const handleClick = useCallback((e) => {
     if (!canvasRef.current) return;
-    if (composeRef.current && composeRef.current.contains(e.target)) return;
+    if (composeWrapRef.current && composeWrapRef.current.contains(e.target)) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -136,7 +138,7 @@ function LiveBoard() {
   const handleContextMenu = useCallback((e) => {
     e.preventDefault();
     if (!canvasRef.current) return;
-    if (composeRef.current && composeRef.current.contains(e.target)) return;
+    if (composeWrapRef.current && composeWrapRef.current.contains(e.target)) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const xRatio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
     const yRatio = Math.min(Math.max((e.clientY - rect.top) / rect.height, 0), 1);
@@ -389,17 +391,24 @@ function LiveBoard() {
 
       {/* Compose overlay */}
       {compose && (
-        <textarea
-          ref={composeRef}
-          className="liveboard-compose"
-          data-testid="liveboard-compose"
+        <div
+          ref={composeWrapRef}
+          className="liveboard-compose-wrap"
           style={{ left: compose.clientX, top: compose.clientY }}
-          placeholder="Type a message… (Enter to send, Shift+Enter for newline, Esc to cancel)"
-          onKeyDown={handleComposeKeyDown}
-          onBlur={handleComposeBlur}
-          rows={3}
-          maxLength={500}
-        />
+          data-testid="liveboard-compose-wrap"
+        >
+          <textarea
+            ref={composeRef}
+            className="liveboard-compose"
+            data-testid="liveboard-compose"
+            placeholder="Type a message… (Enter to send, Shift+Enter for newline, Esc to cancel)"
+            onKeyDown={handleComposeKeyDown}
+            onBlur={handleComposeBlur}
+            rows={3}
+            maxLength={500}
+          />
+          <MarkdownToolbar textareaRef={composeRef} />
+        </div>
       )}
     </div>
   );
