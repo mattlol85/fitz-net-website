@@ -59,6 +59,7 @@ const mockInit       = vi.fn();
 const mockDisconnect = vi.fn();
 const mockSendCursor = vi.fn();
 const mockSendMessage = vi.fn();
+const mockSendTyping = vi.fn();
 
 const _handlers = {};
 function mockSubscribe(event) {
@@ -74,11 +75,13 @@ vi.mock('../services/liveBoardService', () => ({
   disconnect:  () => mockDisconnect(),
   sendCursor:  (...args) => mockSendCursor(...args),
   sendMessage: (...args) => mockSendMessage(...args),
+  sendTyping:  (...args) => mockSendTyping(...args),
   subscribeCursors:      mockSubscribe('cursors'),
   subscribeMessages:     mockSubscribe('messages'),
   subscribeCursorRemove: mockSubscribe('cursorRemove'),
   subscribeCleared:      mockSubscribe('cleared'),
   subscribeBoardState:   mockSubscribe('boardState'),
+  subscribeTyping:       mockSubscribe('typing'),
 }));
 
 vi.mock('../contexts/AuthContext', () => ({
@@ -134,6 +137,51 @@ describe('LiveBoard', () => {
     canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
     fireEvent.contextMenu(canvas, { clientX: 300, clientY: 150 });
     expect(screen.getByTestId('liveboard-compose')).toBeInTheDocument();
+  });
+
+  test('should broadcast a typing event when the compose bubble opens', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    fireEvent.contextMenu(canvas, { clientX: 300, clientY: 150 });
+    expect(mockSendTyping).toHaveBeenCalledWith(0.3, 0.25, true);
+  });
+
+  test('should stop broadcasting typing when the compose bubble is cancelled', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    fireEvent.contextMenu(canvas, { clientX: 300, clientY: 150 });
+    fireEvent.keyDown(screen.getByTestId('liveboard-compose'), { key: 'Escape' });
+    expect(mockSendTyping).toHaveBeenCalledWith(0.3, 0.25, false);
+  });
+
+  test('should show a peer typing indicator from a typing event', () => {
+    renderBoard();
+    act(() => {
+      _handlers.typing({ username: 'alice', xRatio: 0.4, yRatio: 0.5, typing: true });
+    });
+    expect(screen.getByTestId('board-typing')).toBeInTheDocument();
+    expect(screen.getByText('alice')).toBeInTheDocument();
+  });
+
+  test('should remove the peer typing indicator when typing stops', () => {
+    renderBoard();
+    act(() => {
+      _handlers.typing({ username: 'alice', xRatio: 0.4, yRatio: 0.5, typing: true });
+    });
+    act(() => {
+      _handlers.typing({ username: 'alice', typing: false });
+    });
+    expect(screen.queryByTestId('board-typing')).not.toBeInTheDocument();
+  });
+
+  test('should ignore typing events from the current user', () => {
+    renderBoard();
+    act(() => {
+      _handlers.typing({ username: 'testuser', xRatio: 0.4, yRatio: 0.5, typing: true });
+    });
+    expect(screen.queryByTestId('board-typing')).not.toBeInTheDocument();
   });
 
   test('Escape key dismisses compose without sending', () => {

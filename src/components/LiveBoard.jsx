@@ -6,14 +6,17 @@ import {
   disconnect,
   sendCursor,
   sendMessage,
+  sendTyping,
   subscribeCursors,
   subscribeMessages,
   subscribeCursorRemove,
   subscribeCleared,
   subscribeBoardState,
+  subscribeTyping,
 } from '../services/liveBoardService';
 import LiveCursor from './LiveCursor';
 import BoardMessage from './BoardMessage';
+import TypingIndicator from './TypingIndicator';
 import { DEFAULT_BOARD_COLOR } from '../constants';
 import '../css/LiveBoard.css';
 
@@ -24,6 +27,8 @@ const PAINT_DOT_THROTTLE_MS =   80;  // ms — max ~12 paint dots/sec per user
 const SPARKLE_THRESH        = 0.05;  // ratio units — proximity to trigger sparkle
 const SPARKLE_DEBOUNCE      =  600;  // ms — min interval between sparkles per pair
 const OWN_TRAIL_KEY         = '__self__'; // reserved key for own cursor in snakeTrailRef
+const TYPING_TTL            = 4000;  // ms — drop a peer's typing indicator if no update arrives
+const TYPING_SEND_THROTTLE  =  900;  // ms — min interval between own "typing" broadcasts
 
 function LiveBoard() {
   const { user, token, isAuthenticated } = useAuth();
@@ -36,8 +41,11 @@ function LiveBoard() {
   const [ripples, setRipples]       = useState([]);
   const [sparkles, setSparkles]     = useState([]);
   const [paintDots, setPaintDots]   = useState([]);
+  const [typing, setTyping]         = useState({}); // username → { xRatio, yRatio, color }
 
   const composeRef      = useRef(null);
+  const typingTimersRef = useRef({});   // username → expiry timeout id
+  const lastTypingSentRef = useRef(0);  // timestamp of last own "typing" broadcast
   const cursorsRef      = useRef({});    // mirrors cursors state, safe to read in callbacks
   const snakeTrailRef   = useRef(new Map()); // username → [{xPct,yPct,t,color}]
   const lastSparkleRef  = useRef({});    // pairKey → timestamp
@@ -141,25 +149,47 @@ function LiveBoard() {
     const xRatio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
     const yRatio = Math.min(Math.max((e.clientY - rect.top) / rect.height, 0), 1);
     setCompose({ xRatio, yRatio, clientX: e.clientX - rect.left, clientY: e.clientY - rect.top });
+    lastTypingSentRef.current = Date.now();
+    sendTyping(xRatio, yRatio, true);
   }, []);
+
+  // Broadcast "still typing" at most once per throttle window while composing.
+  const pingTyping = useCallback(() => {
+    if (!compose) return;
+    const now = Date.now();
+    if (now - lastTypingSentRef.current < TYPING_SEND_THROTTLE) return;
+    lastTypingSentRef.current = now;
+    sendTyping(compose.xRatio, compose.yRatio, true);
+  }, [compose]);
+
+  const stopTyping = useCallback(() => {
+    if (!compose) return;
+    sendTyping(compose.xRatio, compose.yRatio, false);
+  }, [compose]);
+
+  const closeCompose = useCallback(() => {
+    stopTyping();
+    setCompose(null);
+  }, [stopTyping]);
 
   const submitMessage = useCallback((content) => {
     if (!compose) return;
     const trimmed = content.trim();
     if (trimmed) sendMessage(compose.xRatio, compose.yRatio, trimmed);
+    stopTyping();
     setCompose(null);
-  }, [compose]);
+  }, [compose, stopTyping]);
 
   const handleComposeKeyDown = useCallback((e) => {
     if (e.key === 'Escape') {
-      setCompose(null);
+      closeCompose();
     } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       submitMessage(e.target.value);
     }
-  }, [submitMessage]);
+  }, [submitMessage, closeCompose]);
 
-  const handleComposeBlur = useCallback(() => { setCompose(null); }, []);
+  const handleComposeBlur = useCallback(() => { closeCompose(); }, [closeCompose]);
 
   useEffect(() => {
     if (compose && composeRef.current) composeRef.current.focus();
@@ -263,6 +293,36 @@ function LiveBoard() {
       setMessages(prev => [...prev, msg]);
     });
 
+    const unsubTyping = subscribeTyping((data) => {
+      const { username, xRatio, yRatio, color, typing: isTyping = true } = data || {};
+      if (!username || username === user?.username) return;
+
+      if (typingTimersRef.current[username]) {
+        clearTimeout(typingTimersRef.current[username]);
+        delete typingTimersRef.current[username];
+      }
+
+      if (!isTyping) {
+        setTyping(prev => {
+          if (!(username in prev)) return prev;
+          const next = { ...prev };
+          delete next[username];
+          return next;
+        });
+        return;
+      }
+
+      setTyping(prev => ({ ...prev, [username]: { xRatio, yRatio, color } }));
+      typingTimersRef.current[username] = setTimeout(() => {
+        delete typingTimersRef.current[username];
+        setTyping(prev => {
+          const next = { ...prev };
+          delete next[username];
+          return next;
+        });
+      }, TYPING_TTL);
+    });
+
     const unsubRemove = subscribeCursorRemove(({ username }) => {
       const next = { ...cursorsRef.current };
       delete next[username];
@@ -274,12 +334,23 @@ function LiveBoard() {
         if (key.includes(username)) delete lastSparkleRef.current[key];
       });
       delete lastPaintDotRef.current[username];
+      if (typingTimersRef.current[username]) {
+        clearTimeout(typingTimersRef.current[username]);
+        delete typingTimersRef.current[username];
+      }
+      setTyping(prev => {
+        if (!(username in prev)) return prev;
+        const next = { ...prev };
+        delete next[username];
+        return next;
+      });
     });
 
     const unsubCleared = subscribeCleared(() => {
       setMessages([]);
       setCursors({});
       cursorsRef.current = {};
+      setTyping({});
     });
 
     const unsubState = subscribeBoardState(({ messages: existing }) => {
@@ -289,9 +360,12 @@ function LiveBoard() {
     return () => {
       unsubCursors();
       unsubMessages();
+      unsubTyping();
       unsubRemove();
       unsubCleared();
       unsubState();
+      Object.values(typingTimersRef.current).forEach(clearTimeout);
+      typingTimersRef.current = {};
       disconnect();
     };
   }, [token, user?.username, isAuthenticated, pushSnakePoint, checkSparkle]);
@@ -378,6 +452,17 @@ function LiveBoard() {
         <LiveCursor key={username} username={username} xRatio={xRatio} yRatio={yRatio} color={color} />
       ))}
 
+      {/* Typing indicators — other users composing a message */}
+      {Object.entries(typing).map(([username, pos]) => (
+        <TypingIndicator
+          key={username}
+          username={username}
+          xRatio={pos.xRatio ?? 0.5}
+          yRatio={pos.yRatio ?? 0.5}
+          color={pos.color}
+        />
+      ))}
+
       {/* Board messages */}
       {messages.map((msg) => (
         <BoardMessage
@@ -396,6 +481,7 @@ function LiveBoard() {
           style={{ left: compose.clientX, top: compose.clientY }}
           placeholder="Type a message… (Enter to send, Shift+Enter for newline, Esc to cancel)"
           onKeyDown={handleComposeKeyDown}
+          onChange={pingTyping}
           onBlur={handleComposeBlur}
           rows={3}
           maxLength={500}

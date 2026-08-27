@@ -87,6 +87,7 @@ function realInit(token) {
       stompSubs.messages     = stompClient.subscribe('/topic/board/messages',     (m) => _emit('messages',     JSON.parse(m.body)));
       stompSubs.cursorRemove = stompClient.subscribe('/topic/board/cursor-remove',(m) => _emit('cursorRemove', JSON.parse(m.body)));
       stompSubs.cleared      = stompClient.subscribe('/topic/board/cleared',      ()  => _emit('cleared',      null));
+      stompSubs.typing       = stompClient.subscribe('/topic/board/typing',       (m) => _emit('typing',       JSON.parse(m.body)));
       stompSubs.joinReply    = stompClient.subscribe('/app/board/join',           (m) => _emit('boardState',   JSON.parse(m.body)));
     },
     onStompError: (frame) => console.error('[LiveBoard] STOMP error:', frame),
@@ -111,6 +112,18 @@ function realSendMessage(xRatio, yRatio, content) {
   stompClient.publish({ destination: '/app/board/message', body: JSON.stringify({ xRatio, yRatio, content }) });
 }
 
+function realSendTyping(xRatio, yRatio, typing) {
+  if (!stompClient?.active) return;
+  stompClient.publish({ destination: '/app/board/typing', body: JSON.stringify({ xRatio, yRatio, typing }) });
+}
+
+// ── Mock typing ──────────────────────────────────────────────────────────────
+function mockSendTyping(xRatio, yRatio, typing) {
+  // Echo a ghost typist so mock mode can exercise the indicator UI.
+  if (!typing) { _emit('typing', { username: 'ghost_user', typing: false }); return; }
+  _emit('typing', { username: 'ghost_user', xRatio: 0.62, yRatio: 0.3, typing: true });
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 export function init(token)                    { USE_MOCK ? mockInit(token)                        : realInit(token); }
 export function disconnect()                   { USE_MOCK ? mockDisconnect()                        : realDisconnect(); }
@@ -120,8 +133,10 @@ export function disconnect()                   { USE_MOCK ? mockDisconnect()    
 // render path and is not part of the current feature scope.
 export function sendCursor(xRatio, yRatio, painting = false, color = '') { if (!USE_MOCK) realSendCursor(xRatio, yRatio, painting, color); }
 export function sendMessage(xRatio, yRatio, c) { USE_MOCK ? mockSendMessage(xRatio, yRatio, c)      : realSendMessage(xRatio, yRatio, c); }
+export function sendTyping(xRatio, yRatio, typing) { USE_MOCK ? mockSendTyping(xRatio, yRatio, typing) : realSendTyping(xRatio, yRatio, typing); }
 
 export const subscribeCursors      = (cb) => _subscribe('cursors', cb);
+export const subscribeTyping       = (cb) => _subscribe('typing', cb);
 export const subscribeMessages     = (cb) => _subscribe('messages', cb);
 export const subscribeCursorRemove = (cb) => _subscribe('cursorRemove', cb);
 export const subscribeCleared      = (cb) => _subscribe('cleared', cb);
