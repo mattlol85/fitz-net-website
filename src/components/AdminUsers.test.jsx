@@ -1,0 +1,65 @@
+import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import AdminUsers from './AdminUsers.jsx';
+import * as AuthContext from '../contexts/AuthContext';
+import * as api from '../services/api';
+
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: vi.fn(),
+}));
+
+describe('AdminUsers', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    AuthContext.useAuth.mockReturnValue({ token: 'tok', user: { username: 'root' } });
+    api.getAvailablePermissions.mockResolvedValue({ success: true, data: ['ADMIN', 'RADARR'] });
+    api.getAdminUsers.mockResolvedValue({
+      success: true,
+      data: [
+        { id: '1', username: 'root', permissions: ['ADMIN'] },
+        { id: '2', username: 'alice', permissions: [] },
+      ],
+    });
+  });
+
+  it('lists users with their current permissions', async () => {
+    render(<AdminUsers />);
+    expect(await screen.findByLabelText('ADMIN for root')).toBeChecked();
+    expect(screen.getByLabelText('RADARR for alice')).not.toBeChecked();
+  });
+
+  it('prevents the admin from removing their own ADMIN permission', async () => {
+    render(<AdminUsers />);
+    expect(await screen.findByLabelText('ADMIN for root')).toBeDisabled();
+    expect(screen.getByLabelText('ADMIN for alice')).not.toBeDisabled();
+  });
+
+  it('saves changed permissions for a user', async () => {
+    api.setUserPermissions.mockResolvedValue({
+      success: true,
+      data: { username: 'alice', permissions: ['RADARR'] },
+    });
+    render(<AdminUsers />);
+
+    fireEvent.click(await screen.findByLabelText('RADARR for alice'));
+    const saveButtons = screen.getAllByRole('button', { name: 'Save' });
+    expect(saveButtons[0]).toBeDisabled();
+    fireEvent.click(saveButtons[1]);
+
+    await waitFor(() =>
+      expect(api.setUserPermissions).toHaveBeenCalledWith('alice', ['RADARR'], 'tok')
+    );
+    expect(await screen.findByText('Updated permissions for alice')).toBeInTheDocument();
+  });
+
+  it('shows an error when saving fails', async () => {
+    api.setUserPermissions.mockResolvedValue({ success: false, message: 'Forbidden' });
+    render(<AdminUsers />);
+
+    fireEvent.click(await screen.findByLabelText('RADARR for alice'));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[1]);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Forbidden');
+  });
+});
