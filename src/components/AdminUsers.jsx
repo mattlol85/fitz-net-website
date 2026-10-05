@@ -13,7 +13,8 @@ function AdminUsers() {
   const { token, user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [available, setAvailable] = useState([]);
-  const [drafts, setDrafts] = useState({});
+  // Unsaved checkbox edits only (username -> permissions); survives reloads of the list.
+  const [edits, setEdits] = useState({});
   const [status, setStatus] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState('');
@@ -32,7 +33,6 @@ function AdminUsers() {
     } else {
       setUsers(usersRes.data);
       setAvailable(permsRes.data);
-      setDrafts(Object.fromEntries(usersRes.data.map((u) => [u.username, u.permissions ?? []])));
     }
     setLoading(false);
   }, [token]);
@@ -70,28 +70,33 @@ function AdminUsers() {
     }
   };
 
-  const toggle = (username, permission) => {
-    setDrafts((prev) => {
-      const current = prev[username] ?? [];
-      const next = current.includes(permission)
-        ? current.filter((p) => p !== permission)
-        : [...current, permission];
-      return { ...prev, [username]: next };
-    });
+  const draftFor = (u) => edits[u.username] ?? u.permissions ?? [];
+
+  const toggle = (u, permission) => {
+    const current = draftFor(u);
+    const next = current.includes(permission)
+      ? current.filter((p) => p !== permission)
+      : [...current, permission];
+    setEdits((prev) => ({ ...prev, [u.username]: next }));
   };
 
   const isDirty = (u) => {
     const saved = [...(u.permissions ?? [])].sort().join(',');
-    const draft = [...(drafts[u.username] ?? [])].sort().join(',');
+    const draft = [...draftFor(u)].sort().join(',');
     return saved !== draft;
   };
 
   const save = async (u) => {
-    const response = await setUserPermissions(u.username, drafts[u.username] ?? [], token);
+    const response = await setUserPermissions(u.username, draftFor(u), token);
     if (response.success) {
       setUsers((prev) =>
         prev.map((x) => (x.username === u.username ? { ...x, permissions: response.data.permissions } : x))
       );
+      setEdits((prev) => {
+        const next = { ...prev };
+        delete next[u.username];
+        return next;
+      });
       setStatus({ type: 'success', message: `Updated permissions for ${u.username}` });
     } else {
       setStatus({ type: 'error', message: response.message });
@@ -108,7 +113,7 @@ function AdminUsers() {
         </div>
       )}
 
-      {loading ? (
+      {loading && users.length === 0 ? (
         <p>Loading users…</p>
       ) : (
         <div className="admin-users-table-wrapper">
@@ -135,10 +140,10 @@ function AdminUsers() {
                         <input
                           type="checkbox"
                           aria-label={`${name} for ${u.username}`}
-                          checked={(drafts[u.username] ?? []).includes(name)}
+                          checked={draftFor(u).includes(name)}
                           // The API refuses self-demotion; mirror that in the UI.
                           disabled={isSelf && name === 'ADMIN'}
-                          onChange={() => toggle(u.username, name)}
+                          onChange={() => toggle(u, name)}
                         />
                       </td>
                     ))}

@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { loginUser, logoutUser, validateToken, updateUserProfile, getCurrentUser } from '../services/api';
 import { DEFAULT_BOARD_COLOR } from '../constants';
@@ -20,6 +20,8 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Tracks the live session token so late async responses can tell they are stale.
+  const tokenRef = useRef(null);
 
   const normalizeUserData = (data = {}, fallbackUser = {}) => ({
     username: data.username ?? fallbackUser?.username ?? '',
@@ -69,6 +71,7 @@ export const AuthProvider = ({ children }) => {
     if (storedToken && storedUser) {
       // Validate token before restoring session
       if (validateToken(storedToken)) {
+        tokenRef.current = storedToken;
         setToken(storedToken);
         const restoredUser = normalizeUserData(JSON.parse(storedUser));
         setUser(restoredUser);
@@ -77,6 +80,8 @@ export const AuthProvider = ({ children }) => {
         // so refresh them in the background without blocking the session restore.
         getCurrentUser(storedToken)
           .then((response) => {
+            // Ignore the response if the user logged out or signed in again meanwhile.
+            if (tokenRef.current !== storedToken) return;
             if (response?.success) {
               const refreshed = normalizeUserData(response.data, restoredUser);
               setUser(refreshed);
@@ -101,6 +106,7 @@ export const AuthProvider = ({ children }) => {
       if (response.success) {
         const userData = normalizeUserData(response);
 
+        tokenRef.current = response.token;
         flushSync(() => {
           setUser(userData);
           setToken(response.token);
@@ -125,6 +131,7 @@ export const AuthProvider = ({ children }) => {
       await logoutUser();
 
       // Clear state
+      tokenRef.current = null;
       setUser(null);
       setToken(null);
 

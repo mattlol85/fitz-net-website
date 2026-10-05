@@ -96,4 +96,16 @@ describe('AdminUsers', () => {
 
     await waitFor(() => expect(api.deletePermission).toHaveBeenCalledWith('RADARR', 'tok'));
   });
+
+  it('keeps unsaved edits when the permission list reloads', async () => {
+    api.createPermission.mockResolvedValue({ success: true, data: { name: 'SONARR' } });
+    render(<AdminUsers />);
+
+    fireEvent.click(await screen.findByLabelText('RADARR for alice'));
+    fireEvent.change(screen.getByLabelText('New permission name'), { target: { value: 'sonarr' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add permission' }));
+
+    await waitFor(() => expect(api.getAdminUsers).toHaveBeenCalledTimes(2));
+    expect(await screen.findByLabelText('RADARR for alice')).toBeChecked();
+  });
 });
