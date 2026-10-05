@@ -65,3 +65,42 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.admin-users-subtitle {
+  color: var(--text-primary);
+  margin: 2rem 0 1rem;
+  font-size: 1.3rem;
+}
+
+.admin-permissions-list {
+  list-style: none;
+  padding: 0;
+  color: var(--text-primary);
+}
+
+.admin-permissions-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+}
+
+.admin-permission-desc {
+  opacity: 0.7;
+}
+
+.admin-permission-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.admin-permission-form input {
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  background: var(--card-background, #ffffff);
+  color: var(--text-primary);
+}

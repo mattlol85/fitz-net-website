@@ -290,10 +290,27 @@ export const getCurrentUser = async (token) => {
   return authedRequest('/user/me', token);
 };
 
-/** Admin: list the permission names the API knows about. */
+/** Admin: list defined permissions as [{ name, description }]. */
 export const getAvailablePermissions = async (token) => {
   if (USE_MOCK_API) return MOCK_UNAVAILABLE;
   return authedRequest('/admin/permissions', token);
+};
+
+/** Admin: define a new permission. */
+export const createPermission = async (name, description, token) => {
+  if (USE_MOCK_API) return MOCK_UNAVAILABLE;
+  return authedRequest('/admin/permissions', token, {
+    method: 'POST',
+    body: { name, description },
+  });
+};
+
+/** Admin: delete a permission (revokes it from every user). */
+export const deletePermission = async (name, token) => {
+  if (USE_MOCK_API) return MOCK_UNAVAILABLE;
+  return authedRequest(`/admin/permissions/${encodeURIComponent(name)}`, token, {
+    method: 'DELETE',
+  });
 };
 
 /** Admin: list every user with their permissions. */
@@ -319,6 +336,8 @@ export const api = {
   updateUserProfile,
   getCurrentUser,
   getAvailablePermissions,
+  createPermission,
+  deletePermission,
   getAdminUsers,
   setUserPermissions,
 };

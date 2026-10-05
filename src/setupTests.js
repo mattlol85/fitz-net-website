@@ -39,6 +39,8 @@ vi.mock('./services/api', () => ({
   })),
   getCurrentUser: vi.fn(async () => ({ success: false })),
   getAvailablePermissions: vi.fn(async () => ({ success: true, data: [] })),
+  createPermission: vi.fn(async () => ({ success: true, data: {} })),
+  deletePermission: vi.fn(async () => ({ success: true })),
   getAdminUsers: vi.fn(async () => ({ success: true, data: [] })),
   setUserPermissions: vi.fn(async () => ({ success: true, data: {} })),
 }));

@@ -13,7 +13,13 @@ describe('AdminUsers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     AuthContext.useAuth.mockReturnValue({ token: 'tok', user: { username: 'root' } });
-    api.getAvailablePermissions.mockResolvedValue({ success: true, data: ['ADMIN', 'RADARR'] });
+    api.getAvailablePermissions.mockResolvedValue({
+      success: true,
+      data: [
+        { name: 'ADMIN', description: 'Manage users' },
+        { name: 'RADARR', description: '' },
+      ],
+    });
     api.getAdminUsers.mockResolvedValue({
       success: true,
       data: [
@@ -61,5 +67,33 @@ describe('AdminUsers', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[1]);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Forbidden');
+  });
+
+  it('creates a new permission and reloads the list', async () => {
+    api.createPermission.mockResolvedValue({ success: true, data: { name: 'SONARR' } });
+    render(<AdminUsers />);
+
+    fireEvent.change(await screen.findByLabelText('New permission name'), {
+      target: { value: 'sonarr' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add permission' }));
+
+    await waitFor(() => expect(api.createPermission).toHaveBeenCalledWith('SONARR', '', 'tok'));
+    expect(await screen.findByText('Created permission SONARR')).toBeInTheDocument();
+    expect(api.getAdminUsers).toHaveBeenCalledTimes(2);
+  });
+
+  it('requires a second click to delete a permission and never offers ADMIN', async () => {
+    api.deletePermission.mockResolvedValue({ success: true });
+    render(<AdminUsers />);
+
+    expect(await screen.findByLabelText('RADARR for alice')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete ADMIN' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete RADARR' }));
+    expect(api.deletePermission).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
+
+    await waitFor(() => expect(api.deletePermission).toHaveBeenCalledWith('RADARR', 'tok'));
   });
 });
