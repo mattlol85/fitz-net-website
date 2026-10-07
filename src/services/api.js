@@ -125,6 +125,7 @@ export const loginUser = async (username, password) => {
       email: data.email,
       token: data.token,
       boardColor: data.boardColor,
+      permissions: data.permissions,
     };
   } catch (_error) {
     return {
@@ -231,6 +232,7 @@ export const updateUserProfile = async (updates, token) => {
       username: data.username,
       email: data.email,
       boardColor: data.boardColor,
+      permissions: data.permissions,
     };
   } catch (_error) {
     return {
@@ -240,12 +242,104 @@ export const updateUserProfile = async (updates, token) => {
   }
 };
 
+const authedRequest = async (path, token, { method = 'GET', body } = {}) => {
+  if (!token) {
+    return { success: false, message: 'Authentication token is required' };
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      mode: 'cors',
+      credentials: 'omit',
+      ...(body !== undefined && { body: JSON.stringify(body) }),
+    });
+
+    const data = await parseResponseData(response);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        status: response.status,
+        message: data.message || 'Request failed',
+      };
+    }
+
+    return { success: true, data };
+  } catch (_error) {
+    return {
+      success: false,
+      message: 'Network error. Please check your connection and try again.',
+    };
+  }
+};
+
+const MOCK_UNAVAILABLE = { success: false, message: 'Not available in mock mode' };
+
+/**
+ * Fetch the current user (including permissions) so permission changes apply
+ * without logging in again.
+ */
+export const getCurrentUser = async (token) => {
+  if (USE_MOCK_API) return MOCK_UNAVAILABLE;
+  return authedRequest('/user/me', token);
+};
+
+/** Admin: list defined permissions as [{ name, description }]. */
+export const getAvailablePermissions = async (token) => {
+  if (USE_MOCK_API) return MOCK_UNAVAILABLE;
+  return authedRequest('/admin/permissions', token);
+};
+
+/** Admin: define a new permission. */
+export const createPermission = async (name, description, token) => {
+  if (USE_MOCK_API) return MOCK_UNAVAILABLE;
+  return authedRequest('/admin/permissions', token, {
+    method: 'POST',
+    body: { name, description },
+  });
+};
+
+/** Admin: delete a permission (revokes it from every user). */
+export const deletePermission = async (name, token) => {
+  if (USE_MOCK_API) return MOCK_UNAVAILABLE;
+  return authedRequest(`/admin/permissions/${encodeURIComponent(name)}`, token, {
+    method: 'DELETE',
+  });
+};
+
+/** Admin: list every user with their permissions. */
+export const getAdminUsers = async (token) => {
+  if (USE_MOCK_API) return MOCK_UNAVAILABLE;
+  return authedRequest('/admin/users', token);
+};
+
+/** Admin: replace the permission set of a user. */
+export const setUserPermissions = async (username, permissions, token) => {
+  if (USE_MOCK_API) return MOCK_UNAVAILABLE;
+  return authedRequest(`/admin/users/${encodeURIComponent(username)}/permissions`, token, {
+    method: 'PUT',
+    body: { permissions },
+  });
+};
+
 export const api = {
   createUser,
   loginUser,
   validateToken,
   logoutUser,
   updateUserProfile,
+  getCurrentUser,
+  getAvailablePermissions,
+  createPermission,
+  deletePermission,
+  getAdminUsers,
+  setUserPermissions,
 };
 
 export default api;

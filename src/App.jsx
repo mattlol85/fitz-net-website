@@ -10,12 +10,14 @@ import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
 import EditProfile from './components/EditProfile.jsx';
 import WebSocketButton from './components/WebSocketButton.jsx';
+import RequirePermission from './components/RequirePermission.jsx';
 
 // These pages pull in the Three.js-based graph components and other heavy
 // dependencies, so they're loaded on demand instead of in the main bundle.
 const StatusDashboard = lazy(() => import('./components/StatusDashboard.jsx'));
 const LiveBoard = lazy(() => import('./components/LiveBoard.jsx'));
 const AiChat = lazy(() => import('./components/AiChat.jsx'));
+const AdminUsers = lazy(() => import('./components/AdminUsers.jsx'));
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -54,6 +56,14 @@ function App() {
                 <Route path="/websocket" element={<WebSocketButton />} />
                 <Route path="/liveboard" element={<LiveBoard />} />
                 <Route path="/ai" element={<AiChat />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <RequirePermission permission="ADMIN">
+                      <AdminUsers />
+                    </RequirePermission>
+                  }
+                />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/profile" element={<EditProfile />} />

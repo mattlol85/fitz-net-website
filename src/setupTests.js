@@ -37,6 +37,12 @@ vi.mock('./services/api', () => ({
     success: true,
     message: 'Logged out successfully',
   })),
+  getCurrentUser: vi.fn(async () => ({ success: false })),
+  getAvailablePermissions: vi.fn(async () => ({ success: true, data: [] })),
+  createPermission: vi.fn(async () => ({ success: true, data: {} })),
+  deletePermission: vi.fn(async () => ({ success: true })),
+  getAdminUsers: vi.fn(async () => ({ success: true, data: [] })),
+  setUserPermissions: vi.fn(async () => ({ success: true, data: {} })),
 }));
 
 // Also mock mockApi for backward compatibility (in case it's still imported)

@@ -1,6 +1,6 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { flushSync } from 'react-dom';
-import { loginUser, logoutUser, validateToken, updateUserProfile } from '../services/api';
+import { loginUser, logoutUser, validateToken, updateUserProfile, getCurrentUser } from '../services/api';
 import { DEFAULT_BOARD_COLOR } from '../constants';
 
 // Create the AuthContext
@@ -20,11 +20,14 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Tracks the live session token so late async responses can tell they are stale.
+  const tokenRef = useRef(null);
 
   const normalizeUserData = (data = {}, fallbackUser = {}) => ({
     username: data.username ?? fallbackUser?.username ?? '',
     email: data.email ?? fallbackUser?.email ?? '',
     boardColor: data.boardColor || fallbackUser?.boardColor || DEFAULT_BOARD_COLOR,
+    permissions: data.permissions ?? fallbackUser?.permissions ?? [],
   });
 
   const getStorage = () => {
@@ -68,8 +71,24 @@ export const AuthProvider = ({ children }) => {
     if (storedToken && storedUser) {
       // Validate token before restoring session
       if (validateToken(storedToken)) {
+        tokenRef.current = storedToken;
         setToken(storedToken);
-        setUser(normalizeUserData(JSON.parse(storedUser)));
+        const restoredUser = normalizeUserData(JSON.parse(storedUser));
+        setUser(restoredUser);
+
+        // Permissions can change server-side (and the stored copy may be stale),
+        // so refresh them in the background without blocking the session restore.
+        getCurrentUser(storedToken)
+          .then((response) => {
+            // Ignore the response if the user logged out or signed in again meanwhile.
+            if (tokenRef.current !== storedToken) return;
+            if (response?.success) {
+              const refreshed = normalizeUserData(response.data, restoredUser);
+              setUser(refreshed);
+              safeSetItem('authUser', JSON.stringify(refreshed));
+            }
+          })
+          .catch(() => {});
       } else {
         // Token expired, clear storage
         safeRemoveItem('authToken');
@@ -87,6 +106,7 @@ export const AuthProvider = ({ children }) => {
       if (response.success) {
         const userData = normalizeUserData(response);
 
+        tokenRef.current = response.token;
         flushSync(() => {
           setUser(userData);
           setToken(response.token);
@@ -111,6 +131,7 @@ export const AuthProvider = ({ children }) => {
       await logoutUser();
 
       // Clear state
+      tokenRef.current = null;
       setUser(null);
       setToken(null);
 
@@ -127,6 +148,13 @@ export const AuthProvider = ({ children }) => {
   // Check if user is authenticated
   const isAuthenticated = () => {
     return user !== null && token !== null && validateToken(token);
+  };
+
+  // ADMIN implies every permission. This only controls what the UI shows; the
+  // API enforces permissions on every protected endpoint.
+  const hasPermission = (permission) => {
+    const granted = user?.permissions ?? [];
+    return granted.includes('ADMIN') || granted.includes(permission);
   };
 
   // Update user profile
@@ -155,6 +183,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     isAuthenticated,
+    hasPermission,
     updateProfile,
   };
 

@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import '../css/Navbar.css';
 
 function Navbar({ theme, toggleTheme }) {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, hasPermission } = useAuth();
   const navigate = useNavigate();
   const navRef = useRef(null);
   const authenticated = isAuthenticated();
@@ -70,6 +70,11 @@ function Navbar({ theme, toggleTheme }) {
                   <Link to="/ai">Matt-GPT</Link>
                 </li>
               </>
+            )}
+            {authenticated && hasPermission?.('ADMIN') && (
+              <li>
+                <Link to="/admin">Admin</Link>
+              </li>
             )}
           </ul>
         </li>
