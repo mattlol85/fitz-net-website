@@ -84,12 +84,27 @@ const GATEWAY_TIMEOUT_STATUSES = new Set([502, 504, 524]);
  * Streams a chat from a specific node's Ollama instance via fitz-net-api
  * (POST /node/{id}/chat/stream, Server-Sent Events). Requires the caller's JWT.
  *
- * Calls onToken(text) for each reply chunk and resolves with the full reply
+ * `conversation` is either a plain prompt string (single turn) or the full
+ * history as [{role: 'user'|'assistant', content}], ending with the new user
+ * turn, so the model keeps context between turns.
+ *
+ * Calls onMeta({model, nodeId, contextLength}) when the stream opens,
+ * onToken(text) for each reply chunk, onDone({promptTokens, completionTokens,
+ * contextLength}) when generation finishes, and resolves with the full reply
  * once the API sends `done`. Rejects on an `error` event, a non-2xx status, or
  * a stream that ends without `done`. Aborting `signal` closes the connection,
  * which makes the API cancel the generation on the node.
  */
-export async function streamChatWithNode(nodeId, prompt, model, authToken, { onToken, signal } = {}) {
+export async function streamChatWithNode(
+  nodeId,
+  conversation,
+  model,
+  authToken,
+  { onToken, onMeta, onDone, signal } = {}
+) {
+  const payload = typeof conversation === 'string' ? { prompt: conversation } : { messages: conversation };
+  if (model) payload.model = model;
+
   const response = await fetch(`${API_URLS.FITZ_NET_API}/node/${nodeId}/chat/stream`, {
     method: 'POST',
     headers: {
@@ -97,7 +112,7 @@ export async function streamChatWithNode(nodeId, prompt, model, authToken, { onT
       Accept: 'text/event-stream',
       Authorization: `Bearer ${authToken}`,
     },
-    body: JSON.stringify(model ? { prompt, model } : { prompt }),
+    body: JSON.stringify(payload),
     signal,
   });
 
@@ -133,14 +148,17 @@ export async function streamChatWithNode(nodeId, prompt, model, authToken, { onT
       // Frames with no data are keep-alive comments.
       if (!data) continue;
 
-      const payload = JSON.parse(data);
-      if (event === 'token') {
-        reply += payload.content;
-        onToken?.(payload.content);
+      const body = JSON.parse(data);
+      if (event === 'meta') {
+        onMeta?.(body);
+      } else if (event === 'token') {
+        reply += body.content;
+        onToken?.(body.content);
       } else if (event === 'done') {
+        onDone?.(body);
         return reply;
       } else if (event === 'error') {
-        throw new Error(payload.message || 'The node reported an error.');
+        throw new Error(body.message || 'The node reported an error.');
       }
     }
   }

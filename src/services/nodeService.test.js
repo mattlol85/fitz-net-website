@@ -40,6 +40,30 @@ describe('streamChatWithNode', () => {
     expect(options.headers.Authorization).toBe('Bearer jwt');
   });
 
+  it('sends the full history and reports meta and usage', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      sseResponse([
+        'event: meta\ndata: {"model":"m","nodeId":"n1","contextLength":8192}\n\n',
+        'event: token\ndata: {"content":"x"}\n\n',
+        'event: done\ndata: {"promptTokens":12,"completionTokens":3,"contextLength":8192}\n\n',
+      ])
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const onMeta = vi.fn();
+    const onDone = vi.fn();
+    const messages = [
+      { role: 'user', content: 'a' },
+      { role: 'assistant', content: 'b' },
+      { role: 'user', content: 'c' },
+    ];
+
+    await streamChatWithNode('n1', messages, 'm', 'jwt', { onMeta, onDone });
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ messages, model: 'm' });
+    expect(onMeta).toHaveBeenCalledWith({ model: 'm', nodeId: 'n1', contextLength: 8192 });
+    expect(onDone).toHaveBeenCalledWith({ promptTokens: 12, completionTokens: 3, contextLength: 8192 });
+  });
+
   it('rejects with the API message on an error event', async () => {
     vi.stubGlobal(
       'fetch',

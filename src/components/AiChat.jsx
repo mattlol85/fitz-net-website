@@ -4,27 +4,40 @@ import remarkGfm from 'remark-gfm';
 import { sendMessage, sendMessageToNode } from '../services/aiChatService';
 import { fetchNodes } from '../services/nodeService';
 import { useAuth } from '../contexts/AuthContext';
+import ContextRing, { contextLevel } from './ContextRing';
 import '../css/AiChat.css';
 
 let nextId = 1;
+
+const GREETING = "Hi, I'm Matt-GPT — nothing's connected to a real model yet, but ask away.";
+
+const makeGreeting = () => ({ id: nextId++, role: 'assistant', content: GREETING, done: true, greeting: true });
+
+export function formatElapsed(ms) {
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  const seconds = ms / 1000;
+  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+}
+
+/** The conversation to replay to the model: real turns only, no greeting or failed replies. */
+function toHistory(messages) {
+  return messages
+    .filter((m) => !m.greeting && m.done && m.content && !m.content.startsWith('⚠️'))
+    .map((m) => ({ role: m.role, content: m.content }));
+}
 
 export default function AiChat() {
   const { token: authToken, isAuthenticated } = useAuth();
   const authed = isAuthenticated();
 
-  const [messages, setMessages] = useState([
-    {
-      id: nextId++,
-      role: 'assistant',
-      content: "Hi, I'm Matt-GPT — nothing's connected to a real model yet, but ask away.",
-      done: true,
-    },
-  ]);
+  const [messages, setMessages] = useState(() => [makeGreeting()]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [nodes, setNodes] = useState([]);
   const [selectedNodeId, setSelectedNodeId] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
+  const [usage, setUsage] = useState({ used: 0, max: 0 });
   const cancelRef = useRef(null);
   const listRef = useRef(null);
 
@@ -71,10 +84,27 @@ export default function AiChat() {
 
   useEffect(() => () => cancelRef.current?.(), []);
 
+  const handleNewChat = () => {
+    cancelRef.current?.();
+    cancelRef.current = null;
+    setSending(false);
+    setMessages([makeGreeting()]);
+    setUsage({ used: 0, max: 0 });
+  };
+
+  // A different model has a different window (and the new one hasn't seen this
+  // conversation's cache), so the gauge restarts when the target changes.
+  useEffect(() => {
+    setUsage({ used: 0, max: 0 });
+  }, [selectedNodeId, selectedModel]);
+
   const handleSend = (e) => {
     e.preventDefault();
     const content = input.trim();
     if (!content || sending) return;
+
+    const history = [...toHistory(messages), { role: 'user', content }];
+    const startedAt = performance.now();
 
     setInput('');
     setSending(true);
@@ -85,13 +115,24 @@ export default function AiChat() {
 
     const onToken = (partial, done) => {
       setMessages((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, content: partial, done } : m))
+        prev.map((m) =>
+          m.id === assistantId
+            ? { ...m, content: partial, done, ...(done && { elapsedMs: performance.now() - startedAt }) }
+            : m
+        )
       );
       if (done) setSending(false);
     };
 
     cancelRef.current = selectedNode
-      ? sendMessageToNode(selectedNode.id, selectedModel, content, authToken, onToken)
+      ? sendMessageToNode(selectedNode.id, selectedModel, history, authToken, onToken, {
+          onMeta: (meta) => setUsage((u) => ({ ...u, max: meta.contextLength || u.max })),
+          onDone: (d) =>
+            setUsage({
+              used: (d.promptTokens || 0) + (d.completionTokens || 0),
+              max: d.contextLength || 0,
+            }),
+        })
       : sendMessage(content, onToken);
   };
 
@@ -104,6 +145,13 @@ export default function AiChat() {
       <div className="ai-chat__header">
         <h1>Matt-GPT</h1>
         <span className="ai-chat__badge">{badge}</span>
+
+        {selectedNode && usage.max > 0 && <ContextRing used={usage.used} max={usage.max} />}
+        {messages.some((m) => !m.greeting) && (
+          <button type="button" className="ai-chat__new-chat" onClick={handleNewChat}>
+            New chat
+          </button>
+        )}
 
         {authed && nodes.length > 0 && (
           <div className="ai-chat__node-picker">
@@ -155,10 +203,21 @@ export default function AiChat() {
               >
                 {m.content || (m.done ? '' : '…')}
               </ReactMarkdown>
+              {m.role === 'assistant' && m.elapsedMs != null && (
+                <div className="ai-chat__elapsed" data-testid="elapsed">
+                  {formatElapsed(m.elapsedMs)}
+                </div>
+              )}
             </div>
           </div>
         ))}
       </div>
+
+      {selectedNode && usage.max > 0 && contextLevel(usage.used / usage.max) === 'danger' && (
+        <p className="ai-chat__full-hint" role="status">
+          Context nearly full — start a new chat to keep replies accurate.
+        </p>
+      )}
 
       <form className="ai-chat__input-row" onSubmit={handleSend}>
         <input
