@@ -29,7 +29,7 @@
 
 .admin-users-table-wrapper {
   overflow-x: auto;
-  background: var(--card-background, #ffffff);
+  background: var(--card-bg, #ffffff);
   border: 1px solid var(--border-color, #e0e0e0);
   border-radius: 12px;
 }
@@ -101,6 +101,6 @@
   padding: 0.4rem 0.6rem;
   border-radius: 6px;
   border: 1px solid var(--border-color, #e0e0e0);
-  background: var(--card-background, #ffffff);
+  background: var(--card-bg, #ffffff);
   color: var(--text-primary);
 }
