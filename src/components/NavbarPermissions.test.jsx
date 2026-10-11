@@ -31,6 +31,16 @@ describe('Navbar permission gating', () => {
     expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '/admin');
   });
 
+  it('shows the Matt-GPT link only to users with AI_USER', () => {
+    renderNavbar({ hasPermission: (p) => p === 'AI_USER' });
+    expect(screen.getByRole('link', { name: 'Matt-GPT' })).toHaveAttribute('href', '/ai');
+  });
+
+  it('hides the Matt-GPT link from users without AI_USER', () => {
+    renderNavbar({ hasPermission: () => false });
+    expect(screen.queryByRole('link', { name: 'Matt-GPT' })).not.toBeInTheDocument();
+  });
+
   it('hides the Admin link from users without ADMIN', () => {
     renderNavbar({ hasPermission: () => false });
     expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument();
