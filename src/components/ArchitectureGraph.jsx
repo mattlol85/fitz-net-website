@@ -715,11 +715,12 @@ export default function ArchitectureGraph({ apiStatuses }) {
     });
 
     let animationId;
-    const clock = new THREE.Clock();
+    const clock = new THREE.Timer();
     const tmpScale = new THREE.Vector3();
 
     const animate = () => {
-      const t = clock.getElapsedTime();
+      clock.update();
+      const t = clock.getElapsed();
 
       pivot.rotation.y += (rotationRef.current.y - pivot.rotation.y) * 0.12;
       pivot.rotation.x += (rotationRef.current.x - pivot.rotation.x) * 0.12;
