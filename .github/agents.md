@@ -68,6 +68,12 @@ npm run build                        # Production build
 
 ---
 
+## Custom Claude Code Agents
+
+- `web-polish-reviewer` (`.claude/agents/web-polish-reviewer.md`) — read-only reviewer that audits changed frontend code for polish: visual/token consistency, layout regressions (footer, top-right login), accessibility, React/`AuthContext` hygiene, routing, and loading/empty/error states.
+
+---
+
 ## Commit Convention
 
 ```
