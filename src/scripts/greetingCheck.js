@@ -1,10 +1,14 @@
 window.addEventListener('load', function() {
-    this.alert('Hello, World!');
-    // check whether the visitor has already seen the greeting message
-    if (!localStorage.getItem('greetingShown')) {
-      // display the greeting message
-      document.getElementById('greeting-message').style.display = 'block';
-      // set a cookie or local storage item to remember that the message has been shown
-      localStorage.setItem('greetingShown', 'true');
-    }
-  });
+  try {
+    // only greet visitors who haven't already seen the message
+    if (localStorage.getItem('greetingShown')) return;
+    window.alert('Hello, World!');
+    // display the greeting message (skip if the page has no greeting element)
+    const greeting = document.getElementById('greeting-message');
+    if (greeting) greeting.style.display = 'block';
+    // remember that the message has been shown
+    localStorage.setItem('greetingShown', 'true');
+  } catch {
+    // storage blocked (e.g. private mode): skip the greeting rather than throw
+  }
+});

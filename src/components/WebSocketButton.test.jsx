@@ -159,5 +159,251 @@ describe('WebSocketButton Component', () => {
 
     expect(screen.getByText(/Connected/i)).toBeInTheDocument();
   });
+
+  test('should light the LED and show the device while the bell is pressed', async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText(/Connected/i)).toBeInTheDocument());
+
+    act(() => {
+      MockWebSocket.instances[0].onmessage({
+        data: JSON.stringify({ deviceId: 'esp-1', buttonEvent: 'PRESSED' }),
+      });
+    });
+
+    expect(screen.getByText('Device esp-1 Pressed!')).toBeInTheDocument();
+    expect(document.querySelector('.led')).toHaveClass('on');
+    expect(document.querySelector('.ws-button')).toHaveClass('pressed');
+  });
+
+  test('should clear the LED and screen when the bell is released', async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText(/Connected/i)).toBeInTheDocument());
+    act(() => {
+      MockWebSocket.instances[0].onmessage({
+        data: JSON.stringify({ deviceId: 'esp-1', buttonEvent: 'PRESSED' }),
+      });
+    });
+
+    act(() => {
+      MockWebSocket.instances[0].onmessage({
+        data: JSON.stringify({ deviceId: 'esp-1', buttonEvent: 'RELEASED' }),
+      });
+    });
+
+    expect(screen.getByText(/Waiting for button press/i)).toBeInTheDocument();
+    expect(document.querySelector('.led')).toHaveClass('off');
+  });
+
+  test('should ignore frames that are not button events', async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText(/Connected/i)).toBeInTheDocument());
+
+    act(() => {
+      MockWebSocket.instances[0].onmessage({ data: JSON.stringify({ deviceId: 'esp-1', buttonEvent: 'OTHER' }) });
+      MockWebSocket.instances[0].onmessage({ data: JSON.stringify({ hello: 'world' }) });
+    });
+
+    expect(screen.getByText(/Waiting for button press/i)).toBeInTheDocument();
+  });
+
+  test('should survive a frame that is not valid JSON', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    renderComponent();
+    await waitFor(() => expect(screen.getByText(/Connected/i)).toBeInTheDocument());
+
+    act(() => {
+      MockWebSocket.instances[0].onmessage({ data: '{not json' });
+    });
+
+    expect(consoleError).toHaveBeenCalledWith('Error parsing WebSocket message:', expect.any(Error));
+    expect(screen.getByText(/Connected/i)).toBeInTheDocument();
+    consoleError.mockRestore();
+  });
+
+  test('should send press and release events over an open socket', async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText(/Connected/i)).toBeInTheDocument());
+    const button = screen.getByRole('button', { name: /Press Me/i });
+
+    fireEvent.mouseDown(button);
+    fireEvent.mouseUp(button);
+    fireEvent.touchStart(button);
+    fireEvent.touchEnd(button);
+
+    const sent = MockWebSocket.instances[0].send.mock.calls.map(([payload]) => JSON.parse(payload));
+    expect(sent).toEqual([
+      { deviceId: 'web-testuser', buttonEvent: 'PRESSED' },
+      { deviceId: 'web-testuser', buttonEvent: 'RELEASED' },
+      { deviceId: 'web-testuser', buttonEvent: 'PRESSED' },
+      { deviceId: 'web-testuser', buttonEvent: 'RELEASED' },
+    ]);
+  });
+
+  test('should send release when the pointer leaves the button', async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText(/Connected/i)).toBeInTheDocument());
+    const button = screen.getByRole('button', { name: /Press Me/i });
+
+    fireEvent.mouseLeave(button);
+
+    expect(MockWebSocket.instances[0].send).toHaveBeenCalledWith(
+      JSON.stringify({ deviceId: 'web-testuser', buttonEvent: 'RELEASED' })
+    );
+  });
+
+  test('should not send anything while the socket is not open', async () => {
+    MockWebSocket.autoOpen = false;
+    renderComponent();
+    const button = screen.getByRole('button', { name: /Press Me/i });
+
+    fireEvent.mouseDown(button);
+
+    expect(MockWebSocket.instances[0].send).not.toHaveBeenCalled();
+    expect(button).toBeDisabled();
+  });
+
+  test('should keep the button disabled until the connection opens', () => {
+    MockWebSocket.autoOpen = false;
+    renderComponent();
+
+    expect(screen.getByRole('button', { name: /Press Me/i })).toBeDisabled();
+    expect(screen.getByText(/Connecting to FitzNet websocket/i)).toBeInTheDocument();
+  });
+
+  test('should use the public gamerbell host for non-local sites', () => {
+    const originalLocation = window.location;
+    delete window.location;
+    window.location = { hostname: 'www.fitznet.org', protocol: 'https:', host: 'www.fitznet.org' };
+    try {
+      renderComponent();
+
+      expect(MockWebSocket.instances[0].url).toBe('wss://gamerbell.fitznet.org/ws');
+    } finally {
+      window.location = originalLocation;
+    }
+  });
+
+  test('should use plain ws for a non-local http site', () => {
+    const originalLocation = window.location;
+    delete window.location;
+    window.location = { hostname: 'fitznet.org', protocol: 'http:', host: 'fitznet.org' };
+    try {
+      renderComponent();
+
+      expect(MockWebSocket.instances[0].url).toBe('ws://gamerbell.fitznet.org/ws');
+    } finally {
+      window.location = originalLocation;
+    }
+  });
+
+  test('should use the loopback bell URL for 127.x addresses', () => {
+    const originalLocation = window.location;
+    delete window.location;
+    window.location = { hostname: '127.0.0.5', protocol: 'http:', host: '127.0.0.5' };
+    try {
+      renderComponent();
+
+      expect(MockWebSocket.instances[0].url).toBe('ws://localhost:8080/ws');
+    } finally {
+      window.location = originalLocation;
+    }
+  });
+
+  test('should use an anonymous device id when the user has no username', async () => {
+    vi.mocked(useAuth).mockReturnValue({ user: null, isAuthenticated: () => true });
+    renderComponent();
+
+    expect(await screen.findByText('web-anonymous')).toBeInTheDocument();
+  });
+
+  test('should retry a dropped connection after a delay and recover', async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText(/Connected/i)).toBeInTheDocument());
+
+    vi.useFakeTimers();
+    act(() => {
+      MockWebSocket.instances[0].onclose();
+    });
+    expect(screen.getByText(/Connecting to FitzNet websocket/i)).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(MockWebSocket.instances).toHaveLength(2);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    expect(screen.getByText(/Connected/i)).toBeInTheDocument();
+  });
+
+  test('should clear the pressed state when a dropped connection is retried', async () => {
+    vi.useFakeTimers();
+    renderComponent();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    act(() => {
+      MockWebSocket.instances[0].onmessage({
+        data: JSON.stringify({ deviceId: 'esp-1', buttonEvent: 'PRESSED' }),
+      });
+    });
+
+    act(() => {
+      MockWebSocket.instances[0].onerror(new Event('error'));
+    });
+
+    expect(screen.queryByText('Device esp-1 Pressed!')).not.toBeInTheDocument();
+    expect(document.querySelector('.led')).toHaveClass('off');
+  });
+
+  test('should report a single failure once even if both error and close fire', async () => {
+    vi.useFakeTimers();
+    MockWebSocket.autoOpen = false;
+    renderComponent();
+
+    act(() => {
+      MockWebSocket.instances[0].onerror(new Event('error'));
+      MockWebSocket.instances[0].onclose();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    expect(MockWebSocket.instances).toHaveLength(2);
+  });
+
+  test('should stop reconnecting once the component unmounts', async () => {
+    vi.useFakeTimers();
+    MockWebSocket.autoOpen = false;
+    const { unmount } = renderComponent();
+    act(() => {
+      MockWebSocket.instances[0].onerror(new Event('error'));
+    });
+
+    unmount();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10000);
+    });
+
+    expect(MockWebSocket.instances).toHaveLength(1);
+  });
+
+  test('should not open a socket when the user signs out', () => {
+    vi.mocked(useAuth).mockReturnValue({ user: null, isAuthenticated: () => false });
+    renderComponent();
+
+    expect(MockWebSocket.instances).toHaveLength(0);
+  });
+
+  test('should close an open socket when the component unmounts', async () => {
+    const { unmount } = renderComponent();
+    await waitFor(() => expect(screen.getByText(/Connected/i)).toBeInTheDocument());
+    const socket = MockWebSocket.instances[0];
+
+    unmount();
+
+    expect(socket.readyState).toBe(MockWebSocket.CLOSED);
+  });
 });
 

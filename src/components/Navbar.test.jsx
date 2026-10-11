@@ -116,3 +116,42 @@ describe('Navbar Component', () => {
     expect(document.documentElement.style.getPropertyValue('--navbar-height')).toBe('96px');
   });
 });
+
+describe('Navbar layout measurement', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.documentElement.style.removeProperty('--navbar-height');
+  });
+
+  test('should observe the navbar and disconnect the observer on unmount', () => {
+    const observe = vi.fn();
+    const disconnect = vi.fn();
+    vi.stubGlobal('ResizeObserver', vi.fn(function ResizeObserverStub() {
+      return { observe, disconnect };
+    }));
+    const { container, unmount } = render(
+      <AuthProvider>
+        <BrowserRouter>
+          <Navbar theme="light" toggleTheme={vi.fn()} />
+        </BrowserRouter>
+      </AuthProvider>
+    );
+
+    expect(observe).toHaveBeenCalledWith(container.querySelector('nav'));
+    unmount();
+    expect(disconnect).toHaveBeenCalled();
+  });
+
+  test('should render without measuring when ResizeObserver is unavailable', () => {
+    vi.stubGlobal('ResizeObserver', undefined);
+    const { unmount } = render(
+      <AuthProvider>
+        <BrowserRouter>
+          <Navbar theme="light" toggleTheme={vi.fn()} />
+        </BrowserRouter>
+      </AuthProvider>
+    );
+
+    expect(() => unmount()).not.toThrow();
+  });
+});

@@ -81,11 +81,17 @@ vi.mock('../services/liveBoardService', () => ({
   subscribeBoardState:   mockSubscribe('boardState'),
 }));
 
+const authState = vi.hoisted(() => ({
+  user: { username: 'testuser', boardColor: 'hsl(340,72%,50%)' },
+  token: 'test-token',
+  authed: true,
+}));
+
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({
-    user: { username: 'testuser', boardColor: 'hsl(340,72%,50%)' },
-    token: 'test-token',
-    isAuthenticated: () => true,
+    user: authState.user,
+    token: authState.token,
+    isAuthenticated: () => authState.authed,
   }),
 }));
 
@@ -103,6 +109,9 @@ describe('LiveBoard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.keys(_handlers).forEach(k => delete _handlers[k]);
+    authState.user = { username: 'testuser', boardColor: 'hsl(340,72%,50%)' };
+    authState.token = 'test-token';
+    authState.authed = true;
   });
 
   test('renders the canvas container', () => {
@@ -338,5 +347,339 @@ describe('LiveBoard', () => {
   test('trail canvas element is rendered', () => {
     renderBoard();
     expect(screen.getByTestId('trail-canvas')).toBeInTheDocument();
+  });
+
+  test('should ask visitors to log in and not connect when signed out', () => {
+    authState.authed = false;
+    renderBoard();
+
+    expect(screen.getByRole('link', { name: 'log in' })).toHaveAttribute('href', '/login');
+    expect(screen.queryByTestId('liveboard-canvas')).not.toBeInTheDocument();
+    expect(mockInit).not.toHaveBeenCalled();
+  });
+
+  test('should fall back to the default board colour when the user has none', () => {
+    authState.user = { username: 'anon' };
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+
+    fireEvent.mouseMove(canvas, { clientX: 100, clientY: 100 });
+
+    expect(mockSendCursor).toHaveBeenLastCalledWith(0.1, expect.closeTo(1 / 6, 3), false, 'hsl(200,72%,50%)');
+  });
+
+  test('should send a cursor with painting off after the mouse button is released', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+
+    fireEvent.mouseDown(canvas);
+    fireEvent.mouseUp(canvas);
+    fireEvent.mouseMove(canvas, { clientX: 100, clientY: 100 });
+
+    expect(mockSendCursor).toHaveBeenLastCalledWith(0.1, expect.closeTo(1 / 6, 3), false, 'hsl(340,72%,50%)');
+  });
+
+  test('should stop painting when the button is released outside the board', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+
+    fireEvent.mouseDown(canvas);
+    fireEvent(window, new MouseEvent('mouseup'));
+    fireEvent.mouseMove(canvas, { clientX: 100, clientY: 100 });
+
+    expect(mockSendCursor).toHaveBeenLastCalledWith(0.1, expect.closeTo(1 / 6, 3), false, 'hsl(340,72%,50%)');
+  });
+
+  test('should clamp cursor positions to the board edges', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+
+    fireEvent.mouseMove(canvas, { clientX: -50, clientY: 9999 });
+
+    expect(mockSendCursor).toHaveBeenLastCalledWith(0, 1, false, 'hsl(340,72%,50%)');
+  });
+
+  test('should throttle paint dots from one user to a few per second', () => {
+    renderBoard();
+    act(() => {
+      _handlers['cursors']?.({ username: 'painter', xRatio: 0.2, yRatio: 0.2, color: 'hsl(10,72%,50%)', painting: true });
+      _handlers['cursors']?.({ username: 'painter', xRatio: 0.21, yRatio: 0.21, color: 'hsl(10,72%,50%)', painting: true });
+    });
+
+    expect(screen.getAllByTestId('paint-dot')).toHaveLength(1);
+  });
+
+  test('should remove a paint dot once its animation ends', () => {
+    renderBoard();
+    act(() => {
+      _handlers['cursors']?.({ username: 'painter', xRatio: 0.2, yRatio: 0.2, color: 'hsl(10,72%,50%)', painting: true });
+    });
+    fireEvent.animationEnd(screen.getByTestId('paint-dot'));
+
+    expect(screen.queryByTestId('paint-dot')).not.toBeInTheDocument();
+  });
+
+  test('should remove a ripple and a sparkle once their animations end', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    act(() => {
+      _handlers['cursors']?.({ username: 'nearby', xRatio: 0.5, yRatio: 0.5, color: 'hsl(120,72%,50%)', painting: false });
+    });
+    fireEvent.click(canvas, { clientX: 200, clientY: 200 });
+    fireEvent.mouseMove(canvas, { clientX: 501, clientY: 301 });
+
+    fireEvent.animationEnd(screen.getByTestId('board-ripple'));
+    fireEvent.animationEnd(screen.getByTestId('board-sparkle'));
+
+    expect(screen.queryByTestId('board-ripple')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('board-sparkle')).not.toBeInTheDocument();
+  });
+
+  test('should allow a fresh sparkle after the nearby user leaves and returns', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    act(() => {
+      _handlers['cursors']?.({ username: 'nearby', xRatio: 0.5, yRatio: 0.5, color: 'hsl(120,72%,50%)', painting: false });
+    });
+    fireEvent.mouseMove(canvas, { clientX: 501, clientY: 301 });
+    fireEvent.animationEnd(screen.getByTestId('board-sparkle'));
+
+    act(() => { _handlers['cursorRemove']?.({ username: 'nearby' }); });
+    act(() => {
+      _handlers['cursors']?.({ username: 'nearby', xRatio: 0.5, yRatio: 0.5, color: 'hsl(120,72%,50%)', painting: false });
+    });
+    fireEvent.mouseMove(canvas, { clientX: 501, clientY: 301 });
+
+    expect(screen.getByTestId('board-sparkle')).toBeInTheDocument();
+  });
+
+  test('should not spark with anonymous users who have no username', () => {
+    authState.user = null;
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    act(() => {
+      _handlers['cursors']?.({ username: 'nearby', xRatio: 0.5, yRatio: 0.5, painting: false });
+    });
+    fireEvent.mouseMove(canvas, { clientX: 501, clientY: 301 });
+
+    expect(screen.queryByTestId('board-sparkle')).not.toBeInTheDocument();
+  });
+
+  test('should ignore a right-click that lands inside the open compose box', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    fireEvent.contextMenu(canvas, { clientX: 300, clientY: 150 });
+    const textarea = screen.getByTestId('liveboard-compose');
+
+    fireEvent.contextMenu(textarea, { clientX: 500, clientY: 400 });
+
+    expect(screen.getByTestId('liveboard-compose-wrap')).toHaveStyle({ left: '300px', top: '150px' });
+  });
+
+  test('should ignore a left-click that lands inside the open compose box', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    fireEvent.contextMenu(canvas, { clientX: 300, clientY: 150 });
+
+    fireEvent.click(screen.getByTestId('liveboard-compose'), { clientX: 310, clientY: 160 });
+
+    expect(screen.queryByTestId('board-ripple')).not.toBeInTheDocument();
+  });
+
+  test('should close compose without sending when the message is blank', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    fireEvent.contextMenu(canvas, { clientX: 300, clientY: 150 });
+    const textarea = screen.getByTestId('liveboard-compose');
+    fireEvent.change(textarea, { target: { value: '   ' } });
+
+    fireEvent.keyDown(textarea, { key: 'Enter' });
+
+    expect(mockSendMessage).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('liveboard-compose')).not.toBeInTheDocument();
+  });
+
+  test('should close compose when focus leaves the textarea', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    fireEvent.contextMenu(canvas, { clientX: 300, clientY: 150 });
+
+    fireEvent.blur(screen.getByTestId('liveboard-compose'));
+
+    expect(screen.queryByTestId('liveboard-compose')).not.toBeInTheDocument();
+  });
+
+  test('should clear the whole board when the cleared event arrives', () => {
+    renderBoard();
+    act(() => {
+      _handlers['cursors']?.({ username: 'otherguy', xRatio: 0.3, yRatio: 0.3, color: 'hsl(60,72%,50%)', painting: false });
+    });
+    act(() => { _handlers['cleared']?.(); });
+
+    expect(screen.queryByText('otherguy')).not.toBeInTheDocument();
+  });
+
+  test('should ignore a board state payload that has no message list', () => {
+    renderBoard();
+    act(() => { _handlers['boardState']?.({}); });
+
+    expect(screen.queryByTestId('board-message')).not.toBeInTheDocument();
+  });
+
+  test('should resize the trail canvas to match its container', () => {
+    renderBoard();
+    const observerCallback = global.ResizeObserver.mock.calls.at(-1)[0];
+    const trail = screen.getByTestId('trail-canvas');
+    Object.defineProperty(trail.parentElement, 'clientWidth', { configurable: true, value: 640 });
+    Object.defineProperty(trail.parentElement, 'clientHeight', { configurable: true, value: 480 });
+
+    act(() => observerCallback());
+
+    expect(trail.width).toBe(640);
+    expect(trail.height).toBe(480);
+  });
+
+  test('should draw fresh trail points and prune stale ones on each frame', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
+    const originalRaf = globalThis.requestAnimationFrame;
+    const queued = [];
+    globalThis.requestAnimationFrame = vi.fn((cb) => {
+      queued.push(cb);
+      return queued.length;
+    });
+    const flush = () => queued.splice(0).forEach((cb) => cb());
+
+    try {
+      renderBoard();
+      const canvas = screen.getByTestId('liveboard-canvas');
+      canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+      fireEvent.mouseMove(canvas, { clientX: 100, clientY: 100 });
+
+      vi.setSystemTime(new Date('2025-01-01T00:00:00.500Z'));
+      flush();
+      const ctx = HTMLCanvasElement.prototype.getContext.mock.results.at(-1).value;
+      expect(ctx.arc).toHaveBeenCalled();
+
+      vi.setSystemTime(new Date('2025-01-01T00:00:03.000Z'));
+      flush();
+      expect(ctx.clearRect).toHaveBeenCalled();
+    } finally {
+      globalThis.requestAnimationFrame = originalRaf;
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('LiveBoard message lifetime', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  test('should remove a message once its fade-out lifetime has run out', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
+    renderBoard();
+
+    act(() => {
+      _handlers['messages']?.({
+        id: 'm-life', username: 'alice', xRatio: 0.4, yRatio: 0.4,
+        content: 'fleeting', postedAt: new Date().toISOString(),
+      });
+    });
+    expect(screen.getByTestId('board-message')).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(90_001);
+    });
+    expect(screen.queryByTestId('board-message')).not.toBeInTheDocument();
+  });
+
+  test('should drop a message that had already expired when it arrives', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
+    renderBoard();
+
+    act(() => {
+      _handlers['messages']?.({
+        id: 'm-stale', username: 'bob', xRatio: 0.4, yRatio: 0.4,
+        content: 'stale words', postedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      });
+    });
+
+    expect(screen.queryByText('stale words')).not.toBeInTheDocument();
+  });
+});
+
+describe('LiveBoard throttling and sparkle bookkeeping', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  test('should send at most one cursor update per animation frame', () => {
+    const queued = [];
+    const originalRaf = globalThis.requestAnimationFrame;
+    globalThis.requestAnimationFrame = vi.fn((cb) => {
+      queued.push(cb);
+      return queued.length;
+    });
+    try {
+      renderBoard();
+      const canvas = screen.getByTestId('liveboard-canvas');
+      canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+      mockSendCursor.mockClear();
+
+      fireEvent.mouseMove(canvas, { clientX: 10, clientY: 10 });
+      fireEvent.mouseMove(canvas, { clientX: 20, clientY: 20 });
+      queued.splice(0).forEach((cb) => cb());
+
+      expect(mockSendCursor).toHaveBeenCalledTimes(1);
+      expect(mockSendCursor).toHaveBeenCalledWith(0.02, expect.closeTo(1 / 30, 3), false, 'hsl(340,72%,50%)');
+    } finally {
+      globalThis.requestAnimationFrame = originalRaf;
+    }
+  });
+
+  test('should keep working through a long burst of movement', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+
+    for (let i = 0; i < 90; i += 1) {
+      fireEvent.mouseMove(canvas, { clientX: i, clientY: 5 });
+    }
+
+    expect(mockSendCursor).toHaveBeenCalled();
+  });
+
+  test('should keep the sparkle debounce for other users when one of them leaves', () => {
+    renderBoard();
+    const canvas = screen.getByTestId('liveboard-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
+    act(() => {
+      _handlers['cursors']?.({ username: 'alpha', xRatio: 0.5, yRatio: 0.5, color: 'hsl(1,1%,1%)', painting: false });
+      _handlers['cursors']?.({ username: 'beta', xRatio: 0.9, yRatio: 0.9, color: 'hsl(2,2%,2%)', painting: false });
+    });
+    fireEvent.mouseMove(canvas, { clientX: 501, clientY: 301 });
+    fireEvent.mouseMove(canvas, { clientX: 901, clientY: 541 });
+    expect(screen.getAllByTestId('board-sparkle')).toHaveLength(2);
+
+    act(() => {
+      _handlers['cursorRemove']?.({ username: 'alpha' });
+    });
+    fireEvent.mouseMove(canvas, { clientX: 902, clientY: 542 });
+
+    expect(screen.getAllByTestId('board-sparkle')).toHaveLength(2);
   });
 });

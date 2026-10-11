@@ -119,3 +119,74 @@ describe('StatusDashboard', () => {
   });
 });
 
+describe('StatusDashboard endpoint handling', () => {
+  beforeEach(() => {
+    fetch.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('should call the absolute actuator URLs in production builds', async () => {
+    vi.stubEnv('PROD', true);
+    fetch.mockImplementation(async (url) => ({
+      ok: true,
+      json: async () => (url.endsWith('/info') ? { build: { version: '9.9.9' } } : { status: 'UP' }),
+    }));
+
+    render(<StatusDashboard />);
+
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith('https://api.fitznet.doomdns.org/actuator/info', expect.anything())
+    );
+    expect(fetch).toHaveBeenCalledWith('https://gamerbell.fitznet.doomdns.org/actuator/health', expect.anything());
+  });
+
+  it('should record a service as having no health when its health endpoint errors', async () => {
+    fetch.mockImplementation(async (url) => (
+      url.endsWith('/health')
+        ? { ok: false, status: 503 }
+        : { ok: true, json: async () => ({ build: { version: '1.0.0' } }) }
+    ));
+
+    render(<StatusDashboard />);
+
+    await waitFor(() => expect(screen.getByTestId('architecture-graph-stub').textContent).toContain('"health":null'));
+    expect(screen.getByTestId('architecture-graph-stub').textContent).toContain('"info":{"build":{"version":"1.0.0"}}');
+  });
+
+  it('should record a service as having no info when its info endpoint errors', async () => {
+    fetch.mockImplementation(async (url) => (
+      url.endsWith('/info')
+        ? { ok: false, status: 500 }
+        : { ok: true, json: async () => ({ status: 'UP' }) }
+    ));
+
+    render(<StatusDashboard />);
+
+    await waitFor(() => expect(screen.getByTestId('architecture-graph-stub').textContent).toContain('"info":null'));
+  });
+});
+
+describe('StatusDashboard unexpected failures', () => {
+  afterEach(() => {
+    vi.doUnmock('../constants');
+    vi.resetModules();
+  });
+
+  it('should show an error banner when the status refresh itself fails', async () => {
+    vi.resetModules();
+    vi.doMock('../constants', () => ({
+      API_CONFIGS: { map: () => { throw new Error('config exploded'); } },
+    }));
+    vi.doMock('./AiNodesGraph', () => ({ default: () => null }));
+    vi.doMock('./ArchitectureGraph', () => ({ default: () => null }));
+    vi.doMock('./EnrollmentTokenPanel', () => ({ default: () => null }));
+    const { default: Dashboard } = await import('./StatusDashboard');
+
+    render(<Dashboard />);
+
+    expect(await screen.findByText('Error loading statuses: config exploded')).toBeInTheDocument();
+  });
+});

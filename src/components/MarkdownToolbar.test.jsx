@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect, vi } from 'vitest';
 import MarkdownToolbar, { applyAction, ACTIONS } from './MarkdownToolbar';
 
 function Harness({ initial = '' }) {
@@ -53,5 +53,81 @@ describe('MarkdownToolbar', () => {
     ta.setSelectionRange(0, 4);
     applyAction(ta, ACTIONS.find((a) => a.key === 'list'));
     expect(ta.value).toBe('- item');
+  });
+});
+
+describe('MarkdownToolbar edge cases', () => {
+  test('should close the menu when the user presses outside it', () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByTestId('md-toolbar-trigger'));
+    expect(screen.getByTestId('md-toolbar-menu')).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+
+    expect(screen.queryByTestId('md-toolbar-menu')).not.toBeInTheDocument();
+  });
+
+  test('should keep the menu open when the user presses inside it', () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByTestId('md-toolbar-trigger'));
+
+    fireEvent.mouseDown(screen.getByTestId('md-toolbar-menu'));
+
+    expect(screen.getByTestId('md-toolbar-menu')).toBeInTheDocument();
+  });
+
+  test('should stop the trigger and menu items from stealing focus from the textarea', () => {
+    render(<Harness />);
+    const trigger = screen.getByTestId('md-toolbar-trigger');
+    expect(fireEvent.mouseDown(trigger)).toBe(false);
+    fireEvent.click(trigger);
+
+    expect(fireEvent.mouseDown(screen.getByTestId('md-action-bold'))).toBe(false);
+  });
+
+  test('should do nothing when an action runs without a textarea to act on', () => {
+    render(<MarkdownToolbar />);
+    fireEvent.click(screen.getByTestId('md-toolbar-trigger'));
+
+    expect(() => fireEvent.click(screen.getByTestId('md-action-bold'))).not.toThrow();
+  });
+
+  test('applyAction should ignore a missing textarea', () => {
+    expect(() => applyAction(null, ACTIONS[0])).not.toThrow();
+  });
+
+  test('applyAction should treat missing selection offsets as the end of the text', () => {
+    const textarea = document.createElement('textarea');
+    textarea.value = 'hello';
+    Object.defineProperty(textarea, 'selectionStart', { configurable: true, get: () => null });
+    Object.defineProperty(textarea, 'selectionEnd', { configurable: true, get: () => null });
+
+    applyAction(textarea, ACTIONS[0]);
+
+    expect(textarea.value).toBe('hello**bold text**');
+  });
+
+  test('applyAction should fall back to a direct assignment when the native setter is unavailable', () => {
+    const textarea = document.createElement('textarea');
+    textarea.value = 'hi';
+    textarea.setSelectionRange(0, 2);
+    const realGetDescriptor = Object.getOwnPropertyDescriptor;
+    const spy = vi.spyOn(Object, 'getOwnPropertyDescriptor').mockImplementation((obj, key) => (
+      obj === window.HTMLTextAreaElement.prototype ? undefined : realGetDescriptor(obj, key)
+    ));
+
+    applyAction(textarea, ACTIONS[2]);
+    spy.mockRestore();
+
+    expect(textarea.value).toBe('~~hi~~');
+  });
+
+  test('applyAction should prefix an empty list item when nothing is selected', () => {
+    const textarea = document.createElement('textarea');
+    textarea.value = '';
+
+    applyAction(textarea, ACTIONS[5]);
+
+    expect(textarea.value).toBe('- ');
   });
 });

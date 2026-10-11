@@ -784,6 +784,10 @@ export default function ArchitectureGraph({ apiStatuses }) {
       draggingRef.current = true;
       dom.setPointerCapture?.(event.pointerId);
     };
+    const onPointerCancel = () => {
+      draggingRef.current = false;
+      setIsDragging(false);
+    };
     const onPointerMove = (event) => {
       if (!draggingRef.current || !last) return;
       const dx = event.clientX - last.x;
@@ -795,10 +799,13 @@ export default function ArchitectureGraph({ apiStatuses }) {
       last = { x: event.clientX, y: event.clientY };
     };
     const onPointerUp = (event) => {
+      // A release only counts as a click when this canvas saw the press too;
+      // a drag that started elsewhere must not select whatever is under it.
+      const pressedHere = draggingRef.current;
       draggingRef.current = false;
       setIsDragging(false);
       dom.releasePointerCapture?.(event.pointerId);
-      if (travelled > 6) return; // that was a drag, not a click
+      if (!pressedHere || travelled > 6) return; // a drag, not a click
 
       const rect = dom.getBoundingClientRect();
       const pointer = new THREE.Vector2(
@@ -826,6 +833,7 @@ export default function ArchitectureGraph({ apiStatuses }) {
     dom.addEventListener('pointerdown', onPointerDown);
     dom.addEventListener('pointermove', onPointerMove);
     dom.addEventListener('pointerup', onPointerUp);
+    dom.addEventListener('pointercancel', onPointerCancel);
 
     const unwatchTheme = watchThemeChange(() => {
       scene.background = null; // stay transparent; the CSS card supplies the backdrop
@@ -837,6 +845,7 @@ export default function ArchitectureGraph({ apiStatuses }) {
       dom.removeEventListener('pointerdown', onPointerDown);
       dom.removeEventListener('pointermove', onPointerMove);
       dom.removeEventListener('pointerup', onPointerUp);
+      dom.removeEventListener('pointercancel', onPointerCancel);
       unbindPointerEvents();
       unwatchTheme();
       pivot.traverse((child) => {

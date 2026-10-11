@@ -53,7 +53,7 @@ export const createUser = async (username, email, password) => {
       }),
     });
 
-    const data = await response.json();
+    const data = await parseResponseData(response);
 
     if (!response.ok) {
       return {

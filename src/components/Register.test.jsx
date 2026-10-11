@@ -186,3 +186,83 @@ describe('Register Component', () => {
     });
   });
 });
+
+describe('Register outcomes', () => {
+  const fillForm = () => {
+    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'newuser' } });
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'new@example.com' } });
+    fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    window.history.pushState({}, '', '/register');
+  });
+
+  it('should send a new account to the login page when the automatic sign-in fails', async () => {
+    const { createUser, loginUser } = await import('../services/api');
+    createUser.mockResolvedValueOnce({ success: true, message: 'Account created', username: 'newuser' });
+    loginUser.mockResolvedValueOnce({ success: false, message: 'Try again' });
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <Register />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+    fillForm();
+
+    await waitFor(() => expect(window.location.pathname).toBe('/login'));
+  });
+
+  it('should show the API reason when the account cannot be created', async () => {
+    const { createUser } = await import('../services/api');
+    createUser.mockResolvedValueOnce({ success: false, message: 'Username taken' });
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <Register />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+    fillForm();
+
+    expect(await screen.findByText('Username taken')).toBeInTheDocument();
+  });
+
+  it('should show a generic failure when the account cannot be created and no reason is given', async () => {
+    const { createUser } = await import('../services/api');
+    createUser.mockResolvedValueOnce({ success: false });
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <Register />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+    fillForm();
+
+    expect(await screen.findByText('Registration failed. Please try again.')).toBeInTheDocument();
+  });
+
+  it('should show an unexpected-error message when the request itself throws', async () => {
+    const { createUser } = await import('../services/api');
+    createUser.mockRejectedValueOnce(new Error('boom'));
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <Register />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+    fillForm();
+
+    expect(await screen.findByText('An unexpected error occurred. Please try again.')).toBeInTheDocument();
+  });
+});

@@ -31,23 +31,15 @@ function nextReply() {
  * streaming in. Returns a cancel function.
  */
 function revealText(text, onToken) {
-  let cancelled = false;
   let i = 0;
   const intervalId = setInterval(() => {
-    if (cancelled) {
-      clearInterval(intervalId);
-      return;
-    }
     i += Math.max(1, Math.round(text.length / 60));
     const done = i >= text.length;
     onToken(text.slice(0, i), done);
     if (done) clearInterval(intervalId);
   }, 20);
 
-  return () => {
-    cancelled = true;
-    clearInterval(intervalId);
-  };
+  return () => clearInterval(intervalId);
 }
 
 /**
@@ -57,18 +49,15 @@ function revealText(text, onToken) {
  * @returns {() => void} cancel function
  */
 export function sendMessage(content, onToken) {
-  let cancelled = false;
   let stopReveal = null;
   const reply = nextReply();
 
   const thinkingDelay = 500 + Math.random() * 500;
   const revealTimer = setTimeout(() => {
-    if (cancelled) return;
     stopReveal = revealText(reply, onToken);
   }, thinkingDelay);
 
   return () => {
-    cancelled = true;
     clearTimeout(revealTimer);
     stopReveal?.();
   };

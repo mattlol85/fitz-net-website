@@ -24,7 +24,7 @@ function _emit(event, data) {
 function _subscribe(event, cb) {
   if (!_handlers[event]) _handlers[event] = [];
   _handlers[event].push(cb);
-  return () => { _handlers[event] = (_handlers[event] || []).filter(h => h !== cb); };
+  return () => { _handlers[event] = _handlers[event].filter(h => h !== cb); };
 }
 
 function buildWsUrl() {

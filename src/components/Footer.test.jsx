@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { afterEach, vi } from 'vitest';
 import Footer from './Footer.jsx';
 
 describe('Footer Component', () => {
@@ -55,5 +56,44 @@ describe('Footer Component', () => {
 
     vi.restoreAllMocks();
     document.documentElement.style.removeProperty('--footer-height');
+  });
+});
+
+describe('Footer layout measurement', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    document.documentElement.style.removeProperty('--footer-height');
+  });
+
+  test('should not fail or observe anything where ResizeObserver is unavailable', () => {
+    vi.stubGlobal('ResizeObserver', undefined);
+    const { unmount } = render(<Footer />);
+
+    expect(() => unmount()).not.toThrow();
+  });
+
+  test('should observe the footer and disconnect the observer on unmount', () => {
+    const observe = vi.fn();
+    const disconnect = vi.fn();
+    vi.stubGlobal('ResizeObserver', vi.fn(function ResizeObserverStub() {
+      return { observe, disconnect };
+    }));
+    const { container, unmount } = render(<Footer />);
+
+    expect(observe).toHaveBeenCalledWith(container.querySelector('footer'));
+    unmount();
+    expect(disconnect).toHaveBeenCalled();
+  });
+
+  test('should publish the measured height again when the window resizes', () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 40 });
+    render(<Footer />);
+    expect(document.documentElement.style.getPropertyValue('--footer-height')).toBe('40px');
+
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 55.2 });
+    window.dispatchEvent(new Event('resize'));
+
+    expect(document.documentElement.style.getPropertyValue('--footer-height')).toBe('56px');
   });
 });
