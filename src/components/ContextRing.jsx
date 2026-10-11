@@ -11,11 +11,13 @@ export function contextLevel(fraction) {
 }
 
 /** A small circular gauge showing how much of the model's context window is in use. */
-export default function ContextRing({ used, max }) {
-  if (!max) return null;
-  const fraction = Math.min(Math.max(used / max, 0), 1);
+export default function ContextRing({ used, max, alwaysShow = false }) {
+  if (!max && !alwaysShow) return null;
+  const fraction = max ? Math.min(Math.max(used / max, 0), 1) : 0;
   const percent = Math.round(fraction * 100);
-  const label = `Context: ${used.toLocaleString()} / ${max.toLocaleString()} tokens (${percent}%)`;
+  const label = max
+    ? `Context: ${used.toLocaleString()} / ${max.toLocaleString()} tokens (${percent}%)`
+    : 'Context: unknown until a model replies';
 
   return (
     <span

@@ -132,14 +132,14 @@ describe('AiChat streaming, models and links', () => {
   });
 
   it('scrolls the conversation to the newest message when the browser supports it', async () => {
-    const original = Element.prototype.scrollTo;
-    const scrollTo = vi.fn();
-    Element.prototype.scrollTo = scrollTo;
+    const original = Element.prototype.scrollIntoView;
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
     try {
       render(<AiChat />);
-      await waitFor(() => expect(scrollTo).toHaveBeenCalledWith({ top: expect.any(Number), behavior: 'smooth' }));
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: 'end' }));
     } finally {
-      Element.prototype.scrollTo = original;
+      Element.prototype.scrollIntoView = original;
     }
   });
 
@@ -264,7 +264,7 @@ describe('AiChat with a selected node and in-flight replies', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /new chat/i }));
 
-    expect(screen.queryByTestId('context-ring')).not.toBeInTheDocument();
+    expect(screen.getByTestId('context-ring')).toHaveAttribute('aria-label', expect.stringMatching(/unknown/i));
     expect(screen.queryByText('first answer')).not.toBeInTheDocument();
     await sendToNode('two');
     await screen.findByText('second answer');
