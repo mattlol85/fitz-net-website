@@ -4,13 +4,12 @@
  * Two modes:
  * - sendMessage(): mock mode, used when no node is selected. Canned
  *   responses with a simulated "thinking" delay and a char-by-char reveal.
- * - sendMessageToNode(): real mode, routes through fitz-net-api to a
- *   specific node's Ollama instance (POST /node/{id}/chat). The backend
- *   call is non-streaming (returns the full reply at once), so the real
- *   reply is fed through the same char-by-char reveal as the mock path,
- *   keeping the typing UX identical either way.
+ * - sendMessageToNode(): real mode, streams a reply from a specific node's
+ *   Ollama instance through fitz-net-api (POST /node/{id}/chat/stream).
+ *   Tokens are shown as they arrive, so slow generations don't hit proxy
+ *   timeouts (Fitz-Net#65).
  */
-import { chatWithNode } from './nodeService';
+import { streamChatWithNode } from './nodeService';
 
 const MOCK_REPLIES = [
   "I'm just a preview right now — no local model is connected yet. Once Fitz-Net nodes come online, I'll route this to one of them.",
@@ -76,8 +75,8 @@ export function sendMessage(content, onToken) {
 }
 
 /**
- * Sends a real prompt to a node's Ollama instance via fitz-net-api, then
- * reveals the reply the same way sendMessage() does for mock replies.
+ * Streams a real reply from a node's Ollama instance via fitz-net-api.
+ * Cancelling aborts the request, which stops generation on the node.
  * @param {string} nodeId
  * @param {string} model
  * @param {string} content - the user's message
@@ -86,21 +85,24 @@ export function sendMessage(content, onToken) {
  * @returns {() => void} cancel function
  */
 export function sendMessageToNode(nodeId, model, content, authToken, onToken) {
-  let cancelled = false;
-  let stopReveal = null;
+  const controller = new AbortController();
+  let reply = '';
 
-  chatWithNode(nodeId, content, model, authToken)
-    .then((res) => {
-      if (cancelled) return;
-      stopReveal = revealText(res.reply || '', onToken);
+  streamChatWithNode(nodeId, content, model, authToken, {
+    signal: controller.signal,
+    onToken: (chunk) => {
+      reply += chunk;
+      onToken(reply, false);
+    },
+  })
+    .then((full) => {
+      if (controller.signal.aborted) return;
+      onToken(full, true);
     })
     .catch((err) => {
-      if (cancelled) return;
-      onToken(`⚠️ ${err.message}`, true);
+      if (controller.signal.aborted) return;
+      onToken(reply ? `${reply}\n\n⚠️ ${err.message}` : `⚠️ ${err.message}`, true);
     });
 
-  return () => {
-    cancelled = true;
-    stopReveal?.();
-  };
+  return () => controller.abort();
 }

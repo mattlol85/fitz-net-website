@@ -76,26 +76,74 @@ export async function generateEnrollmentToken(authToken, label) {
   return data;
 }
 
+// Proxy/edge statuses that mean "the request outlived a timeout somewhere
+// between the browser and the node", rather than an error from the API.
+const GATEWAY_TIMEOUT_STATUSES = new Set([502, 504, 524]);
+
 /**
- * Sends a prompt to a specific node's Ollama instance via fitz-net-api
- * (POST /node/{id}/chat). Requires the caller's JWT.
+ * Streams a chat from a specific node's Ollama instance via fitz-net-api
+ * (POST /node/{id}/chat/stream, Server-Sent Events). Requires the caller's JWT.
+ *
+ * Calls onToken(text) for each reply chunk and resolves with the full reply
+ * once the API sends `done`. Rejects on an `error` event, a non-2xx status, or
+ * a stream that ends without `done`. Aborting `signal` closes the connection,
+ * which makes the API cancel the generation on the node.
  */
-export async function chatWithNode(nodeId, prompt, model, authToken) {
-  const response = await fetch(`${API_URLS.FITZ_NET_API}/node/${nodeId}/chat`, {
+export async function streamChatWithNode(nodeId, prompt, model, authToken, { onToken, signal } = {}) {
+  const response = await fetch(`${API_URLS.FITZ_NET_API}/node/${nodeId}/chat/stream`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Accept: 'application/json',
+      Accept: 'text/event-stream',
       Authorization: `Bearer ${authToken}`,
     },
     body: JSON.stringify(model ? { prompt, model } : { prompt }),
+    signal,
   });
 
-  const data = await response.json().catch(() => ({}));
-
   if (!response.ok) {
+    if (GATEWAY_TIMEOUT_STATUSES.has(response.status)) {
+      throw new Error(`The node took too long to respond (HTTP ${response.status}).`);
+    }
+    const data = await response.json().catch(() => ({}));
     throw new Error(data.message || `Failed to reach node: ${response.status}`);
   }
 
-  return data;
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let reply = '';
+
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let boundary;
+    while ((boundary = buffer.indexOf('\n\n')) !== -1) {
+      const frame = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 2);
+
+      let event = 'message';
+      let data = '';
+      for (const line of frame.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim();
+        else if (line.startsWith('data:')) data += line.slice(5).trim();
+      }
+      // Frames with no data are keep-alive comments.
+      if (!data) continue;
+
+      const payload = JSON.parse(data);
+      if (event === 'token') {
+        reply += payload.content;
+        onToken?.(payload.content);
+      } else if (event === 'done') {
+        return reply;
+      } else if (event === 'error') {
+        throw new Error(payload.message || 'The node reported an error.');
+      }
+    }
+  }
+
+  throw new Error('The connection to the node closed before the reply finished.');
 }
