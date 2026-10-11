@@ -12,7 +12,7 @@ vi.mock('../contexts/AuthContext', () => ({
 
 vi.mock('../services/nodeService', () => ({
   fetchNodes: vi.fn(),
-  chatWithNode: vi.fn(),
+  streamChatWithNode: vi.fn(),
 }));
 
 describe('AiChat Component', () => {
