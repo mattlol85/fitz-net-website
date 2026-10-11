@@ -175,11 +175,29 @@ describe('App Component', () => {
     expect(await screen.findByText('Live board page')).toBeInTheDocument();
   });
 
-  test('should render the AI chat page at /ai', async () => {
+  test('should render the AI chat page at /ai for users with AI_USER', async () => {
+    signIn(['AI_USER']);
     goTo('/ai');
     render(<App />);
 
     expect(await screen.findByText('AI chat page')).toBeInTheDocument();
+  });
+
+  test('should send signed-out visitors from /ai to the login page', async () => {
+    goTo('/ai');
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/login'));
+    expect(screen.queryByText('AI chat page')).not.toBeInTheDocument();
+  });
+
+  test('should show the 404 page at /ai to users without AI_USER', async () => {
+    signIn([]);
+    goTo('/ai');
+    render(<App />);
+
+    expect(await screen.findByText('404')).toBeInTheDocument();
+    expect(screen.queryByText('AI chat page')).not.toBeInTheDocument();
   });
 
   test('should ask signed-out visitors to log in at /websocket', async () => {

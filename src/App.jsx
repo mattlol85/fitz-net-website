@@ -55,7 +55,14 @@ function App() {
                 <Route path="/status" element={<StatusDashboard />} />
                 <Route path="/websocket" element={<WebSocketButton />} />
                 <Route path="/liveboard" element={<LiveBoard />} />
-                <Route path="/ai" element={<AiChat />} />
+                <Route
+                  path="/ai"
+                  element={
+                    <RequirePermission permission="AI_USER">
+                      <AiChat />
+                    </RequirePermission>
+                  }
+                />
                 <Route
                   path="/admin"
                   element={

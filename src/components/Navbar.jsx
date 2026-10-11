@@ -66,10 +66,12 @@ function Navbar({ theme, toggleTheme }) {
                 <li>
                   <Link to="/websocket">WebSocket</Link>
                 </li>
-                <li>
-                  <Link to="/ai">Matt-GPT</Link>
-                </li>
               </>
+            )}
+            {authenticated && hasPermission?.('AI_USER') && (
+              <li>
+                <Link to="/ai">Matt-GPT</Link>
+              </li>
             )}
             {authenticated && hasPermission?.('ADMIN') && (
               <li>
