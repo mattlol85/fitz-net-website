@@ -80,10 +80,11 @@ export default function AiNodesGraph() {
     scene.add(hub);
 
     let animationId;
-    const clock = new THREE.Clock();
+    const clock = new THREE.Timer();
 
     const animate = () => {
-      const elapsed = clock.getElapsedTime();
+      clock.update();
+      const elapsed = clock.getElapsed();
       hub.rotation.y = elapsed * 0.2;
       hub.rotation.x = elapsed * 0.1;
 
