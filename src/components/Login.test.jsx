@@ -95,3 +95,45 @@ describe('Login Component', () => {
   });
 });
 
+describe('Login outcomes', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('should return to the home page after a successful sign-in', async () => {
+    const { loginUser } = await import('../services/api');
+    loginUser.mockResolvedValueOnce({ success: true, username: 'testuser', token: 'h.e30.s' });
+    window.history.pushState({}, '', '/login');
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <Login />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'testuser' } });
+    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'pw' } });
+    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+
+    await waitFor(() => expect(window.location.pathname).toBe('/'));
+  });
+
+  it('should show a generic message when the failed sign-in has no reason', async () => {
+    const { loginUser } = await import('../services/api');
+    loginUser.mockResolvedValueOnce({ success: false });
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <Login />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'testuser' } });
+    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'pw' } });
+    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+
+    expect(await screen.findByText('Login failed. Please try again.')).toBeInTheDocument();
+  });
+});

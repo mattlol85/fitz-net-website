@@ -43,6 +43,12 @@ vi.mock('./services/api', () => ({
   deletePermission: vi.fn(async () => ({ success: true })),
   getAdminUsers: vi.fn(async () => ({ success: true, data: [] })),
   setUserPermissions: vi.fn(async () => ({ success: true, data: {} })),
+  updateUserProfile: vi.fn(async (updates) => ({
+    success: true,
+    message: 'Profile updated successfully',
+    username: updates.username,
+    email: updates.email,
+  })),
 }));
 
 // Also mock mockApi for backward compatibility (in case it's still imported)

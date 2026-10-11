@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { deriveNodeStatus, probeGamerBellOta, resolveInferredStatuses } from './architectureStatus';
 import {
   NODE_STATUS,
@@ -175,5 +175,59 @@ describe('resolveInferredStatuses', () => {
     const result = await resolveInferredStatuses(ARCHITECTURE_NODES, apiStatuses);
     expect(result['esp32-bell']).toBe(NODE_STATUS.INFERRED_UNKNOWN);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('should report INFERRED_UNKNOWN for inferred nodes with an unknown rule', async () => {
+    const node = { id: 'custom', statusSource: { kind: 'inferred', rule: 'other', from: 'gamerbell' } };
+    const result = await resolveInferredStatuses([node], [{ name: 'gamerbell', online: true }]);
+    expect(result.custom).toBe(NODE_STATUS.INFERRED_UNKNOWN);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('should report INFERRED_UNKNOWN when the source API has no configured URL', async () => {
+    const node = { id: 'custom', statusSource: { kind: 'inferred', rule: 'ota-reachable', from: 'not-configured' } };
+    const result = await resolveInferredStatuses([node], [{ name: 'not-configured', online: true }]);
+    expect(result.custom).toBe(NODE_STATUS.INFERRED_UNKNOWN);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('architecture status edge cases', () => {
+  beforeEach(() => {
+    global.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('should report DEGRADED for an online actuator that sends no health status', () => {
+    const node = { statusSource: { kind: 'actuator', configName: 'fitz-net-api' } };
+    expect(deriveNodeStatus(node, [{ name: 'fitz-net-api', online: true }])).toBe(NODE_STATUS.DEGRADED);
+  });
+
+  it('should report UNKNOWN for nested health with an unrecognised status', () => {
+    const node = {
+      statusSource: { kind: 'nested-health', configName: 'fitz-net-api', path: ['components', 'mongo'], fallbackPath: ['components', 'mongoHealth'] },
+    };
+    const apiStatuses = [{ name: 'fitz-net-api', online: true, health: { components: { mongo: { status: 'WEIRD' } } } }];
+    expect(deriveNodeStatus(node, apiStatuses)).toBe(NODE_STATUS.UNKNOWN);
+  });
+
+  it('should report UNKNOWN for nested health when neither component path is present', () => {
+    const node = {
+      statusSource: { kind: 'nested-health', configName: 'fitz-net-api', path: ['components', 'mongo'], fallbackPath: ['components', 'mongoHealth'] },
+    };
+    expect(deriveNodeStatus(node, [{ name: 'fitz-net-api', online: true, health: {} }])).toBe(NODE_STATUS.UNKNOWN);
+  });
+
+  it('should probe the production GamerBell firmware endpoint in production builds', async () => {
+    vi.stubEnv('PROD', true);
+    fetch.mockResolvedValueOnce({ ok: true });
+
+    const status = await probeGamerBellOta('https://gamerbell.example.com');
+
+    expect(status).toBe(NODE_STATUS.INFERRED_ONLINE);
+    expect(fetch.mock.calls[0][0]).toBe('https://gamerbell.example.com/api/firmware/latest');
   });
 });

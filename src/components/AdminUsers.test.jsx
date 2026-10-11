@@ -109,3 +109,87 @@ describe('AdminUsers', () => {
     expect(await screen.findByLabelText('RADARR for alice')).toBeChecked();
   });
 });
+
+describe('AdminUsers error paths and editing', () => {
+  beforeEach(() => {
+    AuthContext.useAuth.mockReturnValue({ token: 'tok', user: { username: 'root' } });
+    api.getAvailablePermissions.mockResolvedValue({
+      success: true,
+      data: [
+        { name: 'ADMIN', description: 'Manage users' },
+        { name: 'RADARR', description: '' },
+      ],
+    });
+    api.getAdminUsers.mockResolvedValue({
+      success: true,
+      data: [
+        { id: '1', username: 'root', permissions: ['ADMIN'] },
+        { id: '2', username: 'alice', permissions: [] },
+      ],
+    });
+  });
+
+  it('shows the API reason when the page cannot load', async () => {
+    api.getAvailablePermissions.mockResolvedValueOnce({ success: false, message: 'Forbidden' });
+    render(<AdminUsers />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Forbidden');
+  });
+
+  it('shows a generic message when the page fails to load without a reason', async () => {
+    api.getAdminUsers.mockResolvedValueOnce({ success: false });
+    render(<AdminUsers />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to load users');
+  });
+
+  it('shows the API reason when creating a permission is refused', async () => {
+    api.createPermission.mockResolvedValueOnce({ success: false, message: 'Name taken' });
+    render(<AdminUsers />);
+    await screen.findByLabelText('ADMIN for root');
+
+    fireEvent.change(screen.getByLabelText('New permission name'), { target: { value: 'radarr' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add permission' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Name taken');
+  });
+
+  it('shows the API reason when deleting a permission is refused', async () => {
+    api.deletePermission.mockResolvedValueOnce({ success: false, message: 'Still in use' });
+    render(<AdminUsers />);
+    await screen.findByLabelText('ADMIN for root');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete RADARR' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Still in use');
+  });
+
+  it('clears the delete confirmation when focus leaves the button', async () => {
+    render(<AdminUsers />);
+    await screen.findByLabelText('ADMIN for root');
+
+    const button = screen.getByRole('button', { name: 'Delete RADARR' });
+    fireEvent.click(button);
+    expect(screen.getByRole('button', { name: 'Confirm delete' })).toBeInTheDocument();
+
+    fireEvent.blur(screen.getByRole('button', { name: 'Confirm delete' }));
+
+    expect(screen.getByRole('button', { name: 'Delete RADARR' })).toBeInTheDocument();
+  });
+
+  it('un-ticking a permission the user already has makes the row clean again', async () => {
+    render(<AdminUsers />);
+    const alicesAdmin = await screen.findByLabelText('ADMIN for alice');
+    const saveButtons = screen.getAllByRole('button', { name: 'Save' });
+    const aliceSave = saveButtons[1];
+
+    fireEvent.click(alicesAdmin);
+    expect(alicesAdmin).toBeChecked();
+    expect(aliceSave).toBeEnabled();
+
+    fireEvent.click(alicesAdmin);
+    expect(alicesAdmin).not.toBeChecked();
+    expect(aliceSave).toBeDisabled();
+  });
+});

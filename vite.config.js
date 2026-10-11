@@ -48,6 +48,16 @@ export default defineConfig({
       'src/**/*.spec.jsx',
       'src/**/*.test.js',
       'src/**/*.spec.js'
-    ]
+    ],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{js,jsx}'],
+      exclude: [
+        'src/**/*.test.{js,jsx}',
+        'src/**/*.spec.{js,jsx}',
+        'src/setupTests.js',
+        'src/img/**'
+      ]
+    }
   }
 })

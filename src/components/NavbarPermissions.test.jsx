@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import Navbar from './Navbar.jsx';
@@ -34,5 +34,16 @@ describe('Navbar permission gating', () => {
   it('hides the Admin link from users without ADMIN', () => {
     renderNavbar({ hasPermission: () => false });
     expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Navbar logout', () => {
+  it('should log the user out when the Logout button is pressed', async () => {
+    const logout = vi.fn(async () => ({ success: true }));
+    renderNavbar({ logout, hasPermission: () => false });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
+
+    await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
   });
 });
