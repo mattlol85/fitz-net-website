@@ -39,7 +39,8 @@ export default function AiChat() {
   const [selectedModel, setSelectedModel] = useState('');
   const [usage, setUsage] = useState({ used: 0, max: 0 });
   const cancelRef = useRef(null);
-  const listRef = useRef(null);
+  const endRef = useRef(null);
+  const stickRef = useRef(true);
 
   useEffect(() => {
     if (!authed) return undefined;
@@ -75,10 +76,22 @@ export default function AiChat() {
     }
   }, [selectedNode, selectedModel]);
 
+  // The whole page scrolls (not the message list), so follow the end of the
+  // conversation via a sentinel. Stay pinned while the user is near the bottom;
+  // if they scroll up to read, stop following until they come back down.
   useEffect(() => {
-    const list = listRef.current;
-    if (typeof list?.scrollTo === 'function') {
-      list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
+    const onScroll = () => {
+      const distance = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+      stickRef.current = distance < 120;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (stickRef.current && typeof endRef.current?.scrollIntoView === 'function') {
+      // Instant, not smooth: smooth animations get cancelled by each streamed token.
+      endRef.current.scrollIntoView({ block: 'end' });
     }
   }, [messages]);
 
@@ -108,6 +121,7 @@ export default function AiChat() {
 
     setInput('');
     setSending(true);
+    stickRef.current = true;
     setMessages((prev) => [...prev, { id: nextId++, role: 'user', content, done: true }]);
 
     const assistantId = nextId++;
@@ -146,7 +160,6 @@ export default function AiChat() {
         <h1>Matt-GPT</h1>
         <span className="ai-chat__badge">{badge}</span>
 
-        {selectedNode && usage.max > 0 && <ContextRing used={usage.used} max={usage.max} />}
         {messages.some((m) => !m.greeting) && (
           <button type="button" className="ai-chat__new-chat" onClick={handleNewChat}>
             New chat
@@ -184,7 +197,7 @@ export default function AiChat() {
         )}
       </div>
 
-      <div className="ai-chat__messages" ref={listRef} data-testid="ai-chat-messages">
+      <div className="ai-chat__messages" data-testid="ai-chat-messages">
         {messages.map((m) => (
           <div
             key={m.id}
@@ -211,6 +224,7 @@ export default function AiChat() {
             </div>
           </div>
         ))}
+        <div ref={endRef} aria-hidden="true" />
       </div>
 
       {selectedNode && usage.max > 0 && contextLevel(usage.used / usage.max) === 'danger' && (
@@ -220,6 +234,7 @@ export default function AiChat() {
       )}
 
       <form className="ai-chat__input-row" onSubmit={handleSend}>
+        <ContextRing used={usage.used} max={selectedNode ? usage.max : 0} alwaysShow />
         <input
           type="text"
           value={input}
