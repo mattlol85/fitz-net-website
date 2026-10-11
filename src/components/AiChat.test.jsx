@@ -169,7 +169,13 @@ describe('AiChat with a selected node and in-flight replies', () => {
     fireEvent.click(screen.getByRole('button', { name: /send/i }));
 
     expect(await screen.findByText('node says hi')).toBeInTheDocument();
-    expect(streamChatWithNode).toHaveBeenCalledWith('n1', 'ping', 'm1', 'jwt', expect.any(Object));
+    expect(streamChatWithNode).toHaveBeenCalledWith(
+      'n1',
+      [{ role: 'user', content: 'ping' }],
+      'm1',
+      'jwt',
+      expect.any(Object)
+    );
   });
 
   it('shows an empty bubble, not a placeholder, when the node answers with nothing', async () => {
@@ -184,6 +190,85 @@ describe('AiChat with a selected node and in-flight replies', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /send/i })).toBeDisabled());
     await waitFor(() => expect(container.querySelectorAll('.ai-chat__message--assistant')).toHaveLength(2));
     expect(screen.queryByText('\u2026')).not.toBeInTheDocument();
+  });
+
+  const NODE = { id: 'n1', name: 'node-one', status: 'ONLINE', models: ['m1'] };
+
+  async function sendToNode(text) {
+    fireEvent.change(screen.getByLabelText(/message/i), { target: { value: text } });
+    fireEvent.click(screen.getByRole('button', { name: /send/i }));
+  }
+
+  it('replays earlier turns so the model keeps context', async () => {
+    fetchNodes.mockResolvedValue([NODE]);
+    streamChatWithNode
+      .mockResolvedValueOnce('Hi Bob')
+      .mockResolvedValueOnce('You are Bob');
+    render(<AiChat />);
+    fireEvent.change(await screen.findByLabelText('Node'), { target: { value: 'n1' } });
+
+    await sendToNode('I am Bob');
+    expect(await screen.findByText('Hi Bob')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText(/message/i)).toBeEnabled());
+    await sendToNode('Who am I?');
+    expect(await screen.findByText('You are Bob')).toBeInTheDocument();
+
+    expect(streamChatWithNode.mock.calls[1][1]).toEqual([
+      { role: 'user', content: 'I am Bob' },
+      { role: 'assistant', content: 'Hi Bob' },
+      { role: 'user', content: 'Who am I?' },
+    ]);
+  });
+
+  it('shows the context ring from the reported usage and warns when nearly full', async () => {
+    fetchNodes.mockResolvedValue([NODE]);
+    streamChatWithNode.mockImplementationOnce(async (_n, _m, _model, _t, { onMeta, onToken, onDone }) => {
+      onMeta({ contextLength: 1000 });
+      onToken('ok');
+      onDone({ promptTokens: 900, completionTokens: 50, contextLength: 1000 });
+      return 'ok';
+    });
+    render(<AiChat />);
+    fireEvent.change(await screen.findByLabelText('Node'), { target: { value: 'n1' } });
+
+    await sendToNode('fill it');
+
+    const ring = await screen.findByTestId('context-ring');
+    expect(ring).toHaveAttribute('aria-label', 'Context: 950 / 1,000 tokens (95%)');
+    expect(ring).toHaveClass('context-ring--danger');
+    expect(screen.getByRole('status')).toHaveTextContent(/start a new chat/i);
+  });
+
+  it('shows how long each reply took', async () => {
+    fetchNodes.mockResolvedValue([NODE]);
+    streamChatWithNode.mockResolvedValueOnce('done');
+    render(<AiChat />);
+    fireEvent.change(await screen.findByLabelText('Node'), { target: { value: 'n1' } });
+
+    await sendToNode('time me');
+
+    expect(await screen.findByTestId('elapsed')).toHaveTextContent(/^\d+(ms|\.\ds)$/);
+  });
+
+  it('starts over on New chat: clears history and the ring', async () => {
+    fetchNodes.mockResolvedValue([NODE]);
+    streamChatWithNode.mockImplementationOnce(async (_n, _m, _model, _t, { onDone }) => {
+      onDone({ promptTokens: 10, completionTokens: 5, contextLength: 100 });
+      return 'first answer';
+    });
+    streamChatWithNode.mockResolvedValueOnce('second answer');
+    render(<AiChat />);
+    fireEvent.change(await screen.findByLabelText('Node'), { target: { value: 'n1' } });
+    await sendToNode('one');
+    expect(await screen.findByTestId('context-ring')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /new chat/i }));
+
+    expect(screen.queryByTestId('context-ring')).not.toBeInTheDocument();
+    expect(screen.queryByText('first answer')).not.toBeInTheDocument();
+    await sendToNode('two');
+    await screen.findByText('second answer');
+    expect(streamChatWithNode.mock.calls[1][1]).toEqual([{ role: 'user', content: 'two' }]);
   });
 
   it('shows an empty model list for a node that reports no models', async () => {

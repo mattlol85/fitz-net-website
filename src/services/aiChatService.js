@@ -68,17 +68,20 @@ export function sendMessage(content, onToken) {
  * Cancelling aborts the request, which stops generation on the node.
  * @param {string} nodeId
  * @param {string} model
- * @param {string} content - the user's message
+ * @param {Array<{role: string, content: string}>} messages - full history ending with the new user turn
  * @param {string} authToken - the caller's JWT
  * @param {(partial: string, done: boolean) => void} onToken
+ * @param {{onMeta?: Function, onDone?: Function}} [handlers] - stream metadata / final token usage
  * @returns {() => void} cancel function
  */
-export function sendMessageToNode(nodeId, model, content, authToken, onToken) {
+export function sendMessageToNode(nodeId, model, messages, authToken, onToken, handlers = {}) {
   const controller = new AbortController();
   let reply = '';
 
-  streamChatWithNode(nodeId, content, model, authToken, {
+  streamChatWithNode(nodeId, messages, model, authToken, {
     signal: controller.signal,
+    onMeta: handlers.onMeta,
+    onDone: handlers.onDone,
     onToken: (chunk) => {
       reply += chunk;
       onToken(reply, false);

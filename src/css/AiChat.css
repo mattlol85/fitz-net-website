@@ -160,3 +160,55 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.context-ring {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  --ring-color: #3fb950;
+}
+
+.context-ring--warn {
+  --ring-color: #d29922;
+}
+
+.context-ring--danger {
+  --ring-color: #f85149;
+}
+
+.context-ring__track {
+  stroke: var(--border-color);
+}
+
+.context-ring__value {
+  stroke: var(--ring-color);
+  transition: stroke-dashoffset 0.4s ease, stroke 0.2s ease;
+}
+
+.ai-chat__new-chat {
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.ai-chat__new-chat:hover {
+  background: var(--bg-secondary);
+}
+
+.ai-chat__full-hint {
+  font-size: 0.8rem;
+  color: #f85149;
+  margin: 0 0 0.75rem;
+}
+
+.ai-chat__elapsed {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
