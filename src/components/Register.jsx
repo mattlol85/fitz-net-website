@@ -92,7 +92,9 @@ function Register() {
               placeholder="Choose a username"
               disabled={loading}
               autoComplete="username"
+              aria-describedby="username-hint"
             />
+            <p id="username-hint" className="username-hint">Usernames are not case-sensitive.</p>
           </div>
 
           <div className="form-group">

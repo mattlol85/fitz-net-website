@@ -40,8 +40,8 @@ export const mockApi = {
     // Simulate network delay
     await delay(500);
 
-    // Check if user exists and password matches
-    const user = MOCK_USERS[username];
+    // Usernames are case-insensitive, so match on the normalized key
+    const user = MOCK_USERS[username.trim().toLowerCase()];
 
     if (!user) {
       return {

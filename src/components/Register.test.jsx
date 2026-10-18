@@ -265,4 +265,35 @@ describe('Register outcomes', () => {
 
     expect(await screen.findByText('An unexpected error occurred. Please try again.')).toBeInTheDocument();
   });
+
+  it('shouldShowTakenMessageWhenUsernameConflicts', async () => {
+    const { createUser } = await import('../services/api');
+    const takenMessage = 'That username is already taken. Usernames are not case-sensitive.';
+    createUser.mockResolvedValueOnce({ success: false, status: 409, message: takenMessage });
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <Register />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+    fillForm();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(takenMessage);
+    expect(window.location.pathname).toBe('/register');
+  });
+
+  it('should show the case-insensitivity hint under the username field', () => {
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <Register />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+
+    expect(screen.getByText('Usernames are not case-sensitive.')).toBeInTheDocument();
+    expect(screen.getByLabelText(/username/i)).toHaveAccessibleDescription('Usernames are not case-sensitive.');
+  });
 });

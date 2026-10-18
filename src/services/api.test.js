@@ -59,10 +59,35 @@ describe('api service (real API)', () => {
     });
 
     it('should return the API error message when the request fails', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ message: 'Invalid username' }, { status: 400 })));
+      const { createUser } = await loadApi();
+
+      expect(await createUser('bob', 'bob@x.io', 'pw')).toEqual({
+        success: false,
+        status: 400,
+        message: 'Invalid username',
+      });
+    });
+
+    it('shouldReturnConflictMessageOn409', async () => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ message: 'Username taken' }, { status: 409 })));
       const { createUser } = await loadApi();
 
-      expect(await createUser('bob', 'bob@x.io', 'pw')).toEqual({ success: false, message: 'Username taken' });
+      expect(await createUser('Bob', 'bob@x.io', 'pw')).toEqual({
+        success: false,
+        status: 409,
+        message: 'That username is already taken. Usernames are not case-sensitive.',
+      });
+    });
+
+    it('should keep the backend message on a 409 that mentions email', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(jsonResponse({ message: 'Email already registered' }, { status: 409 }))
+      );
+      const { createUser } = await loadApi();
+
+      expect((await createUser('bob', 'bob@x.io', 'pw')).message).toBe('Email already registered');
     });
 
     it('should fall back to a generic message when a failed response has no message', async () => {
@@ -71,6 +96,7 @@ describe('api service (real API)', () => {
 
       expect(await createUser('bob', 'bob@x.io', 'pw')).toEqual({
         success: false,
+        status: 500,
         message: 'Failed to create user account',
       });
     });
@@ -312,6 +338,7 @@ describe('api service (real API)', () => {
 
       expect(await updateUserProfile({ username: 'a', email: 'a@b.c' }, 'tok')).toEqual({
         success: false,
+        status: 409,
         message: 'Email in use',
       });
     });
@@ -323,6 +350,17 @@ describe('api service (real API)', () => {
       expect((await updateUserProfile({ username: 'a', email: 'a@b.c' }, 'tok')).message).toBe(
         'Failed to update profile'
       );
+    });
+
+    it('shouldReturnConflictMessageOn409', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ message: 'Username taken' }, { status: 409 })));
+      const { updateUserProfile } = await loadApi();
+
+      expect(await updateUserProfile({ username: 'BOB', email: 'a@b.c' }, 'tok')).toEqual({
+        success: false,
+        status: 409,
+        message: 'That username is already taken. Usernames are not case-sensitive.',
+      });
     });
 
     it('should return a network error when fetch rejects', async () => {
