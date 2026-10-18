@@ -63,6 +63,12 @@
   cursor: not-allowed;
 }
 
+.register-form .username-hint {
+  margin: 0;
+  color: var(--text-secondary, #666);
+  font-size: 0.85rem;
+}
+
 .register-form .error-message {
   background: #fee;
   border: 1px solid #fcc;

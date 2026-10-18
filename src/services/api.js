@@ -7,6 +7,19 @@ import { mockApi } from './mockApi';
 const API_BASE_URL = API_URLS.FITZ_NET_API;
 const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true';
 
+const USERNAME_TAKEN_MESSAGE = 'That username is already taken. Usernames are not case-sensitive.';
+
+/**
+ * Pick the user-facing message for a failed request. A 409 means the username is taken
+ * (case-insensitively), unless the backend supplied a message about email, which is kept.
+ */
+const resolveFailureMessage = (status, data, fallback) => {
+  if (status === 409 && !(data.message && /email/i.test(data.message))) {
+    return USERNAME_TAKEN_MESSAGE;
+  }
+  return data.message || fallback;
+};
+
 const parseResponseData = async (response) => {
   const contentType = response.headers.get('content-type') || '';
 
@@ -58,7 +71,8 @@ export const createUser = async (username, email, password) => {
     if (!response.ok) {
       return {
         success: false,
-        message: data.message || 'Failed to create user account',
+        status: response.status,
+        message: resolveFailureMessage(response.status, data, 'Failed to create user account'),
       };
     }
 
@@ -222,7 +236,8 @@ export const updateUserProfile = async (updates, token) => {
     if (!response.ok) {
       return {
         success: false,
-        message: data.message || 'Failed to update profile',
+        status: response.status,
+        message: resolveFailureMessage(response.status, data, 'Failed to update profile'),
       };
     }
 

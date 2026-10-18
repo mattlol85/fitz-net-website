@@ -34,6 +34,19 @@ describe('mockApi', () => {
       expect(result.token.split('.')).toHaveLength(3);
     });
 
+    it('shouldLoginRegardlessOfUsernameCase', async () => {
+      const promise = mockApi.login('  ChAnGmIn ', 'testing123');
+      await vi.advanceTimersByTimeAsync(500);
+      const result = await promise;
+
+      expect(result).toMatchObject({
+        success: true,
+        message: 'Login successful',
+        username: 'changmin',
+        email: 'changminlee@gmail.com',
+      });
+    });
+
     it('should return an unknown-user failure when the username does not exist', async () => {
       const promise = mockApi.login('nobody', 'x');
       await vi.advanceTimersByTimeAsync(500);
