@@ -41,6 +41,21 @@ describe('Navbar permission gating', () => {
     expect(screen.queryByRole('link', { name: 'Matt-GPT' })).not.toBeInTheDocument();
   });
 
+  it('should show the Joenet link to users with JOENET_USER', () => {
+    renderNavbar({ hasPermission: (p) => p === 'JOENET_USER' });
+    expect(screen.getByRole('link', { name: 'Joenet' })).toHaveAttribute('href', '/joenet');
+  });
+
+  it('should hide the Joenet link from users without JOENET_USER', () => {
+    renderNavbar({ hasPermission: (p) => p === 'AI_USER' });
+    expect(screen.queryByRole('link', { name: 'Joenet' })).not.toBeInTheDocument();
+  });
+
+  it('should hide the Joenet link from logged-out visitors', () => {
+    renderNavbar({ isAuthenticated: () => false, hasPermission: () => true });
+    expect(screen.queryByRole('link', { name: 'Joenet' })).not.toBeInTheDocument();
+  });
+
   it('hides the Admin link from users without ADMIN', () => {
     renderNavbar({ hasPermission: () => false });
     expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument();

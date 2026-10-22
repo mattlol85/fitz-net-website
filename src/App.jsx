@@ -2,6 +2,7 @@ import './css/App.css';
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { JoenetKeyProvider } from './contexts/JoenetKeyContext';
 import Homepage from './components/Homepage.jsx';
 import NoPage from './components/NoPage.jsx';
 import Navbar from './components/Navbar.jsx';
@@ -18,6 +19,9 @@ const StatusDashboard = lazy(() => import('./components/StatusDashboard.jsx'));
 const LiveBoard = lazy(() => import('./components/LiveBoard.jsx'));
 const AiChat = lazy(() => import('./components/AiChat.jsx'));
 const AdminUsers = lazy(() => import('./components/AdminUsers.jsx'));
+const Joenet = lazy(() => import('./components/joenet/Joenet.jsx'));
+const JoenetComingSoon = lazy(() => import('./components/joenet/JoenetComingSoon.jsx'));
+const JoenetAdminPanel = lazy(() => import('./components/joenet/JoenetAdminPanel.jsx'));
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -45,42 +49,55 @@ function App() {
   return (
     <div className="app">
       <AuthProvider>
-        <BrowserRouter>
-          <Navbar theme={theme} toggleTheme={toggleTheme} />
-          <main className="app-main">
-            <Suspense fallback={null}>
-              <Routes>
-                <Route path="/home" element={<Homepage />} />
-                <Route index element={<Homepage />} />
-                <Route path="/status" element={<StatusDashboard />} />
-                <Route path="/websocket" element={<WebSocketButton />} />
-                <Route path="/liveboard" element={<LiveBoard />} />
-                <Route
-                  path="/ai"
-                  element={
-                    <RequirePermission permission="AI_USER">
-                      <AiChat />
-                    </RequirePermission>
-                  }
-                />
-                <Route
-                  path="/admin"
-                  element={
-                    <RequirePermission permission="ADMIN">
-                      <AdminUsers />
-                    </RequirePermission>
-                  }
-                />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/profile" element={<EditProfile />} />
-                <Route path="*" element={<NoPage />} />
-              </Routes>
-            </Suspense>
-          </main>
-          <Footer />
-          <Outlet />
-        </BrowserRouter>
+        <JoenetKeyProvider>
+          <BrowserRouter>
+            <Navbar theme={theme} toggleTheme={toggleTheme} />
+            <main className="app-main">
+              <Suspense fallback={null}>
+                <Routes>
+                  <Route path="/home" element={<Homepage />} />
+                  <Route index element={<Homepage />} />
+                  <Route path="/status" element={<StatusDashboard />} />
+                  <Route path="/websocket" element={<WebSocketButton />} />
+                  <Route path="/liveboard" element={<LiveBoard />} />
+                  <Route
+                    path="/ai"
+                    element={
+                      <RequirePermission permission="AI_USER">
+                        <AiChat />
+                      </RequirePermission>
+                    }
+                  />
+                  <Route
+                    path="/admin"
+                    element={
+                      <RequirePermission permission="ADMIN">
+                        <AdminUsers />
+                      </RequirePermission>
+                    }
+                  />
+                  <Route
+                    path="/joenet"
+                    element={
+                      <RequirePermission permission="JOENET_USER">
+                        <Joenet />
+                      </RequirePermission>
+                    }
+                  >
+                    <Route index element={<JoenetComingSoon />} />
+                    <Route path="admin" element={<JoenetAdminPanel />} />
+                  </Route>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/profile" element={<EditProfile />} />
+                  <Route path="*" element={<NoPage />} />
+                </Routes>
+              </Suspense>
+            </main>
+            <Footer />
+            <Outlet />
+          </BrowserRouter>
+        </JoenetKeyProvider>
       </AuthProvider>
     </div>
   );

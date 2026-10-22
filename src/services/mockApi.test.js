@@ -123,4 +123,55 @@ describe('mockApi', () => {
       expect((await promise).boardColor).toBe('hsl(1,2%,3%)');
     });
   });
+
+  describe('joenetRequest', () => {
+    const call = async (...args) => {
+      const promise = mockApi.joenetRequest(...args);
+      await vi.advanceTimersByTimeAsync(150);
+      return promise;
+    };
+
+    it('should reject a missing or invalid key with a 401', async () => {
+      expect(await call('radarr', 'system/status', '')).toMatchObject({ success: false, status: 401 });
+      expect(await call('radarr', 'system/status', 'invalid')).toMatchObject({ success: false, status: 401 });
+    });
+
+    it('should answer system/status for both apps', async () => {
+      expect((await call('radarr', 'system/status', 'k')).data.appName).toBe('Radarr');
+      expect((await call('sonarr', 'system/status', 'k')).data.appName).toBe('Sonarr');
+    });
+
+    it('should keep library changes in memory', async () => {
+      const before = (await call('radarr', 'movie', 'k')).data;
+      expect(before.length).toBeGreaterThan(1);
+
+      await call('radarr', `movie/${before[0].id}`, 'k', { method: 'PUT', body: { monitored: false } });
+      expect((await call('radarr', `movie/${before[0].id}`, 'k')).data.monitored).toBe(false);
+
+      await call('radarr', `movie/${before[0].id}`, 'k', { method: 'DELETE' });
+      expect((await call('radarr', 'movie', 'k')).data).toHaveLength(before.length - 1);
+    });
+
+    it('should add a looked-up title to the library', async () => {
+      const lookup = (await call('sonarr', 'series/lookup?term=silo', 'k')).data;
+      const created = await call('sonarr', 'series', 'k', { method: 'POST', body: lookup[0] });
+
+      expect(created).toMatchObject({ success: true, status: 201 });
+      expect(created.data.id).toBeGreaterThan(0);
+    });
+
+    it('should paginate queue and history as records', async () => {
+      expect((await call('radarr', 'queue', 'k')).data.records.length).toBeGreaterThan(0);
+      expect((await call('sonarr', 'history', 'k')).data.records.length).toBeGreaterThan(0);
+    });
+
+    it('should accept commands and 404 on unknown paths', async () => {
+      expect(await call('radarr', 'command', 'k', { method: 'POST', body: { name: 'RssSync' } })).toMatchObject({
+        success: true,
+        data: { name: 'RssSync' },
+      });
+      expect(await call('radarr', 'nope', 'k')).toMatchObject({ success: false, status: 404 });
+      expect(await call('lidarr', 'system/status', 'k')).toMatchObject({ success: false, status: 404 });
+    });
+  });
 });

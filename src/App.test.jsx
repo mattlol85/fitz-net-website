@@ -232,6 +232,40 @@ describe('App Component', () => {
     expect(screen.queryByText('Admin page')).not.toBeInTheDocument();
   });
 
+  test('should send signed-out visitors from /joenet to the login page', async () => {
+    goTo('/joenet');
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/login'));
+    expect(screen.queryByText('Coming soon')).not.toBeInTheDocument();
+  });
+
+  test('should show the Joenet coming soon panel to users with JOENET_USER', async () => {
+    signIn(['JOENET_USER']);
+    goTo('/joenet');
+    render(<App />);
+
+    expect(await screen.findByText('Coming soon')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Admin Panel' })).toBeInTheDocument();
+  });
+
+  test('should show the Joenet key gate at /joenet/admin to users with JOENET_USER', async () => {
+    signIn(['JOENET_USER']);
+    goTo('/joenet/admin');
+    render(<App />);
+
+    expect(await screen.findByLabelText('Radarr API key')).toBeInTheDocument();
+  });
+
+  test('should show the 404 page at /joenet/admin to users without JOENET_USER', async () => {
+    signIn([]);
+    goTo('/joenet/admin');
+    render(<App />);
+
+    expect(await screen.findByText('404')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Radarr API key')).not.toBeInTheDocument();
+  });
+
   test('should render the login page at /login', () => {
     goTo('/login');
     render(<App />);

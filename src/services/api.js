@@ -343,6 +343,72 @@ export const setUserPermissions = async (username, permissions, token) => {
   });
 };
 
+// Fixed messages for the statuses the Joenet proxy itself produces. Anything else
+// is an upstream Radarr/Sonarr response, whose own error text is passed through.
+const JOENET_STATUS_MESSAGES = {
+  401: 'Joenet rejected the API key (or your session expired).',
+  403: 'Your account does not have the JOENET_USER permission.',
+  502: 'The Joenet host is unreachable.',
+  503: 'Joenet is not configured on the server.',
+};
+
+/**
+ * Call a Radarr/Sonarr v3 endpoint through the fitz-net-api proxy
+ * ({GET,POST,PUT,DELETE} /joenet/{app}/{path}). The pasted API key travels only
+ * in the X-Joenet-Key header - never in the URL - and is not logged.
+ * Resolves { success, status, data } on 2xx, otherwise { success: false, status, message }.
+ */
+export const joenetRequest = async (app, path, token, key, { method = 'GET', query, body } = {}) => {
+  if (USE_MOCK_API) return mockApi.joenetRequest(app, path, key, { method, query, body });
+
+  if (!token) {
+    return { success: false, message: 'Authentication token is required' };
+  }
+  if (!key) {
+    return { success: false, status: 401, message: JOENET_STATUS_MESSAGES[401] };
+  }
+
+  const search = new URLSearchParams(query ?? {}).toString();
+  const joiner = path.includes('?') ? '&' : '?';
+  const url = `${API_BASE_URL}/joenet/${encodeURIComponent(app)}/${path}${search ? `${joiner}${search}` : ''}`;
+
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'X-Joenet-Key': key,
+      },
+      mode: 'cors',
+      credentials: 'omit',
+      ...(body !== undefined && { body: JSON.stringify(body) }),
+    });
+
+    const data = await parseResponseData(response);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        status: response.status,
+        message:
+          JOENET_STATUS_MESSAGES[response.status] ||
+          data?.message ||
+          data?.[0]?.errorMessage ||
+          `Request failed (${response.status})`,
+      };
+    }
+
+    return { success: true, status: response.status, data };
+  } catch (_error) {
+    return {
+      success: false,
+      message: 'Network error. Please check your connection and try again.',
+    };
+  }
+};
+
 export const api = {
   createUser,
   loginUser,
@@ -355,6 +421,7 @@ export const api = {
   deletePermission,
   getAdminUsers,
   setUserPermissions,
+  joenetRequest,
 };
 
 export default api;

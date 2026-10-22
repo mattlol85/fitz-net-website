@@ -1,6 +1,8 @@
 ﻿// Mock API service to simulate backend authentication
 //const MOCK_BASE_URL = 'http://localhost:8080/api';
 
+import { handleMockJoenet } from './mockJoenet';
+
 // Simulated delay to mimic network request
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -117,6 +119,11 @@ export const mockApi = {
     };
   },
 
+  // Mock Joenet (Radarr/Sonarr) proxy endpoint
+  joenetRequest: async (app, path, key, options) => {
+    await delay(150);
+    return handleMockJoenet(app, path, key, options);
+  },
 };
 
 

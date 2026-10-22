@@ -43,6 +43,7 @@ vi.mock('./services/api', () => ({
   deletePermission: vi.fn(async () => ({ success: true })),
   getAdminUsers: vi.fn(async () => ({ success: true, data: [] })),
   setUserPermissions: vi.fn(async () => ({ success: true, data: {} })),
+  joenetRequest: vi.fn(async () => ({ success: true, status: 200, data: [] })),
   updateUserProfile: vi.fn(async (updates) => ({
     success: true,
     message: 'Profile updated successfully',
@@ -67,6 +68,7 @@ vi.mock('./services/mockApi', () => ({
     })),
     validateToken: vi.fn(() => true),
     logout: vi.fn(async () => ({ success: true })),
+    joenetRequest: vi.fn(async () => ({ success: true, status: 200, data: [] })),
   },
 }));
 
