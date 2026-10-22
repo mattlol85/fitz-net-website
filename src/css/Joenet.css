@@ -1,0 +1,300 @@
+.joenet-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  color: var(--text-primary);
+}
+
+.joenet-title {
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.joenet-subtitle {
+  color: var(--text-primary);
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.2rem;
+}
+
+.joenet-subtitle:first-child {
+  margin-top: 0;
+}
+
+.joenet-muted {
+  color: var(--text-secondary);
+}
+
+/* Tab bars (route sub-tabs, app switcher, section switcher) */
+.joenet-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.joenet-tab {
+  padding: 0.5rem 0.9rem;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: var(--link-color);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.joenet-tab:hover {
+  background: var(--bg-secondary);
+}
+
+.joenet-tab--active {
+  background: var(--card-bg, #ffffff);
+  border-color: var(--border-color, #e0e0e0);
+  font-weight: 600;
+}
+
+.joenet-tabs--sections .joenet-tab {
+  font-size: 0.9rem;
+  padding: 0.4rem 0.7rem;
+}
+
+.joenet-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Banners, same treatment as the admin users page */
+.joenet-message {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin: 0.75rem 0;
+  color: var(--text-primary);
+}
+
+.joenet-message.success {
+  background: rgba(46, 160, 67, 0.15);
+}
+
+.joenet-message.error {
+  background: rgba(220, 53, 69, 0.15);
+}
+
+.joenet-badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.joenet-badge--ok {
+  background: rgba(46, 160, 67, 0.2);
+}
+
+.joenet-badge--warn {
+  background: rgba(255, 193, 7, 0.25);
+}
+
+.joenet-badge--bad {
+  background: rgba(220, 53, 69, 0.2);
+}
+
+/* Key gate */
+.joenet-key-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Forms and controls */
+.joenet-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.joenet-form input,
+.joenet-form select,
+.joenet-console textarea {
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  background: var(--card-bg, #ffffff);
+  color: var(--text-primary);
+  font: inherit;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.joenet-grow {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.joenet-button {
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.joenet-button:hover:not(:disabled) {
+  background: var(--bg-secondary);
+}
+
+.joenet-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.joenet-button--primary {
+  background: var(--button-bg);
+  border-color: var(--button-bg);
+  color: var(--button-text);
+}
+
+.joenet-button--primary:hover:not(:disabled) {
+  background: var(--button-bg);
+  opacity: 0.85;
+}
+
+.joenet-button--danger {
+  border-color: rgba(220, 53, 69, 0.6);
+}
+
+.joenet-confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.joenet-inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+/* Tables */
+.joenet-table-wrapper {
+  overflow-x: auto;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 12px;
+}
+
+.joenet-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text-primary);
+}
+
+.joenet-table th,
+.joenet-table td {
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.joenet-table input[type='checkbox'] {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+/* Lists and details */
+.joenet-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.joenet-list li {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  overflow-wrap: anywhere;
+}
+
+.joenet-details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0;
+}
+
+.joenet-details dt {
+  color: var(--text-secondary);
+}
+
+.joenet-details dd {
+  margin: 0;
+}
+
+.joenet-results {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.joenet-result {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.joenet-overview {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+}
+
+/* API console */
+.joenet-console textarea {
+  display: block;
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.joenet-pre {
+  max-height: 24rem;
+  overflow: auto;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 480px) {
+  .joenet-container {
+    padding: 1rem 0.5rem;
+  }
+
+  .joenet-form input,
+  .joenet-form select,
+  .joenet-form .joenet-button {
+    flex: 1 1 100%;
+  }
+}

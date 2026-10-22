@@ -73,6 +73,11 @@ function Navbar({ theme, toggleTheme }) {
                 <Link to="/ai">Matt-GPT</Link>
               </li>
             )}
+            {authenticated && hasPermission?.('JOENET_USER') && (
+              <li>
+                <Link to="/joenet">Joenet</Link>
+              </li>
+            )}
             {authenticated && hasPermission?.('ADMIN') && (
               <li>
                 <Link to="/admin">Admin</Link>

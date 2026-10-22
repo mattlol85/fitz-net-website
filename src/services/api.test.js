@@ -503,6 +503,91 @@ describe('api service (real API)', () => {
     });
   });
 
+  describe('joenetRequest', () => {
+    it('should send the JWT and key as headers and keep the key out of the URL', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(jsonResponse([{ id: 1 }]));
+      vi.stubGlobal('fetch', fetchMock);
+      const { joenetRequest } = await loadApi();
+
+      const result = await joenetRequest('radarr', 'movie', 'jwt', 'secret-key', { query: { term: 'a b' } });
+
+      expect(result).toEqual({ success: true, status: 200, data: [{ id: 1 }] });
+      const [url, options] = fetchMock.mock.calls[0];
+      expect(url).toMatch(/\/joenet\/radarr\/movie\?term=a\+b$/);
+      expect(url).not.toContain('secret-key');
+      expect(options.method).toBe('GET');
+      expect(options.headers.Authorization).toBe('Bearer jwt');
+      expect(options.headers['X-Joenet-Key']).toBe('secret-key');
+      expect(options.body).toBeUndefined();
+    });
+
+    it('should forward the method and JSON body', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ id: 3 }, { status: 201 }));
+      vi.stubGlobal('fetch', fetchMock);
+      const { joenetRequest } = await loadApi();
+
+      await joenetRequest('sonarr', 'command', 'jwt', 'k', { method: 'POST', body: { name: 'RssSync' } });
+
+      const [url, options] = fetchMock.mock.calls[0];
+      expect(url).toMatch(/\/joenet\/sonarr\/command$/);
+      expect(options.method).toBe('POST');
+      expect(options.body).toBe(JSON.stringify({ name: 'RssSync' }));
+    });
+
+    it('should append the query to a path that already has one', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(jsonResponse({}));
+      vi.stubGlobal('fetch', fetchMock);
+      const { joenetRequest } = await loadApi();
+
+      await joenetRequest('radarr', 'movie/1?deleteFiles=true', 'jwt', 'k', { method: 'DELETE', query: { x: '1' } });
+
+      expect(fetchMock.mock.calls[0][0]).toMatch(/\/movie\/1\?deleteFiles=true&x=1$/);
+    });
+
+    it.each([
+      [401, 'Joenet rejected the API key (or your session expired).'],
+      [403, 'Your account does not have the JOENET_USER permission.'],
+      [502, 'The Joenet host is unreachable.'],
+      [503, 'Joenet is not configured on the server.'],
+    ])('should map a %i response to a clear message', async (status, message) => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ message: 'ignored' }, { status })));
+      const { joenetRequest } = await loadApi();
+
+      expect(await joenetRequest('radarr', 'movie', 'jwt', 'k')).toEqual({ success: false, status, message });
+    });
+
+    it('should pass through an upstream error message', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse([{ errorMessage: 'Path is invalid' }], { status: 400 })));
+      const { joenetRequest } = await loadApi();
+
+      expect(await joenetRequest('radarr', 'movie', 'jwt', 'k', { method: 'POST', body: {} })).toEqual({
+        success: false,
+        status: 400,
+        message: 'Path is invalid',
+      });
+    });
+
+    it('should not call the network without a token or a key', async () => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal('fetch', fetchMock);
+      const { joenetRequest } = await loadApi();
+
+      expect(await joenetRequest('radarr', 'movie', '', 'k')).toMatchObject({ success: false });
+      expect(await joenetRequest('radarr', 'movie', 'jwt', '')).toMatchObject({ success: false, status: 401 });
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('should report a network failure', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+      const { joenetRequest } = await loadApi();
+
+      expect(await joenetRequest('radarr', 'movie', 'jwt', 'k')).toEqual({
+        success: false,
+        message: 'Network error. Please check your connection and try again.',
+      });
+    });
+  });
+
   describe('default export', () => {
     it('should expose every endpoint on the api object', async () => {
       const mod = await loadApi();
@@ -512,7 +597,7 @@ describe('api service (real API)', () => {
         [
           'createUser', 'loginUser', 'validateToken', 'logoutUser', 'updateUserProfile',
           'getCurrentUser', 'getAvailablePermissions', 'createPermission', 'deletePermission',
-          'getAdminUsers', 'setUserPermissions',
+          'getAdminUsers', 'setUserPermissions', 'joenetRequest',
         ].sort()
       );
     });
