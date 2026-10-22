@@ -7,19 +7,22 @@ import {
   getAvailablePermissions,
   setUserPermissions,
 } from '../services/api';
+import AdminUserCard from './AdminUserCard.jsx';
+import PermissionCatalogue from './PermissionCatalogue.jsx';
 import '../css/AdminUsers.css';
 
 function AdminUsers() {
   const { token, user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [available, setAvailable] = useState([]);
-  // Unsaved checkbox edits only (username -> permissions); survives reloads of the list.
+  // Unsaved permission edits only (username -> permissions); survives reloads of the list.
   const [edits, setEdits] = useState({});
   const [status, setStatus] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,6 +83,14 @@ function AdminUsers() {
     setEdits((prev) => ({ ...prev, [u.username]: next }));
   };
 
+  const discard = (u) => {
+    setEdits((prev) => {
+      const next = { ...prev };
+      delete next[u.username];
+      return next;
+    });
+  };
+
   const isDirty = (u) => {
     const saved = [...(u.permissions ?? [])].sort().join(',');
     const draft = [...draftFor(u)].sort().join(',');
@@ -103,6 +114,9 @@ function AdminUsers() {
     }
   };
 
+  const query = search.trim().toLowerCase();
+  const visibleUsers = users.filter((u) => u.username.toLowerCase().includes(query));
+
   return (
     <div className="admin-users-container">
       <h1 className="admin-users-title">User Permissions</h1>
@@ -116,92 +130,55 @@ function AdminUsers() {
       {loading && users.length === 0 ? (
         <p>Loading users…</p>
       ) : (
-        <div className="admin-users-table-wrapper">
-          <table className="admin-users-table">
-            <thead>
-              <tr>
-                <th>User</th>
-                {available.map((p) => (
-                  <th key={p.name} title={p.description || undefined}>
-                    {p.name}
-                  </th>
-                ))}
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => {
-                const isSelf = u.username === currentUser?.username;
-                return (
-                  <tr key={u.username}>
-                    <td>{u.username}</td>
-                    {available.map(({ name }) => (
-                      <td key={name}>
-                        <input
-                          type="checkbox"
-                          aria-label={`${name} for ${u.username}`}
-                          checked={draftFor(u).includes(name)}
-                          // The API refuses self-demotion; mirror that in the UI.
-                          disabled={isSelf && name === 'ADMIN'}
-                          onChange={() => toggle(u, name)}
-                        />
-                      </td>
-                    ))}
-                    <td>
-                      <button
-                        type="button"
-                        className="admin-users-save"
-                        disabled={!isDirty(u)}
-                        onClick={() => save(u)}
-                      >
-                        Save
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="admin-toolbar">
+            <input
+              type="search"
+              className="admin-input grow"
+              aria-label="Search users"
+              placeholder="Search users…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <span className="admin-toolbar-count">
+              {visibleUsers.length} of {users.length} users
+            </span>
+          </div>
+
+          {visibleUsers.length === 0 ? (
+            <p className="admin-empty">No users match “{search.trim()}”.</p>
+          ) : (
+            <ul className="admin-user-grid">
+              {visibleUsers.map((u) => (
+                <AdminUserCard
+                  key={u.username}
+                  user={u}
+                  draft={draftFor(u)}
+                  available={available}
+                  isSelf={u.username === currentUser?.username}
+                  dirty={isDirty(u)}
+                  onAdd={(name) => toggle(u, name)}
+                  onRemove={(name) => toggle(u, name)}
+                  onSave={() => save(u)}
+                  onDiscard={() => discard(u)}
+                />
+              ))}
+            </ul>
+          )}
+        </>
       )}
 
-      <h2 className="admin-users-subtitle">Permissions</h2>
-      <ul className="admin-permissions-list">
-        {available.map((p) => (
-          <li key={p.name}>
-            <strong>{p.name}</strong>
-            {p.description && <span className="admin-permission-desc"> — {p.description}</span>}
-            {p.name !== 'ADMIN' && (
-              <button
-                type="button"
-                className="admin-users-save"
-                onClick={() => removePermission(p.name)}
-                onBlur={() => setPendingDelete(null)}
-              >
-                {pendingDelete === p.name ? 'Confirm delete' : `Delete ${p.name}`}
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-
-      <form className="admin-permission-form" onSubmit={addPermission}>
-        <input
-          aria-label="New permission name"
-          placeholder="NAME (e.g. RADARR)"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-        />
-        <input
-          aria-label="New permission description"
-          placeholder="Description (optional)"
-          value={newDescription}
-          onChange={(e) => setNewDescription(e.target.value)}
-        />
-        <button type="submit" className="admin-users-save" disabled={!newName.trim()}>
-          Add permission
-        </button>
-      </form>
+      <PermissionCatalogue
+        available={available}
+        pendingDelete={pendingDelete}
+        onDelete={removePermission}
+        onCancelDelete={() => setPendingDelete(null)}
+        newName={newName}
+        newDescription={newDescription}
+        onNameChange={setNewName}
+        onDescriptionChange={setNewDescription}
+        onCreate={addPermission}
+      />
     </div>
   );
 }
