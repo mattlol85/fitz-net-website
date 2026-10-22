@@ -1,7 +1,8 @@
 .admin-users-container {
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 2rem 1rem;
+  color: var(--text-primary);
 }
 
 .admin-users-title {
@@ -27,67 +28,273 @@
   color: var(--text-primary);
 }
 
-.admin-users-table-wrapper {
-  overflow-x: auto;
-  background: var(--card-bg, #ffffff);
-  border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 12px;
+/* Toolbar */
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
-.admin-users-table {
-  width: 100%;
-  border-collapse: collapse;
-  color: var(--text-primary);
+.admin-toolbar-count {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
-.admin-users-table th,
-.admin-users-table td {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+.admin-empty {
+  color: var(--text-secondary);
 }
 
-.admin-users-table input[type='checkbox'] {
-  width: 1.1rem;
-  height: 1.1rem;
-}
-
-.admin-users-save {
-  padding: 0.4rem 0.9rem;
+/* Shared form controls */
+.admin-input,
+.admin-select {
+  padding: 0.5rem 0.7rem;
   border-radius: 6px;
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font: inherit;
+  min-width: 0;
+}
+
+.admin-input.grow {
+  flex: 1 1 14rem;
+}
+
+.admin-input:focus-visible,
+.admin-select:focus-visible,
+.admin-btn:focus-visible,
+.admin-chip-remove:focus-visible {
+  outline: 2px solid var(--link-hover);
+  outline-offset: 2px;
+}
+
+.admin-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Buttons */
+.admin-btn {
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
   background: transparent;
   color: var(--text-primary);
+  font: inherit;
   cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
 }
 
-.admin-users-save:disabled {
+.admin-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.admin-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.admin-users-subtitle {
-  color: var(--text-primary);
-  margin: 2rem 0 1rem;
-  font-size: 1.3rem;
+.admin-btn.primary {
+  background: var(--button-bg);
+  border-color: var(--button-bg);
+  color: var(--button-text);
+}
+
+.admin-btn.primary:hover:not(:disabled) {
+  background: var(--link-hover);
+  border-color: var(--link-hover);
+}
+
+.admin-btn.secondary:hover:not(:disabled) {
+  background: var(--bg-secondary);
+}
+
+.admin-btn.danger {
+  color: var(--logout-button-bg);
+  border-color: var(--logout-button-bg);
+}
+
+.admin-btn.danger:hover:not(:disabled),
+.admin-btn.danger.armed {
+  background: var(--logout-button-bg);
+  color: #ffffff;
+}
+
+/* User cards */
+.admin-user-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 1rem;
+}
+
+.admin-user-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 6px var(--shadow-color);
+}
+
+.admin-user-card.dirty {
+  border-color: var(--link-hover);
+}
+
+.admin-user-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-user-name {
+  margin: 0;
+  font-size: 1.1rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-user-count {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.admin-badge {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  font-size: 0.75rem;
+}
+
+.admin-badge.unsaved {
+  background: transparent;
+  border-color: var(--link-hover);
+  color: var(--link-hover);
+}
+
+/* Permission chips */
+.admin-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-height: 1.9rem;
+}
+
+.admin-chips-empty {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  align-self: center;
+}
+
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.admin-chip:not(:has(.admin-chip-remove)) {
+  padding-right: 0.65rem;
+}
+
+.admin-chip.admin {
+  border-color: var(--link-hover);
+  color: var(--link-hover);
+}
+
+.admin-chip-remove {
+  width: 1.3rem;
+  height: 1.3rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-chip-remove:hover {
+  background: var(--logout-button-bg);
+  color: #ffffff;
+}
+
+.admin-user-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: auto;
+}
+
+.admin-user-card-footer .admin-select {
+  flex: 1 1 10rem;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Permission catalogue */
+.admin-catalogue {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.admin-catalogue > summary {
+  cursor: pointer;
+  font-size: 1.15rem;
+  font-weight: 600;
 }
 
 .admin-permissions-list {
   list-style: none;
+  margin: 1rem 0 0;
   padding: 0;
-  color: var(--text-primary);
 }
 
 .admin-permissions-list li {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.4rem 0;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--border-color);
+}
+
+.admin-permission-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
 }
 
 .admin-permission-desc {
-  opacity: 0.7;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
 .admin-permission-form {
@@ -95,12 +302,16 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
 }
 
-.admin-permission-form input {
-  padding: 0.4rem 0.6rem;
-  border-radius: 6px;
-  border: 1px solid var(--border-color, #e0e0e0);
-  background: var(--card-bg, #ffffff);
-  color: var(--text-primary);
+@media (max-width: 480px) {
+  .admin-actions {
+    width: 100%;
+  }
+
+  .admin-actions .admin-btn {
+    flex: 1;
+  }
 }
