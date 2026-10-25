@@ -56,7 +56,10 @@ describe('liveBoardService', () => {
     init('test-jwt-token');
     expect(Client).toHaveBeenCalledWith(
       expect.objectContaining({
-        connectHeaders: { Authorization: 'Bearer test-jwt-token' },
+        connectHeaders: {
+          Authorization: 'Bearer test-jwt-token',
+          'X-Correlation-ID': expect.stringMatching(/^web-/),
+        },
       })
     );
   });

@@ -100,7 +100,8 @@ describe('WebSocketButton Component', () => {
   test('uses the local websocket URL on localhost', () => {
     renderComponent();
 
-    expect(MockWebSocket.instances[0]?.url).toBe('ws://localhost:8080/ws');
+    expect(MockWebSocket.instances[0]?.url.split('?')[0]).toBe('ws://localhost:8080/ws');
+    expect(MockWebSocket.instances[0]?.url).toContain('?correlationId=web-');
   });
 
   test('shows login gate when not authenticated', () => {
@@ -277,7 +278,7 @@ describe('WebSocketButton Component', () => {
     try {
       renderComponent();
 
-      expect(MockWebSocket.instances[0].url).toBe('wss://gamerbell.fitznet.org/ws');
+      expect(MockWebSocket.instances[0].url.split('?')[0]).toBe('wss://gamerbell.fitznet.org/ws');
     } finally {
       window.location = originalLocation;
     }
@@ -290,7 +291,7 @@ describe('WebSocketButton Component', () => {
     try {
       renderComponent();
 
-      expect(MockWebSocket.instances[0].url).toBe('ws://gamerbell.fitznet.org/ws');
+      expect(MockWebSocket.instances[0].url.split('?')[0]).toBe('ws://gamerbell.fitznet.org/ws');
     } finally {
       window.location = originalLocation;
     }
@@ -303,7 +304,7 @@ describe('WebSocketButton Component', () => {
     try {
       renderComponent();
 
-      expect(MockWebSocket.instances[0].url).toBe('ws://localhost:8080/ws');
+      expect(MockWebSocket.instances[0].url.split('?')[0]).toBe('ws://localhost:8080/ws');
     } finally {
       window.location = originalLocation;
     }
