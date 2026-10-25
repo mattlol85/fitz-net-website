@@ -6,6 +6,7 @@
  * locally without connecting to a server.
  */
 import { Client } from '@stomp/stompjs';
+import { newCorrelationId } from '../utils/tracing';
 
 export const FADE_DURATION_MS = 86_400_000; // 24 hours
 
@@ -80,7 +81,7 @@ function realInit(token) {
   if (stompClient?.active) return;
   stompClient = new Client({
     brokerURL: buildWsUrl(),
-    connectHeaders: { Authorization: `Bearer ${token}` },
+    connectHeaders: { Authorization: `Bearer ${token}`, 'X-Correlation-ID': newCorrelationId() },
     reconnectDelay: 5000,
     onConnect: () => {
       stompSubs.cursors      = stompClient.subscribe('/topic/board/cursors',      (m) => _emit('cursors',      JSON.parse(m.body)));

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { withCorrelationId } from '../utils/tracing';
 import '../css/WebSocketButton.css';
 
 function buildGamerbellWsUrl() {
@@ -56,7 +57,7 @@ function WebSocketButton() {
     cleanupSocket();
     setConnectionState('connecting');
 
-    const socket = new WebSocket(buildGamerbellWsUrl());
+    const socket = new WebSocket(withCorrelationId(buildGamerbellWsUrl()));
     socketRef.current = socket;
     let hasHandledFailure = false;
 
