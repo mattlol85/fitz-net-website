@@ -8,10 +8,10 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^7.18.4",
+    "react-router-dom": "^7.18.5",
     "recharts": "^3.10.1",
     "remark-gfm": "^4.0.1",
-    "three": "^0.186.1",
+    "three": "^0.187.0",
     "web-vitals": "^6.2.3"
   },
   "devDependencies": {
@@ -23,8 +23,8 @@
     "@vitejs/plugin-react": "^5.2.0",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "@vitest/coverage-v8": "^4.1.12",
-    "eslint": "^10.13.0",
-    "globals": "^17.13.0",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
     "jsdom": "^26.1.0",
     "typescript": "^7.0.2",
     "vite": "^6.4.5",
