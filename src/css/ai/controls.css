@@ -1,0 +1,293 @@
+/* Message controls, the inline editor, per-reply stats, warnings, banners and failover choices. */
+
+/* Action row: shown on hover or keyboard focus, always on touch. */
+.ai-chat__actions {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.4rem;
+  margin-top: 0.35rem;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.ai-chat__message:hover .ai-chat__actions,
+.ai-chat__message:focus-within .ai-chat__actions,
+.ai-chat__actions--open {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .ai-chat__actions {
+    opacity: 1;
+  }
+}
+
+.ai-chat__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.ai-chat__action:hover:not(:disabled) {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.ai-chat__action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ai-chat__action-anchor {
+  position: relative;
+}
+
+.ai-chat__confirm-text {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.ai-chat__under {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.ai-chat__edited {
+  margin-top: 0.35rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+/* The regenerate-with picker opens upward, anchored to its button. */
+.ai-chat__picker--inline {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  max-width: none;
+}
+
+.ai-chat__picker--inline .ai-chat__picker-panel {
+  top: auto;
+  bottom: 0;
+  left: 0;
+  right: auto;
+  width: min(480px, calc(100vw - 2rem));
+}
+
+/* Inline editor */
+.ai-chat__editor {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--card-bg);
+}
+
+.ai-chat__editor textarea {
+  display: block;
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  line-height: 1.5;
+}
+
+.ai-chat__editor textarea:focus-visible {
+  outline: none;
+}
+
+.ai-chat__editor-hint {
+  margin: 0.25rem 0.4rem 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.ai-chat__editor-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.ai-chat__button--primary {
+  border-color: var(--button-bg);
+  background: var(--button-bg);
+  color: var(--button-text);
+}
+
+.ai-chat__button--primary:hover:not(:disabled) {
+  background: var(--button-bg);
+  opacity: 0.9;
+}
+
+.ai-chat__button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Stats */
+.ai-chat__stats {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.ai-chat__stats-toggle {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.ai-chat__stats-toggle:hover {
+  color: var(--text-primary);
+}
+
+.ai-chat__tag {
+  align-items: center;
+}
+
+.ai-chat__stats-details {
+  flex-basis: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.35rem 1rem;
+  margin: 0.25rem 0 0;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  font-size: 0.78rem;
+}
+
+.ai-chat__stats-details div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.ai-chat__stats-details dt {
+  color: var(--text-secondary);
+}
+
+.ai-chat__stats-details dd {
+  margin: 0;
+  font-family: var(--ai-mono);
+}
+
+/* Warnings and failover */
+.ai-chat__warn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.ai-chat__warn > svg {
+  flex: none;
+  color: var(--ai-busy);
+}
+
+.ai-chat__choices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.ai-chat__choices .ai-chat__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ai-chat__link-button {
+  margin-left: 0.4rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--link-hover);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Banners above the composer */
+.ai-chat__banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  margin: 0 0 0.5rem;
+  padding: 0.5rem 0.6rem 0.5rem 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  font-size: 0.88rem;
+}
+
+.ai-chat__banner--warn {
+  border-color: var(--ai-busy);
+  background: color-mix(in srgb, var(--ai-busy) 8%, var(--bg-primary));
+}
+
+.ai-chat__banner--warn > svg {
+  flex: none;
+  color: var(--ai-busy);
+}
+
+.ai-chat__banner--quiet {
+  padding: 0.3rem 0.8rem;
+  border-style: dashed;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.ai-chat__banner-text {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.ai-chat__banner .ai-chat__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Touch: bigger targets for the action rows and buttons. */
+@media (pointer: coarse) {
+  .ai-chat__action,
+  .ai-chat__code-copy,
+  .ai-chat__stats-toggle {
+    min-height: 36px;
+  }
+
+  .ai-chat__button {
+    min-height: 36px;
+  }
+}

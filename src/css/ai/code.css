@@ -1,0 +1,153 @@
+/*
+ * Code blocks (Markdown.jsx): header with language label and Copy, highlighted body.
+ * highlight.js token classes are coloured from custom properties scoped to .ai-chat, with a
+ * value per theme, so no stock highlight.js stylesheet is needed.
+ */
+.ai-chat {
+  --ai-hl-text: #24292f;
+  --ai-hl-comment: #6a737d;
+  --ai-hl-keyword: #cf222e;
+  --ai-hl-string: #0a3069;
+  --ai-hl-number: #0550ae;
+  --ai-hl-title: #8250df;
+  --ai-hl-builtin: #953800;
+  --ai-hl-tag: #116329;
+  --ai-hl-addition: rgba(46, 160, 67, 0.18);
+  --ai-hl-deletion: rgba(248, 81, 73, 0.18);
+}
+
+[data-theme='dark'] .ai-chat {
+  --ai-hl-text: #e6edf3;
+  --ai-hl-comment: #8b949e;
+  --ai-hl-keyword: #ff7b72;
+  --ai-hl-string: #a5d6ff;
+  --ai-hl-number: #79c0ff;
+  --ai-hl-title: #d2a8ff;
+  --ai-hl-builtin: #ffa657;
+  --ai-hl-tag: #7ee787;
+  --ai-hl-addition: rgba(46, 160, 67, 0.25);
+  --ai-hl-deletion: rgba(248, 81, 73, 0.25);
+}
+
+.ai-chat__code {
+  margin: 0.75rem 0;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.ai-chat__code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.9rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.ai-chat__code-lang {
+  font-family: var(--ai-mono);
+  letter-spacing: 0.02em;
+}
+
+.ai-chat__code-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.ai-chat__code-copy:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.ai-chat__code pre {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  overflow-x: auto;
+}
+
+.ai-chat__code pre code {
+  padding: 0;
+  background: transparent;
+  color: var(--ai-hl-text);
+  font-family: var(--ai-mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.ai-chat .hljs-comment,
+.ai-chat .hljs-quote {
+  color: var(--ai-hl-comment);
+  font-style: italic;
+}
+
+.ai-chat .hljs-keyword,
+.ai-chat .hljs-selector-tag,
+.ai-chat .hljs-doctag,
+.ai-chat .hljs-template-tag,
+.ai-chat .hljs-template-variable,
+.ai-chat .hljs-type {
+  color: var(--ai-hl-keyword);
+}
+
+.ai-chat .hljs-string,
+.ai-chat .hljs-regexp,
+.ai-chat .hljs-meta .hljs-string {
+  color: var(--ai-hl-string);
+}
+
+.ai-chat .hljs-number,
+.ai-chat .hljs-literal,
+.ai-chat .hljs-attr,
+.ai-chat .hljs-attribute,
+.ai-chat .hljs-variable,
+.ai-chat .hljs-selector-id,
+.ai-chat .hljs-selector-class,
+.ai-chat .hljs-property {
+  color: var(--ai-hl-number);
+}
+
+.ai-chat .hljs-title,
+.ai-chat .hljs-section,
+.ai-chat .hljs-symbol {
+  color: var(--ai-hl-title);
+}
+
+.ai-chat .hljs-built_in,
+.ai-chat .hljs-meta,
+.ai-chat .hljs-bullet,
+.ai-chat .hljs-link {
+  color: var(--ai-hl-builtin);
+}
+
+.ai-chat .hljs-name,
+.ai-chat .hljs-tag {
+  color: var(--ai-hl-tag);
+}
+
+.ai-chat .hljs-addition {
+  background: var(--ai-hl-addition);
+}
+
+.ai-chat .hljs-deletion {
+  background: var(--ai-hl-deletion);
+}
+
+.ai-chat .hljs-emphasis {
+  font-style: italic;
+}
+
+.ai-chat .hljs-strong {
+  font-weight: 700;
+}
