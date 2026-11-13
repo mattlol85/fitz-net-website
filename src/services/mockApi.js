@@ -13,12 +13,14 @@ const MOCK_USERS = {
     password: 'testing123',
     email: 'changminlee@gmail.com',
     boardColor: 'hsl(210,72%,50%)',
+    permissions: ['AI_USER'],
   },
   testuser: {
     username: 'testuser',
     password: 'password123',
     email: 'testuser@example.com',
     boardColor: 'hsl(340,72%,50%)',
+    permissions: ['AI_USER'],
   },
 };
 
@@ -66,6 +68,7 @@ export const mockApi = {
       username: user.username,
       email: user.email,
       boardColor: user.boardColor,
+      permissions: user.permissions,
       token: generateMockToken(user.username),
     };
   },
