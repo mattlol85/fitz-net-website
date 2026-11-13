@@ -13,7 +13,7 @@ const MOCK_USERS = {
     password: 'testing123',
     email: 'changminlee@gmail.com',
     boardColor: 'hsl(210,72%,50%)',
-    permissions: ['AI_USER'],
+    permissions: ['AI_USER', 'ADMIN'],
   },
   testuser: {
     username: 'testuser',

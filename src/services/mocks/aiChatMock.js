@@ -211,6 +211,27 @@ function freshState() {
     target: { model: 'llama3.1:8b', nodeId: 'mock-node-garage' }, minutesAgo: 600,
     exchanges: [['Are you there?', 'Yes, I was running on the garage laptop back then.']],
   });
+  [
+    {
+      name: 'House style', description: 'Shared by the admin', model: null, nodeId: null,
+      systemPrompt: 'Answer in British English and keep it brief.', temperature: null, numCtx: null,
+      visibility: 'shared', requiredPermission: null, ownerUsername: 'changmin',
+    },
+    {
+      name: 'Code reviewer', description: 'Blunt, cites line numbers', model: 'qwen3:14b', nodeId: null,
+      systemPrompt: 'You are a strict code reviewer. Cite line numbers.', temperature: 0.2, numCtx: 8192,
+      visibility: 'private', requiredPermission: null, ownerUsername: 'testuser',
+    },
+    {
+      name: 'Quick answers', description: 'Short and fast, on Matt-PC', model: 'llama3.1:8b', nodeId: 'mock-node-mattpc',
+      systemPrompt: null, temperature: 0.7, numCtx: null,
+      visibility: 'private', requiredPermission: null, ownerUsername: 'changmin',
+    },
+  ].forEach((preset) => {
+    const id = newId();
+    state.presets.set(id, { ...preset, id, createdAt: nowIso(), updatedAt: nowIso() });
+  });
+
   seedConversation(state, {
     title: 'Long design discussion',
     target: { model: 'llama3.1:8b', nodeId: null }, minutesAgo: 240,
@@ -223,6 +244,37 @@ function freshState() {
 }
 
 let state = freshState();
+
+// The caller, decoded from the (mock) JWT. `changmin` is the mock admin, who can manage shared presets.
+let currentUser = 'mock-user';
+const isAdmin = (user) => user === 'changmin';
+
+function userFromToken(token) {
+  try {
+    return JSON.parse(atob(token.split('.')[1])).sub || 'mock-user';
+  } catch {
+    return 'mock-user';
+  }
+}
+
+const presetVisible = (preset) =>
+  preset.ownerUsername === currentUser ||
+  (preset.visibility === 'shared' && (!preset.requiredPermission || isAdmin(currentUser)));
+
+const presetEditable = (preset) =>
+  preset.ownerUsername === currentUser || (preset.visibility === 'shared' && isAdmin(currentUser));
+
+/** The conversation's preset, if it still exists and the caller can see it. */
+function presetFor(conv) {
+  const preset = state.presets.get(conv.settings?.presetId);
+  return preset && presetVisible(preset) ? preset : null;
+}
+
+/** Setting a preset without a target copies the preset's pinned model into the target. */
+function applyPresetPin(conv) {
+  const preset = presetFor(conv);
+  if (preset?.model) conv.target = { model: preset.model, nodeId: preset.nodeId ?? null };
+}
 
 /** Drops all in-memory data and goes back to the seeded dataset (used by tests). */
 export function resetMock() {
@@ -321,11 +373,12 @@ const REPLY_INTRO = [
   'Sure. This reply is generated locally by the dev mock, no backend involved.',
 ];
 
-function replyFor(userText) {
+function replyFor(userText, extras = []) {
   const intro = REPLY_INTRO[ids.next % REPLY_INTRO.length];
   const quoted = (userText || '').trim().split('\n')[0].slice(0, 80);
   return (
     `${intro}\n\nYou said: *${quoted || 'something with an attachment'}*\n\n` +
+    extras.map((line) => `${line}\n\n`).join('') +
     '- Markdown lists render\n- So do `inline code` and [links](https://example.com)\n\n' +
     '```js\nconsole.log("hello from the mock");\n```\n\nAnything else?'
   );
@@ -375,9 +428,21 @@ async function runTurn(conv, { userMessage, target, signal, onEvent, userText })
     if (!node) return fail('NO_NODE_AVAILABLE', `No node can serve ${model} right now.`, { alternatives: [] });
   }
 
+  // Images need a model that can read them (the check comes before anything is generated).
+  if ((userMessage?.attachments?.length || 0) > 0 && !MODEL_DETAILS[model].capabilities.includes('vision')) {
+    return fail('MODEL_NOT_VISION', `${model} can't read images. Choose a vision model.`);
+  }
+  const imagesOmitted = MODEL_DETAILS[model].capabilities.includes('vision')
+    ? 0
+    : conv.messages
+        .filter((m) => m.role === 'user' && m !== userMessage)
+        .reduce((sum, m) => sum + (m.attachments?.length || 0), 0);
+
   const details = MODEL_DETAILS[model];
+  const activePreset = presetFor(conv);
   const generation = generationFor(state, { model, nodeId: target.nodeId }, {
     nodeId: node.id, nodeName: node.name,
+    presetId: activePreset?.id ?? null, presetName: activePreset?.name ?? null,
   });
   assistant.generation = generation;
   state.inFlight.add(assistant.id);
@@ -388,13 +453,13 @@ async function runTurn(conv, { userMessage, target, signal, onEvent, userText })
   try {
     events('meta', {
       conversationId: conv.id, userMessageId: userMessage?.id ?? null, assistantMessageId: assistant.id,
-      nodeId: node.id, nodeName: node.name, model, auto: !target.nodeId, presetId: null,
+      nodeId: node.id, nodeName: node.name, model, auto: !target.nodeId, presetId: activePreset?.id ?? null,
       contextLength: details.contextLength,
       context: {
         promptTokensEstimate: preflight?.usedTokens ?? 0,
         trimmedCount: preflight?.trimmedCount ?? 0,
         summaryActive: preflight?.summaryActive ?? false,
-        imagesOmitted: 0,
+        imagesOmitted,
       },
     });
 
@@ -439,7 +504,13 @@ async function runTurn(conv, { userMessage, target, signal, onEvent, userText })
     }
 
     assistant.content = '';
-    for (const piece of chunkText(replyFor(userText))) {
+    const extras = [];
+    const preset = presetFor(conv);
+    if (preset) extras.push(`Preset in use: **${preset.name}**.`);
+    if (conv.settings?.systemPrompt) extras.push('A custom system prompt is set for this chat.');
+    const imageCount = userMessage?.attachments?.length || 0;
+    if (imageCount > 0) extras.push(`I can see ${imageCount} image${imageCount === 1 ? '' : 's'}.`);
+    for (const piece of chunkText(replyFor(userText, extras))) {
       await sleep(mockConfig.tokenDelayMs, signal);
       assistant.content += piece;
       if (first) {
@@ -461,7 +532,7 @@ async function runTurn(conv, { userMessage, target, signal, onEvent, userText })
     assistant.status = 'complete';
     assistant.generation = {
       ...generation, promptTokens, completionTokens, contextLength: details.contextLength,
-      ...stats, finishReason: 'stop',
+      ...stats, finishReason: 'stop', contextOverflow: overflow,
     };
     conv.updatedAt = nowIso();
     const data = {
@@ -499,8 +570,9 @@ function applyTarget(conv, target) {
 }
 
 /** POST .../messages, .../messages/{id}/regenerate and .../messages/{id}/edit as an event stream. */
-export async function handleStream(path, body = {}, { signal, onEvent } = {}) {
+export async function handleStream(path, body = {}, { signal, onEvent, token } = {}) {
   await sleep(mockConfig.latencyMs, signal);
+  currentUser = userFromToken(token);
   const match = path.match(/^\/ai\/conversations\/([^/]+)\/messages(?:\/([^/]+)\/(regenerate|edit))?$/);
   if (!match) throw new ApiError(`No mock stream for ${path}`, { status: 404 });
   const [, conversationId, messageId, action] = match;
@@ -582,7 +654,30 @@ function listConversationsHandler(query = {}) {
 }
 
 function presetView(preset) {
-  return { ...clone(preset), ownerUsername: 'mock-user', editable: true };
+  return { ...clone(preset), editable: presetEditable(preset) };
+}
+
+/** Section 9 validation: 400s with a message the form can show. */
+function validatePreset(body) {
+  const name = (body.name || '').trim();
+  if (name.length < 1 || name.length > 60) throw new ApiError('Name must be 1 to 60 characters.', { status: 400 });
+  if ((body.description || '').length > 200) throw new ApiError('Description can be at most 200 characters.', { status: 400 });
+  if ((body.systemPrompt || '').length > 8000) throw new ApiError('System prompt can be at most 8000 characters.', { status: 400 });
+  if (body.temperature != null && !(body.temperature >= 0 && body.temperature <= 2)) {
+    throw new ApiError('Temperature must be between 0 and 2.', { status: 400 });
+  }
+  if (body.numCtx != null && !(body.numCtx >= 512 && body.numCtx <= 131072)) {
+    throw new ApiError('Context size must be between 512 and 131072.', { status: 400 });
+  }
+  if (body.visibility === 'shared' && !isAdmin(currentUser)) {
+    throw new ApiError('Only an admin can create or change shared presets.', { status: 403 });
+  }
+}
+
+function visiblePreset(id) {
+  const preset = state.presets.get(id);
+  if (!preset || !presetVisible(preset)) throw new ApiError('Preset not found', { status: 404 });
+  return preset;
 }
 
 function simpleTitle(conv) {
@@ -636,6 +731,7 @@ const ROUTES = [
         settings: { presetId: null, systemPrompt: null, ...clone(body.settings) },
         summary: null, messages: [], createdAt, updatedAt: createdAt,
       };
+      if (!body.target) applyPresetPin(conv);
       state.conversations.set(conv.id, conv);
       if (conv.target) state.preferences = { ...state.preferences, lastTarget: clone(conv.target) };
       return summarize(conv);
@@ -658,8 +754,9 @@ const ROUTES = [
         if (body.target) state.preferences = { ...state.preferences, lastTarget: clone(body.target) };
       }
       if (body.settings !== undefined) {
-        conv.settings = clone(body.settings);
+        conv.settings = { presetId: null, systemPrompt: null, ...clone(body.settings) };
         conv.updatedAt = nowIso();
+        if (body.target === undefined) applyPresetPin(conv);
       }
       return summarize(conv);
     },
@@ -712,14 +809,18 @@ const ROUTES = [
       return { conversation: summarize(conv), summary: clone(conv.summary), context: contextUsage(conv) };
     },
   ],
-  ['GET', /^\/ai\/presets$/, async () => ({ items: [...state.presets.values()].map(presetView) })],
+  [
+    'GET', /^\/ai\/presets$/,
+    async () => ({ items: [...state.presets.values()].filter(presetVisible).map(presetView) }),
+  ],
   [
     'POST', /^\/ai\/presets$/,
     async ({ body }) => {
-      if (!body.name?.trim()) throw new ApiError('A preset needs a name.', { status: 400 });
+      validatePreset(body);
       const preset = {
         description: null, model: null, nodeId: null, systemPrompt: null, temperature: null, numCtx: null,
         visibility: 'private', requiredPermission: null, ...clone(body),
+        name: body.name.trim(), ownerUsername: currentUser,
         id: newId(), createdAt: nowIso(), updatedAt: nowIso(),
       };
       state.presets.set(preset.id, preset);
@@ -729,16 +830,21 @@ const ROUTES = [
   [
     'PUT', /^\/ai\/presets\/([^/]+)$/,
     async ({ params, body }) => {
-      const preset = state.presets.get(params[0]);
-      if (!preset) throw new ApiError('Preset not found', { status: 404 });
-      Object.assign(preset, clone(body), { id: preset.id, updatedAt: nowIso() });
+      const preset = visiblePreset(params[0]);
+      if (!presetEditable(preset)) throw new ApiError('You cannot change this preset.', { status: 403 });
+      validatePreset(body);
+      Object.assign(preset, clone(body), {
+        id: preset.id, ownerUsername: preset.ownerUsername, name: body.name.trim(), updatedAt: nowIso(),
+      });
       return presetView(preset);
     },
   ],
   [
     'DELETE', /^\/ai\/presets\/([^/]+)$/,
     async ({ params }) => {
-      if (!state.presets.delete(params[0])) throw new ApiError('Preset not found', { status: 404 });
+      const preset = visiblePreset(params[0]);
+      if (!presetEditable(preset)) throw new ApiError('You cannot delete this preset.', { status: 403 });
+      state.presets.delete(preset.id);
       return { deleted: true };
     },
   ],
@@ -747,6 +853,9 @@ const ROUTES = [
     async ({ body }) => {
       if (!['image/png', 'image/jpeg', 'image/webp'].includes(body.mimeType)) {
         throw new ApiError('Only PNG, JPEG and WebP images can be attached.', { status: 400 });
+      }
+      if ((body.dataBase64?.length || 0) * 0.75 > 3 * 1024 * 1024) {
+        throw new ApiError('Images can be at most 3 MB.', { status: 400 });
       }
       const meta = {
         id: newId(), kind: 'image', mimeType: body.mimeType,
@@ -759,8 +868,9 @@ const ROUTES = [
 ];
 
 /** Answers one REST call like the API would: resolves with the JSON body or throws an ApiError. */
-export async function handleRequest(method, path, { body, query, signal } = {}) {
+export async function handleRequest(method, path, { body, query, signal, token } = {}) {
   await sleep(mockConfig.latencyMs, signal);
+  currentUser = userFromToken(token);
   for (const [routeMethod, pattern, handler] of ROUTES) {
     const match = routeMethod === method ? path.match(pattern) : null;
     if (match) {

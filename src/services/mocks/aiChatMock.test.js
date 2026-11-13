@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { configureMock, handleRequest, handleStream, resetMock } from './aiChatMock';
+import { configureMock, getAttachmentBlob, handleRequest, handleStream, resetMock } from './aiChatMock';
 
 const LLAMA = { model: 'llama3.1:8b', nodeId: null };
 
@@ -228,6 +228,109 @@ describe('aiChatMock', () => {
       expect(after.messages.map((m) => m.role)).toEqual(['user', 'assistant']);
       expect(after.messages[0]).toMatchObject({ id: before.messages[0].id, content: 'First, reworded' });
       expect(after.messages[0].editedAt).toBeTruthy();
+    });
+  });
+
+  describe('part 3 paths', () => {
+    const tokenFor = (sub) => `x.${btoa(JSON.stringify({ sub }))}.y`;
+    const as = (sub) => ({
+      get: (path, query) => handleRequest('GET', path, { query, token: tokenFor(sub) }),
+      send: (method, path, body) => handleRequest(method, path, { body, token: tokenFor(sub) }),
+    });
+
+    it('should show private presets only to their owner and shared ones to everyone', async () => {
+      const testuser = (await as('testuser').get('/ai/presets')).items.map((p) => p.name).sort();
+      const admin = (await as('changmin').get('/ai/presets')).items.map((p) => p.name).sort();
+
+      expect(testuser).toEqual(['Code reviewer', 'House style']);
+      expect(admin).toEqual(['House style', 'Quick answers']);
+    });
+
+    it('should let only an admin create or change shared presets', async () => {
+      const user = as('testuser');
+      await expect(user.send('POST', '/ai/presets', { name: 'Team', visibility: 'shared' })).rejects.toMatchObject({ status: 403 });
+
+      const shared = (await user.get('/ai/presets')).items.find((p) => p.name === 'House style');
+      expect(shared.editable).toBe(false);
+      await expect(user.send('PUT', `/ai/presets/${shared.id}`, { name: 'Hijacked' })).rejects.toMatchObject({ status: 403 });
+      await expect(user.send('DELETE', `/ai/presets/${shared.id}`)).rejects.toMatchObject({ status: 403 });
+
+      const admin = as('changmin');
+      const created = await admin.send('POST', '/ai/presets', { name: 'Team', visibility: 'shared' });
+      expect(created).toMatchObject({ visibility: 'shared', ownerUsername: 'changmin', editable: true });
+      expect((await user.get('/ai/presets')).items.map((p) => p.name)).toContain('Team');
+    });
+
+    it('should validate presets with 400s and hide other users private presets with 404', async () => {
+      const user = as('testuser');
+      await expect(user.send('POST', '/ai/presets', { name: '' })).rejects.toMatchObject({ status: 400 });
+      await expect(user.send('POST', '/ai/presets', { name: 'x', temperature: 3 })).rejects.toMatchObject({ status: 400 });
+      await expect(user.send('POST', '/ai/presets', { name: 'x', numCtx: 100 })).rejects.toMatchObject({ status: 400 });
+
+      const quick = (await as('changmin').get('/ai/presets')).items.find((p) => p.name === 'Quick answers');
+      await expect(user.send('PUT', `/ai/presets/${quick.id}`, { name: 'Mine' })).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('should copy a preset pinned model into the target when settings are set without a target', async () => {
+      const admin = as('changmin');
+      const quick = (await admin.get('/ai/presets')).items.find((p) => p.name === 'Quick answers');
+      const conv = await admin.send('POST', '/ai/conversations', {});
+
+      const patched = await admin.send('PATCH', `/ai/conversations/${conv.id}`, { settings: { presetId: quick.id, systemPrompt: null } });
+
+      expect(patched.target).toEqual({ model: 'llama3.1:8b', nodeId: 'mock-node-mattpc' });
+      const withTarget = await admin.send('POST', '/ai/conversations', {
+        target: { model: 'phi3:mini', nodeId: null }, settings: { presetId: quick.id, systemPrompt: null },
+      });
+      expect(withTarget.target.model).toBe('phi3:mini');
+    });
+
+    it('should record the preset name on the reply', async () => {
+      const house = (await as('testuser').get('/ai/presets')).items.find((p) => p.name === 'House style');
+      const conv = await post('/ai/conversations', { target: LLAMA, settings: { presetId: house.id, systemPrompt: null } });
+
+      await handleStream(`/ai/conversations/${conv.id}/messages`, { content: 'Hi' }, { token: tokenFor('testuser') });
+
+      const detail = await get(`/ai/conversations/${conv.id}`);
+      expect(detail.messages[1].generation).toMatchObject({ presetName: 'House style', presetId: house.id });
+    });
+
+    it('should hold uploaded images and reject a message with images on a model that cannot read them', async () => {
+      const meta = await post('/ai/attachments', { name: 'a.jpg', mimeType: 'image/jpeg', dataBase64: btoa('abc') });
+      const blob = await getAttachmentBlob(meta.id);
+      expect(blob.type).toBe('image/jpeg');
+      await expect(post('/ai/attachments', { name: 'a.gif', mimeType: 'image/gif', dataBase64: 'AAAA' })).rejects.toMatchObject({ status: 400 });
+
+      const conv = await post('/ai/conversations', { target: LLAMA });
+      const blind = await runTurn(conv.id, { content: 'What is this?', attachmentIds: [meta.id] });
+      expect(blind.names).toEqual(['error']);
+      expect(blind.result.data.code).toBe('MODEL_NOT_VISION');
+
+      const seeing = await runTurn(conv.id, {
+        content: 'And now?', attachmentIds: [meta.id], target: { model: 'llama3.2-vision:11b', nodeId: null },
+      });
+      expect(seeing.names.at(-1)).toBe('done');
+      const detail = await get(`/ai/conversations/${conv.id}`);
+      expect(detail.messages.find((m) => m.content === 'And now?').attachments[0].id).toBe(meta.id);
+    });
+
+    it('should count earlier images the model could not read in meta.context.imagesOmitted', async () => {
+      const meta = await post('/ai/attachments', { name: 'a.jpg', mimeType: 'image/jpeg', dataBase64: btoa('abc') });
+      const conv = await post('/ai/conversations', { target: { model: 'llama3.2-vision:11b', nodeId: null } });
+      await runTurn(conv.id, { content: 'Look', attachmentIds: [meta.id] });
+
+      const { events } = await runTurn(conv.id, { content: 'Text only now', target: LLAMA });
+
+      expect(events.find(([name]) => name === 'meta')[1].context.imagesOmitted).toBe(1);
+    });
+
+    it('should store contextOverflow on the generation', async () => {
+      const conv = await post('/ai/conversations', { target: LLAMA });
+      await runTurn(conv.id, { content: '/overflow' });
+
+      const detail = await get(`/ai/conversations/${conv.id}`);
+
+      expect(detail.messages[1].generation.contextOverflow).toBe(true);
     });
   });
 });

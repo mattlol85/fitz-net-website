@@ -63,7 +63,7 @@ async function toApiError(response, fallback) {
 
 async function request(method, path, { token, body, query, signal } = {}) {
   if (USE_MOCK) {
-    return (await loadMock()).handleRequest(method, path, { body, query, signal });
+    return (await loadMock()).handleRequest(method, path, { body, query, signal, token });
   }
 
   const response = await fetch(buildUrl(path, query), {
@@ -78,7 +78,7 @@ async function request(method, path, { token, body, query, signal } = {}) {
 
 async function streamTurn(path, body, token, { signal, onEvent } = {}) {
   if (USE_MOCK) {
-    return (await loadMock()).handleStream(path, body, { signal, onEvent });
+    return (await loadMock()).handleStream(path, body, { signal, onEvent, token });
   }
 
   const response = await fetch(buildUrl(path), {
