@@ -47,7 +47,13 @@ export function buildGroups(catalogue, query) {
   const groups = [];
   if (autoRows.length) groups.push({ key: 'auto', kind: 'auto', title: 'Auto', rows: autoRows });
 
-  (catalogue.nodes || []).forEach((node) => {
+  // Reachable nodes first, OFFLINE ones last; name order within each.
+  const orderedNodes = [...(catalogue.nodes || [])].sort(
+    (a, b) =>
+      Number(a.status === 'OFFLINE') - Number(b.status === 'OFFLINE') || a.name.localeCompare(b.name)
+  );
+
+  orderedNodes.forEach((node) => {
     const nodeMatches = matchesQuery(query, node.name);
     const offline = node.status === 'OFFLINE';
     const rows = (node.models || [])
@@ -160,8 +166,23 @@ function NodeHeader({ id, node }) {
  * The one control that replaces the old node and model selects. A button showing the current
  * target opens a searchable popover (also Ctrl/Cmd+K): an Auto group, then a group per node.
  */
-export default function ModelPicker({ catalogue, loading, error, target, onSelect, onOpenChange, onRefresh }) {
-  const [open, setOpenState] = useState(false);
+export default function ModelPicker({
+  catalogue,
+  loading,
+  error,
+  target,
+  onSelect,
+  onOpenChange,
+  onRefresh,
+  open: openProp,
+  hideButton = false,
+  shortcut = true,
+  title = 'Choose a model',
+  className = '',
+}) {
+  const [openState, setOpenState] = useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? openProp : openState;
   const [query, setQuery] = useState('');
   const [activeKey, setActiveKey] = useState(null);
   const buttonRef = useRef(null);
@@ -173,10 +194,10 @@ export default function ModelPicker({ catalogue, loading, error, target, onSelec
 
   const setOpen = useCallback(
     (next) => {
-      setOpenState(next);
+      if (!controlled) setOpenState(next);
       onOpenChange?.(next);
     },
-    [onOpenChange]
+    [controlled, onOpenChange]
   );
 
   const groups = useMemo(() => buildGroups(catalogue, query), [catalogue, query]);
@@ -195,15 +216,22 @@ export default function ModelPicker({ catalogue, loading, error, target, onSelec
     [setOpen]
   );
 
-  const openPicker = useCallback(() => {
+  const openPicker = useCallback(() => setOpen(true), [setOpen]);
+
+  // Each time it opens: clear the search and start on the current selection.
+  useEffect(() => {
+    if (!open) return;
     setQuery('');
-    const selected = catalogue ? buildGroups(catalogue, '').flatMap((g) => g.rows).find((r) => !r.disabled && sameTarget(r.target, target)) : null;
+    const selected = catalogue
+      ? buildGroups(catalogue, '').flatMap((g) => g.rows).find((r) => !r.disabled && sameTarget(r.target, target))
+      : null;
     setActiveKey(selected?.key ?? null);
-    setOpen(true);
-  }, [catalogue, target, setOpen]);
+    // Only on open: later catalogue refreshes must not reset what the user typed.
+  }, [open]);
 
   // Ctrl/Cmd+K opens the picker from anywhere on the page.
   useEffect(() => {
+    if (!shortcut) return undefined;
     const onKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') {
         e.preventDefault();
@@ -213,7 +241,7 @@ export default function ModelPicker({ catalogue, loading, error, target, onSelec
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [open, openPicker]);
+  }, [shortcut, open, openPicker]);
 
   // Esc and clicks outside close it.
   useEffect(() => {
@@ -280,22 +308,24 @@ export default function ModelPicker({ catalogue, loading, error, target, onSelec
   const hasAnyModel = Boolean(catalogue?.nodes?.some((n) => n.models?.length));
 
   return (
-    <div className="ai-chat__picker">
-      <button
-        ref={buttonRef}
-        type="button"
-        className="ai-chat__picker-button"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-controls={open ? panelId : undefined}
-        aria-keyshortcuts="Control+K Meta+K"
-        title="Choose a model (Ctrl+K)"
-        onClick={() => (open ? close() : openPicker())}
-      >
-        <span className="ai-chat__picker-model">{described ? described.model : 'Select a model'}</span>
-        {described && <span className="ai-chat__picker-where">{described.where}</span>}
-        <ChevronDownIcon size={16} />
-      </button>
+    <div className={`ai-chat__picker${className ? ` ${className}` : ''}`}>
+      {!hideButton && (
+        <button
+          ref={buttonRef}
+          type="button"
+          className="ai-chat__picker-button"
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-controls={open ? panelId : undefined}
+          aria-keyshortcuts="Control+K Meta+K"
+          title="Choose a model (Ctrl+K)"
+          onClick={() => (open ? close() : openPicker())}
+        >
+          <span className="ai-chat__picker-model">{described ? described.model : 'Select a model'}</span>
+          {described && <span className="ai-chat__picker-where">{described.where}</span>}
+          <ChevronDownIcon size={16} />
+        </button>
+      )}
 
       {open && (
         <div
@@ -303,7 +333,7 @@ export default function ModelPicker({ catalogue, loading, error, target, onSelec
           id={panelId}
           className="ai-chat__picker-panel"
           role="dialog"
-          aria-label="Choose a model"
+          aria-label={title}
         >
           <div className="ai-chat__picker-search">
             <SearchIcon size={16} />

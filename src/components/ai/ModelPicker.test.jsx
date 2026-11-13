@@ -58,9 +58,9 @@ describe('ModelPicker', () => {
     const groups = within(dialog).getAllByRole('group');
     expect(groups.map((g) => g.getAttribute('aria-labelledby') && g.querySelector('.ai-chat__group-name').textContent)).toEqual([
       'Auto',
-      'Garage-Laptop',
       'Matt-PC',
       'Rig-2',
+      'Garage-Laptop',
     ]);
     const auto = within(groups[0]).getAllByRole('option');
     expect(auto).toHaveLength(3);
@@ -70,12 +70,12 @@ describe('ModelPicker', () => {
     expect(within(auto[0]).getByText('Q4_K_M')).toBeInTheDocument();
     expect(within(auto[0]).getByText('8K ctx')).toBeInTheDocument();
 
-    expect(within(groups[2]).getByText('Online')).toBeInTheDocument();
-    expect(within(groups[2]).getByText('9.0 / 16.0 GB')).toBeInTheDocument();
-    expect(within(groups[1]).getByText('Offline')).toBeInTheDocument();
-    expect(within(groups[1]).getByText('cached')).toBeInTheDocument();
-    expect(within(groups[3]).getByText('Busy')).toBeInTheDocument();
-    expect(within(groups[3]).getByText('24.0 GB total')).toBeInTheDocument();
+    expect(within(groups[1]).getByText('Online')).toBeInTheDocument();
+    expect(within(groups[1]).getByText('9.0 / 16.0 GB')).toBeInTheDocument();
+    expect(within(groups[3]).getByText('Offline')).toBeInTheDocument();
+    expect(within(groups[3]).getByText('cached')).toBeInTheDocument();
+    expect(within(groups[2]).getByText('Busy')).toBeInTheDocument();
+    expect(within(groups[2]).getByText('24.0 GB total')).toBeInTheDocument();
   });
 
   it('should show loaded and capability hints on node rows', async () => {
@@ -83,7 +83,7 @@ describe('ModelPicker', () => {
     setup();
     const dialog = await openPicker(user);
 
-    const pcGroup = within(dialog).getAllByRole('group')[2];
+    const pcGroup = within(dialog).getAllByRole('group')[1];
     const rows = within(pcGroup).getAllByRole('option');
     expect(within(rows[0]).getByText('Loaded')).toBeInTheDocument();
     expect(within(rows[1]).getByText('Vision')).toBeInTheDocument();
@@ -138,7 +138,7 @@ describe('ModelPicker', () => {
     const { onSelect } = setup();
     const dialog = await openPicker(user);
 
-    const offlineRow = within(within(dialog).getAllByRole('group')[1]).getByRole('option');
+    const offlineRow = within(within(dialog).getAllByRole('group')[3]).getByRole('option');
     expect(offlineRow).toHaveAttribute('aria-disabled', 'true');
 
     await user.click(offlineRow);
@@ -152,7 +152,7 @@ describe('ModelPicker', () => {
     const { onSelect, onOpenChange } = setup();
     const dialog = await openPicker(user);
 
-    await user.click(within(within(dialog).getAllByRole('group')[3]).getByRole('option'));
+    await user.click(within(within(dialog).getAllByRole('group')[2]).getByRole('option'));
 
     expect(onSelect).toHaveBeenCalledWith({ model: 'llama3.1:8b', nodeId: NODE_RIG });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -281,6 +281,24 @@ describe('ModelPicker', () => {
 });
 
 describe('buildGroups', () => {
+  it('should list reachable nodes first and OFFLINE nodes last, by name within each', () => {
+    const catalogue = makeCatalogue();
+    catalogue.nodes.push({ ...catalogue.nodes[0], id: 'node-aaa', name: 'AAA-Offline' });
+
+    const names = buildGroups(catalogue, '').filter((g) => g.node).map((g) => g.node.name);
+
+    expect(names).toEqual(['Matt-PC', 'Rig-2', 'AAA-Offline', 'Garage-Laptop']);
+  });
+
+  it('should not show a context chip when the context length is unknown', () => {
+    const catalogue = makeCatalogue();
+    catalogue.nodes[1].models[0].contextLength = null;
+
+    const row = buildGroups(catalogue, '').find((g) => g.node?.id === NODE_PC).rows[0];
+
+    expect(row.contextLength).toBeNull();
+  });
+
   it('should return no groups without a catalogue', () => {
     expect(buildGroups(null, '')).toEqual([]);
   });
