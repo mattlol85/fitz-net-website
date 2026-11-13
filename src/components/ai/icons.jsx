@@ -127,3 +127,22 @@ export const AlertIcon = (props) => (
     <path d="M12 3 2 20h20L12 3ZM12 10v4M12 17.5v.01" />
   </Icon>
 );
+
+export const CopyIcon = (props) => (
+  <Icon {...props}>
+    <rect x="9" y="9" width="11" height="11" rx="2" />
+    <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+  </Icon>
+);
+
+export const RetryIcon = (props) => (
+  <Icon {...props}>
+    <path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" />
+  </Icon>
+);
+
+export const SwapIcon = (props) => (
+  <Icon {...props}>
+    <path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" />
+  </Icon>
+);
