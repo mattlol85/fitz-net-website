@@ -5,12 +5,16 @@ import useAiChat from '../../hooks/useAiChat';
 import useConversationList from '../../hooks/useConversationList';
 import useModelCatalogue from '../../hooks/useModelCatalogue';
 import Composer from './Composer';
+import ContextBanner from './ContextBanner';
+import FailoverChoices from './FailoverChoices';
 import ConversationSidebar from './ConversationSidebar';
 import MessageList from './MessageList';
 import ModelPicker from './ModelPicker';
+import { deriveAlternatives } from './aiChatUtils';
 import { AlertIcon, CloseIcon, SidebarIcon } from './icons';
 import '../../css/ai/layout.css';
 import '../../css/ai/chat.css';
+import '../../css/ai/controls.css';
 
 const SIDEBAR_KEY = 'aiChat.sidebar';
 const isDesktop = () => window.matchMedia?.('(min-width: 768px)').matches ?? true;
@@ -92,6 +96,16 @@ export default function AiChatPage() {
     if (id === conversationId) setConversationId(null, { replace: true });
   };
 
+  const openPicker = useCallback(() => setPickerOpen(true), []);
+  const regenerate = useCallback((message, target) => chat.regenerate(message.id, target), [chat.regenerate]);
+  const edit = useCallback((message, text) => chat.edit(message.id, text), [chat.edit]);
+
+  // The selection pins a node the catalogue now reports OFFLINE: offer the one-click ways out.
+  const pinnedNode = chat.target?.nodeId
+    ? models.catalogue?.nodes?.find((n) => n.id === chat.target.nodeId)
+    : null;
+  const offlineNode = pinnedNode?.status === 'OFFLINE' ? pinnedNode : null;
+
   const hasConversation = Boolean(conversationId);
   const noModels = Boolean(models.catalogue) && models.catalogue.models.length === 0;
   const title = chat.conversation?.title || 'Matt-GPT';
@@ -138,6 +152,7 @@ export default function AiChatPage() {
               error={models.error}
               target={chat.target}
               onSelect={chat.selectTarget}
+              open={pickerOpen}
               onOpenChange={setPickerOpen}
               onRefresh={models.refresh}
             />
@@ -172,7 +187,19 @@ export default function AiChatPage() {
               </div>
             )}
 
-            {chat.messages.length > 0 && <MessageList messages={chat.messages} resetKey={conversationId} />}
+            {chat.messages.length > 0 && (
+              <MessageList
+                messages={chat.messages}
+                resetKey={conversationId}
+                streaming={chat.streaming}
+                catalogue={models.catalogue}
+                target={chat.target}
+                onRegenerate={regenerate}
+                onEdit={edit}
+                onOpenPicker={openPicker}
+                onRefreshModels={models.refresh}
+              />
+            )}
           </div>
 
           <div className="ai-chat__dock">
@@ -190,6 +217,25 @@ export default function AiChatPage() {
                 </button>
               </div>
             )}
+            {offlineNode && (
+              <div className="ai-chat__banner ai-chat__banner--warn" role="status">
+                <AlertIcon size={16} />
+                <span className="ai-chat__banner-text">{offlineNode.name} is offline.</span>
+                <FailoverChoices
+                  alternatives={deriveAlternatives(models.catalogue, chat.target.model, offlineNode.id)}
+                  model={chat.target.model}
+                  onChoose={chat.selectTarget}
+                  onOpenPicker={openPicker}
+                />
+              </div>
+            )}
+            <ContextBanner
+              warning={chat.trimWarning}
+              summaryActive={chat.summaryActive}
+              summarizing={chat.summarizing}
+              onSummarize={chat.summarize}
+              onDismiss={chat.dismissTrim}
+            />
             <Composer
               onSend={chat.send}
               onStop={chat.stop}

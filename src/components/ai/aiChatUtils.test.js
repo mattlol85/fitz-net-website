@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  deriveAlternatives,
   describeTarget,
+  finiteNumber,
+  formatDuration,
+  toContextInfo,
   formatContext,
   formatElapsed,
   formatVram,
@@ -79,5 +83,40 @@ describe('aiChatUtils', () => {
     expect(formatElapsed(450)).toBe('450ms');
     expect(formatElapsed(2400)).toBe('2.4s');
     expect(formatElapsed(125000)).toBe('2m 5s');
+  });
+
+  it('should format durations with a space before the unit', () => {
+    expect(formatDuration(420)).toBe('420 ms');
+    expect(formatDuration(5210)).toBe('5.2 s');
+    expect(formatDuration(125000)).toBe('2m 5s');
+  });
+
+  it('should only accept finite numbers as stats', () => {
+    expect(finiteNumber(0)).toBe(0);
+    expect(finiteNumber(48.2)).toBe(48.2);
+    expect([null, undefined, NaN, Infinity, '5'].map(finiteNumber)).toEqual([null, null, null, null, null]);
+  });
+
+  it('should derive alternatives from reachable nodes with the model, warm first, excluding one node', () => {
+    const catalogue = makeCatalogue();
+
+    expect(deriveAlternatives(catalogue, 'llama3.1:8b').map((a) => [a.nodeName, a.loaded])).toEqual([
+      ['Matt-PC', true],
+      ['Rig-2', false],
+    ]);
+    expect(deriveAlternatives(catalogue, 'llama3.1:8b', NODE_PC).map((a) => a.nodeName)).toEqual(['Rig-2']);
+    // phi3:mini lives only on the offline node.
+    expect(deriveAlternatives(catalogue, 'phi3:mini')).toEqual([]);
+    expect(deriveAlternatives(null, 'x')).toEqual([]);
+  });
+
+  it('should normalise a ContextUsage and a meta context alike', () => {
+    expect(toContextInfo({ model: 'm', contextLength: 4096, usedTokens: 10, trimmedCount: 2, summaryActive: true })).toEqual({
+      model: 'm', contextLength: 4096, usedTokens: 10, trimmedCount: 2, summaryActive: true,
+    });
+    expect(toContextInfo({ promptTokensEstimate: 7 }, { model: 'm2', contextLength: 8192 })).toEqual({
+      model: 'm2', contextLength: 8192, usedTokens: 7, trimmedCount: 0, summaryActive: false,
+    });
+    expect(toContextInfo(null)).toBeNull();
   });
 });

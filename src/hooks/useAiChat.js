@@ -4,14 +4,17 @@ import {
   generateTitle,
   getContextUsage,
   getConversation,
+  editMessage,
   getPreferences,
+  regenerateMessage,
   sendMessage,
+  summarizeConversation,
   updateConversation,
   updatePreferences,
   warmUp,
 } from '../services/aiChatApi';
 import { isAbortError } from '../services/sse';
-import { resolveDefaultTarget } from '../components/ai/aiChatUtils';
+import { resolveDefaultTarget, toContextInfo } from '../components/ai/aiChatUtils';
 import { applyTurnEvent } from '../components/ai/turnEvents';
 
 export const WARM_UP_DEBOUNCE_MS = 400;
@@ -57,6 +60,10 @@ export default function useAiChat({
   const [usage, setUsage] = useState({ used: 0, max: 0 });
   const [preferences, setPreferences] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
+  // What the next turn will do with the window: { model, contextLength, usedTokens, trimmedCount, summaryActive }.
+  const [contextInfo, setContextInfo] = useState(null);
+  const [dismissedTrim, setDismissedTrim] = useState(null);
+  const [summarizing, setSummarizing] = useState(false);
 
   // The conversation id whose data `conversation` / `messages` hold ('' = none yet).
   const loadedIdRef = useRef(null);
@@ -92,6 +99,9 @@ export default function useAiChat({
     setOverride(null);
     setNotice(null);
     setLoadError(null);
+    setContextInfo(null);
+    setDismissedTrim(null);
+    setSummarizing(false);
 
     if (!wanted) {
       setConversation(null);
@@ -113,6 +123,7 @@ export default function useAiChat({
         setConversation(rest);
         setMessages(stored);
         setUsage(usageFromDetail(detail));
+        setContextInfo(toContextInfo(detail.context));
         setLoading(false);
       })
       .catch((err) => {
@@ -174,9 +185,13 @@ export default function useAiChat({
           .then((context) => {
             if (loadedIdRef.current !== id) return;
             setUsage({ used: context.usedTokens || 0, max: context.contextLength || 0 });
+            setContextInfo(toContextInfo(context));
             setConversation((c) => (c ? { ...c, context } : c));
           })
-          .catch(() => {});
+          // 503: the new target cannot be resolved right now, so there is nothing to warn about.
+          .catch(() => {
+            if (loadedIdRef.current === id) setContextInfo(null);
+          });
       }
       updateConversation(token, id, { target: next })
         .then((updated) => {
@@ -190,37 +205,24 @@ export default function useAiChat({
   );
 
   /**
-   * Sends `content` on the current target and streams the reply into the message list.
-   * Resolves `{ restoreDraft: true }` when the request was rejected before anything was stored,
-   * so the composer can put the text back.
+   * Runs one streamed turn (send, regenerate or edit). `prepare(messages, assistantKey)` returns
+   * the optimistic list (ending with the streaming assistant placeholder); `call(id, options)`
+   * starts the request. Resolves `{ restoreDraft: true }` when the request was rejected before
+   * anything was stored, so a composer or editor can put the text back.
    */
-  const send = useCallback(
-    async (content) => {
-      const text = content.trim();
-      if (!text || abortRef.current || !target) return { restoreDraft: false };
-
+  const runTurn = useCallback(
+    async ({ turnTarget, prepare, call, userKey = null, onDone, createIfNeeded = false }) => {
       const turn = ++turnRef.current;
       const controller = new AbortController();
       abortRef.current = controller;
       const isCurrent = () => turnRef.current === turn;
-      const firstReply = !messagesRef.current.some((m) => m.role === 'assistant' && m.status === 'complete');
-      const userKey = `local-user-${turn}`;
+      const snapshot = messagesRef.current;
       const assistantKey = `local-assistant-${turn}`;
       let received = false;
 
       setNotice(null);
       setStreaming(true);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: userKey, clientKey: userKey, role: 'user', content: text, attachments: [],
-          status: 'complete', createdAt: new Date().toISOString(),
-        },
-        {
-          id: assistantKey, clientKey: assistantKey, role: 'assistant', content: '', thinking: null,
-          status: 'streaming', generation: null, live: null, createdAt: new Date().toISOString(),
-        },
-      ]);
+      setMessages(prepare(snapshot, assistantKey));
 
       const patchAssistant = (fn) =>
         setMessages((prev) => prev.map((m) => (m.clientKey === assistantKey ? fn(m) : m)));
@@ -231,12 +233,20 @@ export default function useAiChat({
         if (name === 'meta') {
           setMessages((prev) =>
             prev.map((m) => {
-              if (m.clientKey === userKey) return { ...m, id: data.userMessageId ?? m.id };
+              if (userKey && m.clientKey === userKey) return { ...m, id: data.userMessageId ?? m.id };
               if (m.clientKey === assistantKey) return applyTurnEvent(m, name, data);
               return m;
             })
           );
-          if (data.contextLength) setUsage((u) => ({ ...u, max: data.contextLength }));
+          setUsage((u) => ({
+            used: data.context?.promptTokensEstimate ?? u.used,
+            max: data.contextLength || u.max,
+          }));
+          setContextInfo(
+            toContextInfo(data.context, { model: data.model, contextLength: data.contextLength })
+          );
+          // The header follows what actually ran (Auto stays Auto).
+          setOverride({ model: data.model, nodeId: data.auto ? null : data.nodeId });
           return;
         }
         patchAssistant((m) => applyTurnEvent(m, name, data));
@@ -250,8 +260,8 @@ export default function useAiChat({
 
       let id = loadedIdRef.current;
       try {
-        if (!id) {
-          const created = await createConversation(token, { target }, { signal: controller.signal });
+        if (!id && createIfNeeded) {
+          const created = await createConversation(token, { target: turnTarget }, { signal: controller.signal });
           if (!isCurrent()) return { restoreDraft: false };
           id = created.id;
           loadedIdRef.current = id;
@@ -260,20 +270,9 @@ export default function useAiChat({
           latest.current.setConversationId?.(id, { replace: true });
         }
 
-        const result = await sendMessage(token, id, { content: text, target }, {
-          signal: controller.signal,
-          onEvent,
-        });
+        const result = await call(id, { signal: controller.signal, onEvent });
         if (!isCurrent()) return { restoreDraft: false };
-
-        if (result.event === 'done' && firstReply) {
-          generateTitle(token, id)
-            .then((updated) => {
-              if (loadedIdRef.current === id) mergeConversation(updated);
-              latest.current.onListChange?.();
-            })
-            .catch(() => {});
-        }
+        onDone?.(result, id);
         return { restoreDraft: false };
       } catch (err) {
         if (!isCurrent()) return { restoreDraft: false };
@@ -296,9 +295,9 @@ export default function useAiChat({
           }));
           return { restoreDraft: false };
         }
-        // Rejected up front (400/404/409, network): nothing was stored, so undo the optimistic rows.
-        setMessages((prev) => prev.filter((m) => m.clientKey !== userKey && m.clientKey !== assistantKey));
-        setNotice(err.message || 'The message could not be sent.');
+        // Rejected up front (400/404/409, network): nothing changed on the server, so undo.
+        setMessages(snapshot);
+        setNotice(err.message || 'The request could not be sent.');
         return { restoreDraft: true };
       } finally {
         if (isCurrent()) {
@@ -308,8 +307,129 @@ export default function useAiChat({
         }
       }
     },
-    [token, target, mergeConversation]
+    [token]
   );
+
+  const placeholder = (assistantKey) => ({
+    id: assistantKey,
+    clientKey: assistantKey,
+    role: 'assistant',
+    content: '',
+    thinking: null,
+    status: 'streaming',
+    generation: null,
+    live: null,
+    createdAt: new Date().toISOString(),
+  });
+
+  /** Sends `content` on the current target and streams the reply into the message list. */
+  const send = useCallback(
+    (content) => {
+      const text = content.trim();
+      if (!text || abortRef.current || !target) return Promise.resolve({ restoreDraft: false });
+
+      const firstReply = !messagesRef.current.some((m) => m.role === 'assistant' && m.status === 'complete');
+      const userKey = `local-user-${turnRef.current + 1}`;
+      return runTurn({
+        turnTarget: target,
+        userKey,
+        createIfNeeded: true,
+        prepare: (prev, assistantKey) => [
+          ...prev,
+          {
+            id: userKey, clientKey: userKey, role: 'user', content: text, attachments: [],
+            status: 'complete', createdAt: new Date().toISOString(),
+          },
+          placeholder(assistantKey),
+        ],
+        call: (id, options) => sendMessage(token, id, { content: text, target }, options),
+        onDone: (result, id) => {
+          if (result.event === 'done' && firstReply) {
+            generateTitle(token, id)
+              .then((updated) => {
+                if (loadedIdRef.current === id) mergeConversation(updated);
+                latest.current.onListChange?.();
+              })
+              .catch(() => {});
+          }
+        },
+      });
+    },
+    [token, target, runTurn, mergeConversation]
+  );
+
+  /**
+   * Regenerates an assistant message: it and everything after it are removed, then a new answer
+   * is generated. `newTarget` (a failover or "Regenerate with...") becomes the current selection.
+   */
+  const regenerate = useCallback(
+    (messageId, newTarget) => {
+      const turnTarget = newTarget || target;
+      if (abortRef.current || !turnTarget || !loadedIdRef.current) return Promise.resolve({ restoreDraft: false });
+      return runTurn({
+        turnTarget,
+        prepare: (prev, assistantKey) => {
+          const index = prev.findIndex((m) => m.id === messageId);
+          if (index === -1) return prev;
+          return [...prev.slice(0, index), placeholder(assistantKey)];
+        },
+        call: (id, options) => regenerateMessage(token, id, messageId, { target: turnTarget }, options),
+      });
+    },
+    [token, target, runTurn]
+  );
+
+  /** Edits a user message in place and answers it again; later messages are removed. */
+  const edit = useCallback(
+    (messageId, content) => {
+      const text = content.trim();
+      if (!text || abortRef.current || !target || !loadedIdRef.current) return Promise.resolve({ restoreDraft: false });
+      return runTurn({
+        turnTarget: target,
+        prepare: (prev, assistantKey) => {
+          const index = prev.findIndex((m) => m.id === messageId);
+          if (index === -1) return prev;
+          return [
+            ...prev.slice(0, index),
+            { ...prev[index], content: text, editedAt: new Date().toISOString() },
+            placeholder(assistantKey),
+          ];
+        },
+        call: (id, options) => editMessage(token, id, messageId, { content: text, target }, options),
+      });
+    },
+    [token, target, runTurn]
+  );
+
+  /** "Summarise older turns": folds the messages that no longer fit into a stored summary. */
+  const summarize = useCallback(async () => {
+    const id = loadedIdRef.current;
+    if (!id || summarizing) return;
+    setSummarizing(true);
+    try {
+      const result = await summarizeConversation(token, id);
+      if (loadedIdRef.current !== id) return;
+      setConversation((c) =>
+        c ? { ...c, ...result.conversation, summary: result.summary, context: result.context } : c
+      );
+      if (result.context) {
+        setUsage({ used: result.context.usedTokens || 0, max: result.context.contextLength || 0 });
+        setContextInfo(toContextInfo(result.context));
+      }
+      latest.current.onListChange?.();
+    } catch (err) {
+      if (loadedIdRef.current === id) setNotice(err.message || 'Could not summarise the conversation.');
+    } finally {
+      setSummarizing(false);
+    }
+  }, [token, summarizing]);
+
+  const trimKey = contextInfo ? `${conversation?.id}:${contextInfo.model}:${contextInfo.trimmedCount}` : null;
+  const dismissTrim = useCallback(() => setDismissedTrim(trimKey), [trimKey]);
+  const trimWarning =
+    contextInfo && contextInfo.trimmedCount > 0 && dismissedTrim !== trimKey
+      ? { count: contextInfo.trimmedCount, model: contextInfo.model || target?.model }
+      : null;
 
   /** Stop: abort the fetch; the API cancels the generation on the node and keeps the partial reply. */
   const stop = useCallback(() => abortRef.current?.abort(), []);
@@ -326,6 +446,13 @@ export default function useAiChat({
     usage,
     target,
     send,
+    regenerate,
+    edit,
+    summarize,
+    summarizing,
+    trimWarning,
+    summaryActive: Boolean(contextInfo?.summaryActive) && !(contextInfo?.trimmedCount > 0),
+    dismissTrim,
     stop,
     selectTarget,
     retryLoad,

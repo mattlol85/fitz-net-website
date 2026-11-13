@@ -26,6 +26,9 @@ vi.mock('../../services/aiChatApi', () => ({
   generateTitle: vi.fn(),
   getContextUsage: vi.fn(),
   sendMessage: vi.fn(),
+  regenerateMessage: vi.fn(),
+  editMessage: vi.fn(),
+  summarizeConversation: vi.fn(),
 }));
 
 const LLAMA_AUTO = { model: 'llama3.1:8b', nodeId: null };
@@ -57,14 +60,17 @@ function renderPage(url = '/ai') {
  * Scripts the next sendMessage call: the test pushes events and finishes the stream by hand.
  * Aborting the request rejects it with an AbortError, like a real fetch.
  */
-function scriptTurn() {
+function scriptTurn(mock = api.sendMessage) {
   const turn = { calls: 0 };
-  api.sendMessage.mockImplementationOnce(
-    (token, conversationId, body, { signal, onEvent }) =>
+  // sendMessage(token, id, body, options); regenerate/edit(token, id, messageId, body, options).
+  mock.mockImplementationOnce(
+    (...args) =>
       new Promise((resolve, reject) => {
-        turn.token = token;
-        turn.conversationId = conversationId;
-        turn.body = body;
+        const { signal, onEvent } = args.at(-1);
+        turn.token = args[0];
+        turn.conversationId = args[1];
+        turn.messageId = args.length === 5 ? args[2] : undefined;
+        turn.body = args.at(-2);
         turn.signal = signal;
         turn.emit = (name, data) => act(async () => onEvent(name, data));
         turn.finish = (event, data) => act(async () => resolve({ event, data }));
@@ -124,7 +130,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
-  vi.mocked(api.sendMessage).mockReset();
+  [api.sendMessage, api.regenerateMessage, api.editMessage, api.summarizeConversation].forEach((fn) => fn.mockReset());
   window.localStorage.clear();
 });
 
@@ -285,7 +291,7 @@ describe('AiChatPage new chat', () => {
     await user.click(screen.getByRole('button', { name: 'Stop' }));
 
     expect(turn.signal.aborted).toBe(true);
-    expect(await screen.findByText('Stopped.')).toBeInTheDocument();
+    expect(await screen.findByText('Stopped')).toBeInTheDocument();
     expect(screen.getByText('Once upon')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
@@ -387,7 +393,7 @@ describe('AiChatPage new chat', () => {
     await turn.emit('meta', META);
 
     await user.click(screen.getByRole('button', { name: 'Stop' }));
-    await screen.findByText('Stopped before any reply.');
+    await screen.findByText('Stopped before any reply');
 
     expect(api.generateTitle).not.toHaveBeenCalled();
   });
@@ -447,8 +453,8 @@ describe('AiChatPage opened conversation', () => {
 
     const tags = screen.getAllByTestId('generation-tag');
 
-    expect(tags.map((t) => t.textContent)).toEqual([
-      'qwen3:14b · Matt-PCauto',
+    expect(tags.map((t) => [...t.querySelectorAll('.ai-chat__chip')].map((c) => c.textContent).join('|'))).toEqual([
+      'qwen3:14b · Matt-PC|auto',
       'qwen3:14b · Garage-Laptop',
       'llama3.1:8b · Rig-2',
     ]);
@@ -474,7 +480,7 @@ describe('AiChatPage opened conversation', () => {
     expect(alert).toHaveTextContent('Garage-Laptop is offline.');
     expect(alert).toHaveTextContent('NODE_OFFLINE');
     expect(screen.getByText('Half of it')).toBeInTheDocument();
-    expect(screen.getByText('Stopped.')).toBeInTheDocument();
+    expect(screen.getByText('Stopped')).toBeInTheDocument();
   });
 
   it('should show a recoverable error when the conversation cannot be loaded', async () => {
@@ -544,7 +550,7 @@ describe('AiChatPage opened conversation', () => {
 
     expect(turn.signal.aborted).toBe(true);
     expect(await screen.findByText('Other content')).toBeInTheDocument();
-    expect(screen.queryByText('Stopped.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Stopped')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument();
   });
 });
@@ -732,5 +738,658 @@ describe('AiChatPage picker integration', () => {
     fireEvent.keyDown(document.body, { key: 'k', ctrlKey: true });
 
     expect(await screen.findByRole('dialog', { name: /choose a model/i })).toBeInTheDocument();
+  });
+});
+
+// --- Part 2: message controls, code blocks, stats, context window, failover -----------------------
+
+const gen = (extra = {}) => ({
+  nodeId: NODE_PC,
+  nodeName: 'Matt-PC',
+  model: 'llama3.1:8b',
+  auto: false,
+  contextLength: 8192,
+  ...extra,
+});
+
+/** u1 -> a1 -> u2 -> a2, the last answer containing Markdown, a thought and a code fence. */
+const thread = (overrides = {}) => [
+  makeMessage({ id: 'u1', seq: 1, role: 'user', content: 'First question' }),
+  makeMessage({ id: 'a1', seq: 2, role: 'assistant', content: 'First answer', generation: gen() }),
+  makeMessage({ id: 'u2', seq: 3, role: 'user', content: 'Second question' }),
+  makeMessage({
+    id: 'a2', seq: 4, role: 'assistant', content: 'Second **bold** answer', thinking: 'secret reasoning',
+    generation: gen(), ...overrides,
+  }),
+];
+
+function openThread(messages = thread(), detail = {}) {
+  api.getConversation.mockResolvedValue({
+    ...makeConversation({ id: 'c9', target: { model: 'llama3.1:8b', nodeId: null } }),
+    summary: null,
+    context: null,
+    messages,
+    ...detail,
+  });
+  return renderPage('/ai?c=c9');
+}
+
+const assistantMessage = (index) => screen.getAllByLabelText('Matt-GPT')[index];
+const userMessage = (index) => screen.getAllByLabelText('You')[index];
+
+describe('AiChatPage message controls', () => {
+  it('should copy the raw markdown of an assistant message, not its thinking', async () => {
+    const user = userEvent.setup();
+    openThread();
+    await screen.findByText('First question');
+
+    await user.click(within(assistantMessage(1)).getByRole('button', { name: 'Copy message' }));
+
+    expect(await navigator.clipboard.readText()).toBe('Second **bold** answer');
+    expect(within(assistantMessage(1)).getByRole('button', { name: 'Copied' })).toBeInTheDocument();
+  });
+
+  it('should copy a user message', async () => {
+    const user = userEvent.setup();
+    openThread();
+    await screen.findByText('First question');
+
+    await user.click(within(userMessage(0)).getByRole('button', { name: 'Copy message' }));
+
+    expect(await navigator.clipboard.readText()).toBe('First question');
+  });
+
+  it('should regenerate the last answer straight away on the current target', async () => {
+    const user = userEvent.setup();
+    const turn = scriptTurn(api.regenerateMessage);
+    openThread();
+    await screen.findByText('First question');
+
+    await user.click(within(assistantMessage(1)).getByRole('button', { name: 'Regenerate' }));
+    await turn.whenStarted();
+
+    expect(screen.queryByRole('group', { name: /confirm regenerate/i })).not.toBeInTheDocument();
+    expect(turn.conversationId).toBe('c9');
+    expect(turn.messageId).toBe('a2');
+    expect(turn.body).toEqual({ target: { model: 'llama3.1:8b', nodeId: null } });
+    expect(screen.queryByText('Second **bold** answer')).not.toBeInTheDocument();
+    expect(screen.getByText('First answer')).toBeInTheDocument();
+
+    await turn.emit('meta', { ...META, conversationId: 'c9', assistantMessageId: 'a3', userMessageId: 'u2' });
+    await turn.emit('token', { content: 'A better answer' });
+    await turn.emit('done', DONE);
+    await turn.finish('done', DONE);
+
+    expect(await screen.findByText('A better answer')).toBeInTheDocument();
+  });
+
+  it('should ask before regenerating mid-conversation and say how many messages go', async () => {
+    const user = userEvent.setup();
+    const turn = scriptTurn(api.regenerateMessage);
+    openThread();
+    await screen.findByText('First question');
+
+    await user.click(within(assistantMessage(0)).getByRole('button', { name: 'Regenerate' }));
+
+    expect(api.regenerateMessage).not.toHaveBeenCalled();
+    const confirm = screen.getByRole('group', { name: /confirm regenerate/i });
+    expect(confirm).toHaveTextContent('Regenerating removes the 2 later messages.');
+
+    await user.click(within(confirm).getByRole('button', { name: 'Cancel' }));
+    expect(api.regenerateMessage).not.toHaveBeenCalled();
+
+    await user.click(within(assistantMessage(0)).getByRole('button', { name: 'Regenerate' }));
+    await user.click(screen.getByRole('button', { name: 'Regenerate anyway' }));
+    await turn.whenStarted();
+
+    expect(turn.messageId).toBe('a1');
+    expect(screen.queryByText('Second question')).not.toBeInTheDocument();
+    expect(screen.queryByText('Second **bold** answer')).not.toBeInTheDocument();
+    expect(screen.getByText('First question')).toBeInTheDocument();
+  });
+
+  it('should regenerate with a model chosen in the picker and follow it in the header', async () => {
+    const user = userEvent.setup();
+    const turn = scriptTurn(api.regenerateMessage);
+    openThread();
+    await screen.findByText('First question');
+
+    await user.click(within(assistantMessage(1)).getByRole('button', { name: /regenerate with/i }));
+    const dialog = screen.getByRole('dialog', { name: 'Choose a model for this answer' });
+    const rigRow = within(within(dialog).getAllByRole('group')[2]).getByRole('option', { name: /llama3\.1:8b/ });
+    await user.click(rigRow);
+    await turn.whenStarted();
+
+    expect(turn.body).toEqual({ target: { model: 'llama3.1:8b', nodeId: NODE_RIG } });
+    expect(screen.queryByRole('dialog', { name: /for this answer/i })).not.toBeInTheDocument();
+
+    await turn.emit('meta', { ...META, conversationId: 'c9', nodeId: NODE_RIG, nodeName: 'Rig-2', auto: false });
+    expect(screen.getByRole('button', { name: /llama3\.1:8b\s*Rig-2/ })).toBeInTheDocument();
+    expect(screen.getAllByTestId('generation-tag').at(-1)).toHaveTextContent('llama3.1:8b · Rig-2');
+  });
+
+  it('should edit a user message, resend it and drop what followed', async () => {
+    const user = userEvent.setup();
+    const turn = scriptTurn(api.editMessage);
+    openThread();
+    await screen.findByText('First question');
+
+    await user.click(within(userMessage(0)).getByRole('button', { name: 'Edit' }));
+    const box = screen.getByRole('textbox', { name: 'Edit message' });
+    expect(box).toHaveValue('First question');
+    expect(screen.getByText(/removes the 3 later messages/i)).toBeInTheDocument();
+    await user.clear(box);
+    await user.type(box, 'First question, reworded');
+    await user.click(screen.getByRole('button', { name: /save & send/i }));
+    await turn.whenStarted();
+
+    expect(turn.messageId).toBe('u1');
+    expect(turn.body).toEqual({ content: 'First question, reworded', target: { model: 'llama3.1:8b', nodeId: null } });
+    expect(screen.getByText('First question, reworded')).toBeInTheDocument();
+    expect(screen.getByText('edited')).toBeInTheDocument();
+    expect(screen.queryByText('First answer')).not.toBeInTheDocument();
+    expect(screen.queryByText('Second question')).not.toBeInTheDocument();
+  });
+
+  it('should cancel an edit without calling the API', async () => {
+    const user = userEvent.setup();
+    openThread();
+    await screen.findByText('First question');
+
+    await user.click(within(userMessage(0)).getByRole('button', { name: 'Edit' }));
+    await user.type(screen.getByRole('textbox', { name: 'Edit message' }), ' more');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(api.editMessage).not.toHaveBeenCalled();
+    expect(screen.getByText('First question')).toBeInTheDocument();
+    expect(screen.queryByText('edited')).not.toBeInTheDocument();
+  });
+
+  it('should disable the controls while a reply is streaming', async () => {
+    const user = userEvent.setup();
+    const turn = scriptTurn(api.regenerateMessage);
+    openThread();
+    await screen.findByText('First question');
+    await user.click(within(assistantMessage(1)).getByRole('button', { name: 'Regenerate' }));
+    await turn.whenStarted();
+
+    expect(within(assistantMessage(0)).getByRole('button', { name: 'Regenerate' })).toBeDisabled();
+    expect(within(assistantMessage(0)).getByRole('button', { name: /regenerate with/i })).toBeDisabled();
+    expect(within(userMessage(0)).getByRole('button', { name: 'Edit' })).toBeDisabled();
+    // Copying stays available.
+    expect(within(userMessage(0)).getByRole('button', { name: 'Copy message' })).toBeEnabled();
+
+    await turn.emit('done', DONE);
+    await turn.finish('done', DONE);
+    await waitFor(() => expect(within(userMessage(0)).getByRole('button', { name: 'Edit' })).toBeEnabled());
+  });
+
+  it('should put the messages back when a regenerate is rejected before it starts', async () => {
+    const user = userEvent.setup();
+    api.regenerateMessage.mockRejectedValueOnce(Object.assign(new Error('A reply is already being generated.'), { status: 409 }));
+    openThread();
+    await screen.findByText('First question');
+
+    await user.click(within(assistantMessage(1)).getByRole('button', { name: 'Regenerate' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('already being generated');
+    expect(screen.getByText(/Second.*answer/)).toBeInTheDocument();
+  });
+
+  it('should label stopped and interrupted replies and offer Regenerate on both', async () => {
+    openThread([
+      makeMessage({ id: 'u1', seq: 1, role: 'user', content: 'Q' }),
+      makeMessage({ id: 'a1', seq: 2, role: 'assistant', content: 'half', status: 'cancelled', generation: gen() }),
+      makeMessage({
+        id: 'a2', seq: 3, role: 'assistant', content: '', status: 'error', generation: gen(),
+        error: { code: 'INTERRUPTED', message: 'The reply was interrupted.' },
+      }),
+    ]);
+
+    expect(await screen.findByText('Stopped')).toBeInTheDocument();
+    expect(screen.getByText('Interrupted before any reply')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Regenerate' })).toHaveLength(2);
+  });
+});
+
+describe('AiChatPage code blocks', () => {
+  const CODE = 'Run this:\n\n```js\nconst total = 1 + 2;\nconsole.log("total");\n```\n';
+
+  it('should highlight a fenced block, label its language and copy the raw code', async () => {
+    const user = userEvent.setup();
+    openThread([
+      makeMessage({ id: 'u1', seq: 1, role: 'user', content: 'Show me' }),
+      makeMessage({ id: 'a1', seq: 2, role: 'assistant', content: CODE, generation: gen() }),
+    ]);
+
+    const block = (await screen.findByText('js')).closest('.ai-chat__code');
+
+    expect(block.querySelector('.hljs-keyword')).toHaveTextContent('const');
+    expect(block.querySelector('.hljs-string')).toBeInTheDocument();
+    await user.click(within(block).getByRole('button', { name: 'Copy code' }));
+    expect(await navigator.clipboard.readText()).toBe('const total = 1 + 2;\nconsole.log("total");\n');
+    expect(within(block).getByRole('button', { name: 'Copied' })).toBeInTheDocument();
+  });
+
+  it('should label a fence without a language as text and leave inline code alone', async () => {
+    openThread([
+      makeMessage({ id: 'u1', seq: 1, role: 'user', content: 'Q' }),
+      makeMessage({ id: 'a1', seq: 2, role: 'assistant', content: 'Use `npm test`.\n\n```\nplain\n```\n', generation: gen() }),
+    ]);
+
+    const block = (await screen.findByText('text')).closest('.ai-chat__code');
+
+    expect(block.querySelector('.hljs-keyword')).toBeNull();
+    expect(screen.getByText('npm test').closest('.ai-chat__code')).toBeNull();
+  });
+
+  it('should keep rendering while a fence is still open during streaming', async () => {
+    const user = userEvent.setup();
+    const turn = scriptTurn();
+    renderPage();
+    await waitForReady();
+    await typeAndSend(user, 'code please');
+    await turn.whenStarted();
+    await turn.emit('meta', META);
+
+    await turn.emit('token', { content: 'Here:\n\n```py\ndef add(a, b):\n    ret' });
+    expect(screen.getByText('py')).toBeInTheDocument();
+    expect(screen.getByText('def')).toHaveClass('hljs-keyword');
+
+    await turn.emit('token', { content: 'urn a + b\n```\nDone.' });
+    await turn.emit('done', DONE);
+    await turn.finish('done', DONE);
+
+    expect(await screen.findByText('Done.')).toBeInTheDocument();
+    expect(screen.getAllByText('py')).toHaveLength(1);
+  });
+});
+
+describe('AiChatPage reply stats', () => {
+  it('should summarise tokens per second and total time, and show the details on request', async () => {
+    const user = userEvent.setup();
+    openThread([
+      makeMessage({ id: 'u1', seq: 1, role: 'user', content: 'Q' }),
+      makeMessage({
+        id: 'a1', seq: 2, role: 'assistant', content: 'A',
+        generation: gen({
+          tokensPerSecond: 48.2, totalMs: 5210, ttftMs: 420, loadMs: 1800, thinkingMs: 2400,
+          promptTokens: 812, completionTokens: 240, finishReason: 'stop', presetName: 'Code reviewer',
+        }),
+      }),
+    ]);
+
+    expect(await screen.findByTestId('generation-stats')).toHaveTextContent('48.2 tok/s · 5.2 s');
+    await user.click(screen.getByRole('button', { name: 'Details' }));
+
+    const details = screen.getByLabelText('Reply details');
+    expect(within(details).getByText('Time to first token').nextSibling).toHaveTextContent('420 ms');
+    expect(within(details).getByText('Total time').nextSibling).toHaveTextContent('5.2 s');
+    expect(within(details).getByText('Model load').nextSibling).toHaveTextContent('1.8 s');
+    expect(within(details).getByText('Thinking').nextSibling).toHaveTextContent('2.4 s');
+    expect(within(details).getByText(/Tokens/).nextSibling).toHaveTextContent('812 → 240');
+    expect(within(details).getByText('Context length').nextSibling).toHaveTextContent('8,192');
+    expect(within(details).getByText('Finish reason').nextSibling).toHaveTextContent('stop');
+    expect(within(details).getByText('Preset').nextSibling).toHaveTextContent('Code reviewer');
+  });
+
+  it('should omit missing stats instead of showing 0 or NaN', async () => {
+    const user = userEvent.setup();
+    openThread([
+      makeMessage({ id: 'u1', seq: 1, role: 'user', content: 'Q' }),
+      makeMessage({
+        id: 'a1', seq: 2, role: 'assistant', content: 'A',
+        generation: gen({ totalMs: 3000, tokensPerSecond: null, loadMs: 0, thinkingMs: null, ttftMs: undefined, promptTokens: null, completionTokens: NaN }),
+      }),
+    ]);
+
+    expect(await screen.findByTestId('generation-stats')).toHaveTextContent(/^3\.0 s$/);
+    await user.click(screen.getByRole('button', { name: 'Details' }));
+
+    const details = screen.getByLabelText('Reply details');
+    expect(within(details).queryByText('Model load')).not.toBeInTheDocument();
+    expect(within(details).queryByText('Thinking')).not.toBeInTheDocument();
+    expect(within(details).queryByText('Time to first token')).not.toBeInTheDocument();
+    expect(within(details).queryByText(/Tokens|tokens/)).not.toBeInTheDocument();
+    expect(details.textContent).not.toMatch(/NaN|\b0 ms/);
+  });
+
+  it('should show no stats at all when the reply has none', async () => {
+    openThread([
+      makeMessage({ id: 'u1', seq: 1, role: 'user', content: 'Q' }),
+      makeMessage({ id: 'a1', seq: 2, role: 'assistant', content: 'A', generation: { model: 'llama3.1:8b', nodeName: 'Matt-PC' } }),
+    ]);
+
+    await screen.findByTestId('generation-tag');
+
+    expect(screen.queryByTestId('generation-stats')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Details' })).not.toBeInTheDocument();
+  });
+
+  it('should show live stats from the done event', async () => {
+    const user = userEvent.setup();
+    const turn = scriptTurn();
+    renderPage();
+    await waitForReady();
+    await typeAndSend(user, 'Hi');
+    await turn.whenStarted();
+    await turn.emit('meta', META);
+    await turn.emit('token', { content: 'Yo' });
+
+    expect(screen.queryByTestId('generation-stats')).not.toBeInTheDocument();
+    await turn.emit('done', DONE);
+    await turn.finish('done', DONE);
+
+    expect(await screen.findByTestId('generation-stats')).toHaveTextContent('40.0 tok/s · 2.0 s');
+  });
+});
+
+const usage = (extra = {}) => ({
+  model: 'llama3.1:8b', nodeId: NODE_PC, contextLength: 8192, usedTokens: 3000, totalTokens: 3000,
+  fits: true, trimmedCount: 0, summaryActive: false, ...extra,
+});
+
+describe('AiChatPage context window', () => {
+  it('should feed the ring from the detail, the meta estimate and the done totals', async () => {
+    const user = userEvent.setup();
+    const turn = scriptTurn();
+    openThread(thread(), { context: usage({ usedTokens: 2000 }) });
+    await screen.findByText('First question');
+    expect(screen.getByRole('img', { name: /Context: 2,000 \/ 8,192 tokens/ })).toBeInTheDocument();
+
+    await typeAndSend(user, 'Another');
+    await turn.whenStarted();
+    await turn.emit('meta', { ...META, conversationId: 'c9', context: { promptTokensEstimate: 2600, trimmedCount: 0, summaryActive: false } });
+    expect(screen.getByRole('img', { name: /Context: 2,600 \/ 8,192 tokens/ })).toBeInTheDocument();
+
+    await turn.emit('done', { ...DONE, promptTokens: 2700, completionTokens: 150 });
+    await turn.finish('done', DONE);
+    expect(await screen.findByRole('img', { name: /Context: 2,850 \/ 8,192 tokens/ })).toBeInTheDocument();
+  });
+
+  it('should warn about trimmed messages from the detail and summarise them on request', async () => {
+    const user = userEvent.setup();
+    let finish;
+    api.summarizeConversation.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    openThread(thread(), { context: usage({ trimmedCount: 3, fits: false, usedTokens: 6000 }) });
+
+    const banner = await screen.findByText("3 older messages don't fit llama3.1:8b's context window and won't be sent.");
+    expect(banner).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Summarise older turns' }));
+    expect(api.summarizeConversation).toHaveBeenCalledWith('jwt', 'c9');
+    expect(screen.getByRole('button', { name: /summarising/i })).toBeDisabled();
+
+    await act(async () =>
+      finish({
+        conversation: makeConversation({ id: 'c9' }),
+        summary: { text: 'Earlier talk', coversThroughSeq: 2 },
+        context: usage({ usedTokens: 1500, summaryActive: true }),
+      })
+    );
+
+    await waitFor(() => expect(screen.queryByText(/older messages don't fit/)).not.toBeInTheDocument());
+    expect(screen.getByText('Older turns are summarised for this model')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /Context: 1,500 \/ 8,192 tokens/ })).toBeInTheDocument();
+  });
+
+  it('should let the warning be dismissed, and speak of a single message in the singular', async () => {
+    const user = userEvent.setup();
+    openThread(thread(), { context: usage({ trimmedCount: 1, fits: false }) });
+
+    expect(await screen.findByText("1 older message doesn't fit llama3.1:8b's context window and won't be sent.")).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Dismiss warning' }));
+
+    expect(screen.queryByText(/older message/)).not.toBeInTheDocument();
+  });
+
+  it('should show the warning as soon as meta reports trimming', async () => {
+    const user = userEvent.setup();
+    const turn = scriptTurn();
+    openThread();
+    await screen.findByText('First question');
+    expect(screen.queryByText(/older messages/)).not.toBeInTheDocument();
+
+    await typeAndSend(user, 'One more');
+    await turn.whenStarted();
+    await turn.emit('meta', { ...META, conversationId: 'c9', context: { promptTokensEstimate: 6000, trimmedCount: 2, summaryActive: false } });
+
+    expect(screen.getByText("2 older messages don't fit llama3.1:8b's context window and won't be sent.")).toBeInTheDocument();
+  });
+
+  it('should warn from a preflight when the selection changes to a smaller window', async () => {
+    const user = userEvent.setup();
+    api.getContextUsage.mockResolvedValue(usage({ model: 'qwen3:14b', contextLength: 4096, usedTokens: 3000, trimmedCount: 4, fits: false }));
+    openThread();
+    await screen.findByText('First question');
+
+    await user.click(screen.getByRole('button', { name: /llama3\.1:8b/ }));
+    await user.click(within(screen.getByRole('dialog')).getAllByRole('option', { name: /qwen3:14b/ })[0]);
+
+    expect(await screen.findByText("4 older messages don't fit qwen3:14b's context window and won't be sent.")).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /Context: 3,000 \/ 4,096 tokens/ })).toBeInTheDocument();
+  });
+
+  it('should clear the warning when the preflight cannot resolve the new target', async () => {
+    const user = userEvent.setup();
+    api.getContextUsage.mockRejectedValue(Object.assign(new Error('No node'), { status: 503 }));
+    openThread(thread(), { context: usage({ trimmedCount: 2, fits: false }) });
+    await screen.findByText(/2 older messages/);
+
+    await user.click(screen.getByRole('button', { name: /llama3\.1:8b/ }));
+    await user.click(within(screen.getByRole('dialog')).getAllByRole('option', { name: /qwen3:14b/ })[0]);
+
+    await waitFor(() => expect(screen.queryByText(/older messages/)).not.toBeInTheDocument());
+  });
+
+  it('should surface a failed summarise and keep the warning', async () => {
+    const user = userEvent.setup();
+    api.summarizeConversation.mockRejectedValue(new Error('No node available'));
+    openThread(thread(), { context: usage({ trimmedCount: 3, fits: false }) });
+
+    await user.click(await screen.findByRole('button', { name: 'Summarise older turns' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No node available');
+    expect(screen.getByText(/3 older messages/)).toBeInTheDocument();
+  });
+
+  it('should flag a reply that filled the model window', async () => {
+    const user = userEvent.setup();
+    const turn = scriptTurn();
+    renderPage();
+    await waitForReady();
+    await typeAndSend(user, 'Big prompt');
+    await turn.whenStarted();
+    await turn.emit('meta', META);
+    await turn.emit('token', { content: 'ok' });
+    await turn.emit('done', { ...DONE, contextOverflow: true });
+    await turn.finish('done', DONE);
+
+    expect(await screen.findByText(/window was full; early context may have been cut/i)).toBeInTheDocument();
+  });
+
+  it('should explain CONTEXT_TOO_SMALL and suggest a larger window', async () => {
+    const user = userEvent.setup();
+    openThread([
+      makeMessage({ id: 'u1', seq: 1, role: 'user', content: 'Huge' }),
+      makeMessage({
+        id: 'a1', seq: 2, role: 'assistant', content: '', status: 'error', generation: gen(),
+        error: { code: 'CONTEXT_TOO_SMALL', message: 'The newest message does not fit.' },
+      }),
+    ]);
+
+    const alert = await screen.findByRole('alert');
+
+    expect(alert).toHaveTextContent('The newest message does not fit.');
+    expect(alert).toHaveTextContent(/larger window/i);
+    expect(alert).toHaveTextContent('CONTEXT_TOO_SMALL');
+    await user.click(within(alert).getByRole('button', { name: 'Choose a model' }));
+    expect(screen.getByRole('dialog', { name: 'Choose a model' })).toBeInTheDocument();
+  });
+});
+
+describe('AiChatPage failover', () => {
+  const NODE_OFFLINE_ERROR = {
+    messageId: 'a1', userMessageId: 'u1', code: 'NODE_OFFLINE', message: 'Matt-PC is offline.', retryable: true,
+    alternatives: [{ nodeId: NODE_RIG, nodeName: 'Rig-2', model: 'llama3.1:8b', loaded: true, status: 'ONLINE' }],
+  };
+
+  async function failFirstTurn(user, error = NODE_OFFLINE_ERROR) {
+    const turn = scriptTurn();
+    renderPage();
+    await waitForReady();
+    await typeAndSend(user, 'Hello');
+    await turn.whenStarted();
+    await turn.emit('meta', META);
+    await turn.emit('error', error);
+    await turn.finish('error', error);
+    return turn;
+  }
+
+  it('should offer each alternative and Auto after an error, and regenerate with the chosen target', async () => {
+    const user = userEvent.setup();
+    await failFirstTurn(user);
+    const retry = scriptTurn(api.regenerateMessage);
+
+    const choices = await screen.findByRole('group', { name: /other ways/i });
+    const rig = within(choices).getByRole('button', { name: /Use llama3\.1:8b on Rig-2/ });
+    expect(within(rig).getByText('Loaded')).toBeInTheDocument();
+    await user.click(rig);
+    await retry.whenStarted();
+
+    expect(retry.conversationId).toBe('c-new');
+    expect(retry.messageId).toBe('a1');
+    expect(retry.body).toEqual({ target: { model: 'llama3.1:8b', nodeId: NODE_RIG } });
+    // The failed reply is replaced by the new, streaming one.
+    expect(screen.queryByText('Matt-PC is offline.')).not.toBeInTheDocument();
+  });
+
+  it('should regenerate on Auto from Switch to Auto', async () => {
+    const user = userEvent.setup();
+    await failFirstTurn(user);
+    const retry = scriptTurn(api.regenerateMessage);
+
+    await user.click(await screen.findByRole('button', { name: 'Switch to Auto' }));
+    await retry.whenStarted();
+
+    expect(retry.body).toEqual({ target: { model: 'llama3.1:8b', nodeId: null } });
+  });
+
+  it('should say so when the error carries no alternatives and offer the picker', async () => {
+    const user = userEvent.setup();
+    await failFirstTurn(user, { ...NODE_OFFLINE_ERROR, alternatives: [] });
+
+    expect(await screen.findByText('No other node has llama3.1:8b right now.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Choose another model' }));
+
+    expect(screen.getByRole('dialog', { name: 'Choose a model' })).toBeInTheDocument();
+  });
+
+  it('should derive the alternatives from the catalogue for a stored error after a reload', async () => {
+    const user = userEvent.setup();
+    const retry = scriptTurn(api.regenerateMessage);
+    openThread([
+      makeMessage({ id: 'u1', seq: 1, role: 'user', content: 'Hello' }),
+      makeMessage({
+        id: 'a1', seq: 2, role: 'assistant', content: '', status: 'error',
+        generation: gen({ nodeId: 'node-garage', nodeName: 'Garage-Laptop' }),
+        error: { code: 'NODE_UNREACHABLE', message: 'Garage-Laptop went away.' },
+      }),
+    ]);
+
+    const choices = await screen.findByRole('group', { name: /other ways/i });
+    const buttons = within(choices).getAllByRole('button').map((b) => b.textContent);
+
+    // Not offline, has the model, warm first; the offline Garage-Laptop is never offered.
+    expect(buttons).toEqual([
+      'Use llama3.1:8b on Matt-PCLoaded',
+      'Use llama3.1:8b on Rig-2',
+      'Switch to Auto',
+    ]);
+    await user.click(within(choices).getByRole('button', { name: /on Rig-2/ }));
+    await retry.whenStarted();
+    expect(retry.body).toEqual({ target: { model: 'llama3.1:8b', nodeId: NODE_RIG } });
+  });
+
+  it('should say so when no online node has the failed model after a reload', async () => {
+    openThread([
+      makeMessage({ id: 'u1', seq: 1, role: 'user', content: 'Hello' }),
+      makeMessage({
+        id: 'a1', seq: 2, role: 'assistant', content: '', status: 'error',
+        generation: gen({ model: 'phi3:mini', nodeId: 'node-garage', nodeName: 'Garage-Laptop' }),
+        error: { code: 'NODE_OFFLINE', message: 'Garage-Laptop is offline.' },
+      }),
+    ]);
+
+    expect(await screen.findByText('No other node has phi3:mini right now.')).toBeInTheDocument();
+  });
+
+  it('should not offer failover for errors that are not about the node', async () => {
+    openThread([
+      makeMessage({ id: 'u1', seq: 1, role: 'user', content: 'Hello' }),
+      makeMessage({
+        id: 'a1', seq: 2, role: 'assistant', content: '', status: 'error', generation: gen(),
+        error: { code: 'TIMEOUT', message: 'The node stopped answering.' },
+      }),
+    ]);
+
+    await screen.findByText('The node stopped answering.');
+
+    expect(screen.queryByRole('group', { name: /other ways/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Regenerate' })).toBeInTheDocument();
+  });
+
+  it('should show a proactive banner when the selection pins an offline node, with one-click choices', async () => {
+    const user = userEvent.setup();
+    api.getConversation.mockResolvedValue({
+      ...makeConversation({ id: 'c9', target: { model: 'llama3.1:8b', nodeId: 'node-garage' } }),
+      context: null,
+      messages: thread(),
+    });
+    renderPage('/ai?c=c9');
+
+    const banner = (await screen.findByText('Garage-Laptop is offline.')).closest('.ai-chat__banner');
+    // The stored target is kept (no silent fallback to Auto) and sending is not blocked.
+    expect(screen.getByRole('button', { name: /llama3\.1:8b\s*Garage-Laptop/ })).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: 'Message' }), 'still send');
+    expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled();
+
+    await user.click(within(banner).getByRole('button', { name: /Use llama3\.1:8b on Rig-2/ }));
+
+    await waitFor(() =>
+      expect(api.updateConversation).toHaveBeenCalledWith('jwt', 'c9', { target: { model: 'llama3.1:8b', nodeId: NODE_RIG } })
+    );
+    expect(screen.getByRole('button', { name: /llama3\.1:8b\s*Rig-2/ })).toBeInTheDocument();
+    expect(screen.queryByText('Garage-Laptop is offline.')).not.toBeInTheDocument();
+  });
+
+  it('should switch the selection to Auto from the offline banner', async () => {
+    const user = userEvent.setup();
+    api.getConversation.mockResolvedValue({
+      ...makeConversation({ id: 'c9', target: { model: 'llama3.1:8b', nodeId: 'node-garage' } }),
+      context: null,
+      messages: thread(),
+    });
+    renderPage('/ai?c=c9');
+
+    await user.click(await screen.findByRole('button', { name: 'Switch to Auto' }));
+
+    await waitFor(() =>
+      expect(api.updateConversation).toHaveBeenCalledWith('jwt', 'c9', { target: { model: 'llama3.1:8b', nodeId: null } })
+    );
+    expect(screen.queryByText('Garage-Laptop is offline.')).not.toBeInTheDocument();
+  });
+
+  it('should not show the offline banner when the pinned node is reachable', async () => {
+    api.getConversation.mockResolvedValue({
+      ...makeConversation({ id: 'c9', target: { model: 'llama3.1:8b', nodeId: NODE_PC } }),
+      context: null,
+      messages: thread(),
+    });
+    renderPage('/ai?c=c9');
+    await screen.findByText('First question');
+
+    expect(screen.queryByText(/is offline/)).not.toBeInTheDocument();
   });
 });

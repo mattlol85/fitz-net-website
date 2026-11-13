@@ -155,4 +155,79 @@ describe('aiChatMock', () => {
 
     expect((await get('/ai/preferences')).lastTarget).toEqual({ model: 'phi3:mini', nodeId: null });
   });
+
+  describe('part 2 paths', () => {
+    const longConversation = async () => {
+      const list = await get('/ai/conversations');
+      return list.items.find((c) => c.title === 'Long design discussion');
+    };
+
+    it('should report trimmed messages for the small-window model and none for a big one', async () => {
+      const conv = await longConversation();
+
+      const small = await get(`/ai/conversations/${conv.id}/context`, { model: 'phi3:mini' });
+      const big = await get(`/ai/conversations/${conv.id}/context`, { model: 'llama3.1:8b' });
+
+      expect(small.trimmedCount).toBeGreaterThan(0);
+      expect(small.fits).toBe(false);
+      expect(small.contextLength).toBe(1024);
+      expect(big.trimmedCount).toBe(0);
+    });
+
+    it('should summarise the trimmed turns, then report a summary in use with nothing trimmed', async () => {
+      const conv = await longConversation();
+      await handleRequest('PATCH', `/ai/conversations/${conv.id}`, { body: { target: { model: 'phi3:mini', nodeId: null } } });
+
+      const result = await post(`/ai/conversations/${conv.id}/summarize`);
+
+      expect(result.summary.coversThroughSeq).toBeGreaterThan(0);
+      expect(result.context).toMatchObject({ trimmedCount: 0, summaryActive: true });
+      await expect(post(`/ai/conversations/${conv.id}/summarize`)).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('should announce trimming in meta and flag an overflow in done', async () => {
+      const conv = await longConversation();
+      await handleRequest('PATCH', `/ai/conversations/${conv.id}`, { body: { target: { model: 'phi3:mini', nodeId: null } } });
+
+      const { events, result } = await runTurn(conv.id, { content: '/overflow please' });
+
+      expect(events.find(([name]) => name === 'meta')[1].context.trimmedCount).toBeGreaterThan(0);
+      expect(result.data.contextOverflow).toBe(true);
+      expect(result.data.stats.totalMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should regenerate with a new target, dropping the old answer and anything after it', async () => {
+      const catalogue = await get('/ai/models');
+      const rig = catalogue.nodes.find((n) => n.name === 'Rig-2');
+      const conv = await post('/ai/conversations', { target: LLAMA });
+      await runTurn(conv.id, { content: 'First' });
+      await runTurn(conv.id, { content: 'Second' });
+      const before = await get(`/ai/conversations/${conv.id}`);
+
+      const events = [];
+      await handleStream(`/ai/conversations/${conv.id}/messages/${before.messages[1].id}/regenerate`, {
+        target: { model: 'llama3.1:8b', nodeId: rig.id },
+      }, { onEvent: (name, data) => events.push([name, data]) });
+
+      const after = await get(`/ai/conversations/${conv.id}`);
+      expect(after.messages.map((m) => m.role)).toEqual(['user', 'assistant']);
+      expect(after.messages[1].id).not.toBe(before.messages[1].id);
+      expect(events.find(([name]) => name === 'meta')[1].nodeName).toBe('Rig-2');
+      expect(after.target.nodeId).toBe(rig.id);
+    });
+
+    it('should edit a user message in place and truncate what follows', async () => {
+      const conv = await post('/ai/conversations', { target: LLAMA });
+      await runTurn(conv.id, { content: 'First' });
+      await runTurn(conv.id, { content: 'Second' });
+      const before = await get(`/ai/conversations/${conv.id}`);
+
+      await handleStream(`/ai/conversations/${conv.id}/messages/${before.messages[0].id}/edit`, { content: 'First, reworded' });
+
+      const after = await get(`/ai/conversations/${conv.id}`);
+      expect(after.messages.map((m) => m.role)).toEqual(['user', 'assistant']);
+      expect(after.messages[0]).toMatchObject({ id: before.messages[0].id, content: 'First, reworded' });
+      expect(after.messages[0].editedAt).toBeTruthy();
+    });
+  });
 });

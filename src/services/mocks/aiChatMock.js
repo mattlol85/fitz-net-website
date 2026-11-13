@@ -64,7 +64,8 @@ const MODEL_DETAILS = {
   },
   'phi3:mini': {
     family: 'phi3', parameterSize: '3.8B', quantization: 'Q4_0', sizeBytes: 2176178913,
-    contextLength: 4096, maxContextLength: 4096, capabilities: ['completion'], vramMb: 2800,
+    // A deliberately tiny window so that trimming (and Summarise) is reachable in a few turns.
+    contextLength: 1024, maxContextLength: 4096, capabilities: ['completion'], vramMb: 2800,
   },
 };
 
@@ -210,6 +211,14 @@ function freshState() {
     target: { model: 'llama3.1:8b', nodeId: 'mock-node-garage' }, minutesAgo: 600,
     exchanges: [['Are you there?', 'Yes, I was running on the garage laptop back then.']],
   });
+  seedConversation(state, {
+    title: 'Long design discussion',
+    target: { model: 'llama3.1:8b', nodeId: null }, minutesAgo: 240,
+    exchanges: Array.from({ length: 8 }, (_, i) => [
+      `Design question ${i + 1}: how should we structure part ${i + 1} of the bell firmware?`,
+      `Answer ${i + 1}: ${'Split it into small, testable modules, keep the interrupt handlers tiny and move work to the main loop. '.repeat(4)}`,
+    ]),
+  });
   return state;
 }
 
@@ -263,12 +272,30 @@ function contextUsage(conv, target) {
     ? state.nodes.find((n) => n.id === resolved.nodeId)
     : candidates(state, resolved.model)[0];
   const contextLength = MODEL_DETAILS[resolved.model]?.contextLength ?? 8192;
-  const totalTokens = conv.messages.reduce((sum, m) => sum + estimateTokens(m.content), 0);
   const budget = contextLength - Math.min(Math.max(contextLength / 4, 256), 2048);
-  const usedTokens = Math.min(totalTokens, budget);
+  const base = { model: resolved.model, nodeId: node?.id ?? null, contextLength };
+
+  const sent = conv.messages.filter((m) => m.role === 'user' || m.content);
+  const totalTokens = sent.reduce((sum, m) => sum + estimateTokens(m.content), 0);
+  if (totalTokens <= budget) {
+    return { ...base, usedTokens: totalTokens, totalTokens, fits: true, trimmedCount: 0, summaryActive: false };
+  }
+
+  // Newest first, as many as fit; a stored summary stands in for what it covers.
+  const summary = conv.summary;
+  const pool = summary ? sent.filter((m) => m.seq > summary.coversThroughSeq) : sent;
+  let used = summary ? estimateTokens(summary.text) : 0;
+  let included = 0;
+  for (let i = pool.length - 1; i >= 0; i -= 1) {
+    const tokens = estimateTokens(pool[i].content);
+    if (used + tokens > budget) break;
+    used += tokens;
+    included += 1;
+  }
+  const trimmedCount = pool.length - included;
   return {
-    model: resolved.model, nodeId: node?.id ?? null, contextLength, usedTokens, totalTokens,
-    fits: totalTokens <= budget, trimmedCount: totalTokens <= budget ? 0 : 1, summaryActive: false,
+    ...base, usedTokens: used, totalTokens, fits: trimmedCount === 0, trimmedCount,
+    summaryActive: Boolean(summary),
   };
 }
 
@@ -356,12 +383,19 @@ async function runTurn(conv, { userMessage, target, signal, onEvent, userText })
   state.inFlight.add(assistant.id);
   node.activeGenerations += 1;
 
+  const preflight = contextUsage(conv, target);
+
   try {
     events('meta', {
       conversationId: conv.id, userMessageId: userMessage?.id ?? null, assistantMessageId: assistant.id,
       nodeId: node.id, nodeName: node.name, model, auto: !target.nodeId, presetId: null,
       contextLength: details.contextLength,
-      context: { promptTokensEstimate: contextUsage(conv, target)?.usedTokens ?? 0, trimmedCount: 0, summaryActive: false, imagesOmitted: 0 },
+      context: {
+        promptTokensEstimate: preflight?.usedTokens ?? 0,
+        trimmedCount: preflight?.trimmedCount ?? 0,
+        summaryActive: preflight?.summaryActive ?? false,
+        imagesOmitted: 0,
+      },
     });
 
     let loadMs = 0;
@@ -415,7 +449,9 @@ async function runTurn(conv, { userMessage, target, signal, onEvent, userText })
       events('token', { content: piece });
     }
 
-    const promptTokens = contextUsage(conv, target)?.usedTokens ?? 100;
+    // `/overflow` simulates a prompt that filled the model's whole window.
+    const overflow = Boolean(userText?.startsWith('/overflow'));
+    const promptTokens = overflow ? details.contextLength : (preflight?.usedTokens ?? 100);
     const completionTokens = estimateTokens(assistant.content);
     const totalMs = Date.now() - startedAt;
     const stats = {
@@ -430,7 +466,7 @@ async function runTurn(conv, { userMessage, target, signal, onEvent, userText })
     conv.updatedAt = nowIso();
     const data = {
       messageId: assistant.id, userMessageId: userMessage?.id ?? null, promptTokens, completionTokens,
-      contextLength: details.contextLength, finishReason: 'stop', contextOverflow: false, stats,
+      contextLength: details.contextLength, finishReason: 'stop', contextOverflow: overflow, stats,
     };
     events('done', data);
     return { event: 'done', data };
@@ -665,9 +701,13 @@ const ROUTES = [
       if (!usage || usage.trimmedCount === 0) {
         throw new ApiError('Nothing to summarise: every message still fits.', { status: 409 });
       }
+      // Fold the oldest trimmed messages (and any earlier summary) into one stored summary.
+      const sent = conv.messages.filter((m) => m.role === 'user' || m.content);
+      const pool = conv.summary ? sent.filter((m) => m.seq > conv.summary.coversThroughSeq) : sent;
+      const lastCovered = pool[usage.trimmedCount - 1];
       conv.summary = {
-        text: 'The user and Matt-GPT talked about the project (mock summary).',
-        coversThroughSeq: Math.max(1, conv.messages.length - 2), model: usage.model, partial: false, createdAt: nowIso(),
+        text: `Earlier in this chat (mock summary): ${pool.slice(0, usage.trimmedCount).filter((m) => m.role === 'user').map((m) => m.content.slice(0, 40)).join('; ')}.`,
+        coversThroughSeq: lastCovered.seq, model: usage.model, partial: false, createdAt: nowIso(),
       };
       return { conversation: summarize(conv), summary: clone(conv.summary), context: contextUsage(conv) };
     },

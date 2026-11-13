@@ -78,3 +78,49 @@ export function formatElapsed(ms) {
   if (seconds < 60) return `${seconds.toFixed(1)}s`;
   return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
 }
+
+/** "420 ms", "5.2 s", "2m 5s". Used by the per-reply stats. */
+export function formatDuration(ms) {
+  if (ms < 1000) return `${Math.round(ms)} ms`;
+  const seconds = ms / 1000;
+  if (seconds < 60) return `${seconds.toFixed(1)} s`;
+  return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+}
+
+/** The value when it is a finite number, else null (so missing stats are omitted, never 0 or NaN). */
+export const finiteNumber = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
+
+/**
+ * The one-click failover choices for a model, derived from the catalogue: nodes that are not
+ * OFFLINE and list the model, except `excludeNodeId`. Warm nodes first, then by name.
+ */
+export function deriveAlternatives(catalogue, model, excludeNodeId = null) {
+  if (!catalogue?.nodes || !model) return [];
+  return catalogue.nodes
+    .filter((n) => n.status !== 'OFFLINE' && n.id !== excludeNodeId)
+    .map((n) => ({ node: n, entry: n.models?.find((m) => m.name === model) }))
+    .filter(({ entry }) => entry)
+    .map(({ node, entry }) => ({
+      nodeId: node.id,
+      nodeName: node.name,
+      model,
+      loaded: Boolean(entry.loaded),
+      status: node.status,
+    }))
+    .sort((a, b) => Number(b.loaded) - Number(a.loaded) || a.nodeName.localeCompare(b.nodeName));
+}
+
+/** Error codes the API sends `alternatives` for. */
+export const FAILOVER_CODES = ['NODE_OFFLINE', 'MODEL_NOT_ON_NODE', 'NO_NODE_AVAILABLE', 'NODE_UNREACHABLE'];
+
+/** Normalises a ContextUsage or a `meta.context` into what the banner and ring need. */
+export function toContextInfo(source, extra = {}) {
+  if (!source) return null;
+  return {
+    model: source.model ?? extra.model ?? null,
+    contextLength: source.contextLength ?? extra.contextLength ?? null,
+    usedTokens: source.usedTokens ?? source.promptTokensEstimate ?? null,
+    trimmedCount: source.trimmedCount ?? 0,
+    summaryActive: Boolean(source.summaryActive),
+  };
+}
