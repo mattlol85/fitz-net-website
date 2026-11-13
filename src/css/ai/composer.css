@@ -10,8 +10,8 @@
 
 .ai-chat__composer {
   display: flex;
-  align-items: flex-end;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.35rem;
   padding: 0.4rem 0.4rem 0.4rem 1.1rem;
   border: 1px solid var(--border-color);
   border-radius: 26px;
@@ -19,11 +19,17 @@
   box-shadow: 0 2px 10px var(--shadow-color);
 }
 
+.ai-chat__composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
 .ai-chat__composer:focus-within {
   border-color: var(--text-secondary);
 }
 
-.ai-chat__composer .context-ring {
+.ai-chat__composer-row .context-ring {
   align-self: center;
 }
 

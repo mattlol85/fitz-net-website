@@ -5,7 +5,8 @@ import Markdown from './Markdown';
 import { AssistantActions, MessageEditor, UserActions } from './MessageActions';
 import ThinkingBlock from './ThinkingBlock';
 import { MessageControls } from './messageControls';
-import { deriveAlternatives, FAILOVER_CODES } from './aiChatUtils';
+import { deriveAlternatives, showsFailover } from './aiChatUtils';
+import AttachmentThumb from './AttachmentThumb';
 import { AlertIcon } from './icons';
 import '../../css/ai/controls.css';
 
@@ -19,6 +20,11 @@ function GenerationTag({ generation }) {
         {generation.nodeName ? ` · ${generation.nodeName}` : ''}
       </span>
       {generation.auto && <span className="ai-chat__chip ai-chat__chip--auto">auto</span>}
+      {generation.presetName && (
+        <span className="ai-chat__chip ai-chat__chip--preset" title="Preset">
+          {generation.presetName}
+        </span>
+      )}
       <GenerationStats generation={generation} />
     </div>
   );
@@ -34,9 +40,18 @@ function UserMessage({ message, laterCount }) {
           <MessageEditor message={message} laterCount={laterCount} onCancel={() => setEditing(false)} />
         ) : (
           <>
-            <div className="ai-chat__bubble">
-              <p className="ai-chat__user-text">{message.content}</p>
-            </div>
+            {message.attachments?.length > 0 && (
+              <div className="ai-chat__thumbs">
+                {message.attachments.map((attachment) => (
+                  <AttachmentThumb key={attachment.id} attachment={attachment} />
+                ))}
+              </div>
+            )}
+            {message.content && (
+              <div className="ai-chat__bubble">
+                <p className="ai-chat__user-text">{message.content}</p>
+              </div>
+            )}
             <div className="ai-chat__under">
               {message.editedAt && <span className="ai-chat__edited">edited</span>}
               <UserActions message={message} onEdit={() => setEditing(true)} />
@@ -68,12 +83,15 @@ function ErrorFailover({ message }) {
 
 function AssistantMessage({ message, laterCount, isLast }) {
   const { onOpenPicker } = useContext(MessageControls);
+  const [picker, setPicker] = useState(null);
+  const imagesOmitted = message.context?.imagesOmitted || 0;
+  const overflowed = message.contextOverflow || message.generation?.contextOverflow;
   const streaming = message.status === 'streaming';
   const hasText = Boolean(message.content);
   const waiting = streaming && !hasText && !message.thinking && !message.live;
   const interrupted = message.status === 'error' && message.error?.code === 'INTERRUPTED';
   const failed = message.status === 'error' && !interrupted;
-  const failoverCode = failed && (FAILOVER_CODES.includes(message.error?.code) || message.alternatives?.length > 0);
+  const failoverCode = showsFailover(message);
 
   return (
     <div
@@ -123,6 +141,11 @@ function AssistantMessage({ message, laterCount, isLast }) {
             <AlertIcon size={16} />
             <span className="ai-chat__error-text">
               {message.error?.message || 'Something went wrong.'}
+              {message.error?.code === 'MODEL_NOT_VISION' && (
+                <button type="button" className="ai-chat__link-button" onClick={() => setPicker('vision')}>
+                  Choose a vision model
+                </button>
+              )}
               {message.error?.code === 'CONTEXT_TOO_SMALL' && (
                 <>
                   {' '}
@@ -137,7 +160,7 @@ function AssistantMessage({ message, laterCount, isLast }) {
           </div>
         )}
 
-        {message.contextOverflow && (
+        {overflowed && (
           <p className="ai-chat__warn" role="status">
             <AlertIcon size={14} /> The model&apos;s window was full; early context may have been cut.
           </p>
@@ -145,9 +168,19 @@ function AssistantMessage({ message, laterCount, isLast }) {
 
         {failoverCode && isLast && <ErrorFailover message={message} />}
 
+        {imagesOmitted > 0 && (
+          <p className="ai-chat__note" role="status">
+            {imagesOmitted === 1
+              ? "1 earlier image wasn't sent \u2014 this model can't read images."
+              : `${imagesOmitted} earlier images weren't sent \u2014 this model can't read images.`}
+          </p>
+        )}
+
         <GenerationTag generation={message.generation} />
 
-        {!streaming && <AssistantActions message={message} laterCount={laterCount} />}
+        {!streaming && (
+          <AssistantActions message={message} laterCount={laterCount} picker={picker} onPickerChange={setPicker} />
+        )}
       </div>
     </div>
   );

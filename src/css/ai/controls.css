@@ -278,3 +278,16 @@
   align-items: center;
   gap: 0.4rem;
 }
+
+/* Touch: bigger targets for the action rows and buttons. */
+@media (pointer: coarse) {
+  .ai-chat__action,
+  .ai-chat__code-copy,
+  .ai-chat__stats-toggle {
+    min-height: 36px;
+  }
+
+  .ai-chat__button {
+    min-height: 36px;
+  }
+}

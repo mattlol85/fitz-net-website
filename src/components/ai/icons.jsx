@@ -146,3 +146,15 @@ export const SwapIcon = (props) => (
     <path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" />
   </Icon>
 );
+
+export const SlidersIcon = (props) => (
+  <Icon {...props}>
+    <path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M8 14v6" />
+  </Icon>
+);
+
+export const PaperclipIcon = (props) => (
+  <Icon {...props}>
+    <path d="m21 11-9.2 9.2a5 5 0 0 1-7.1-7.1l9.2-9.2a3.3 3.3 0 0 1 4.7 4.7l-9.2 9.2a1.7 1.7 0 0 1-2.4-2.4l8.5-8.5" />
+  </Icon>
+);

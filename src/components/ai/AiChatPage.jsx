@@ -2,15 +2,18 @@ import React, { useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import useAiChat from '../../hooks/useAiChat';
+import usePresets from '../../hooks/usePresets';
+import useTurnAnnouncement from '../../hooks/useTurnAnnouncement';
 import useConversationList from '../../hooks/useConversationList';
 import useModelCatalogue from '../../hooks/useModelCatalogue';
+import ChatSettings from './ChatSettings';
 import Composer from './Composer';
 import ContextBanner from './ContextBanner';
 import FailoverChoices from './FailoverChoices';
 import ConversationSidebar from './ConversationSidebar';
 import MessageList from './MessageList';
 import ModelPicker from './ModelPicker';
-import { deriveAlternatives } from './aiChatUtils';
+import { deriveAlternatives, showsFailover, targetSupportsVision } from './aiChatUtils';
 import { AlertIcon, CloseIcon, SidebarIcon } from './icons';
 import '../../css/ai/layout.css';
 import '../../css/ai/chat.css';
@@ -33,7 +36,7 @@ function readSidebarPreference() {
  * (`/ai?c=<id>`) so a reload restores it; a new chat has no id until its first message.
  */
 export default function AiChatPage() {
-  const { token } = useAuth();
+  const { token, hasPermission } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const conversationId = searchParams.get('c');
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -46,6 +49,7 @@ export default function AiChatPage() {
 
   const models = useModelCatalogue({ token, fast: pickerOpen });
   const list = useConversationList({ token });
+  const presets = usePresets({ token });
   const chat = useAiChat({
     token,
     conversationId,
@@ -77,6 +81,7 @@ export default function AiChatPage() {
   };
 
   const handleNew = () => {
+    chat.resetDraft();
     setConversationId(null);
     closeDrawer();
   };
@@ -104,7 +109,11 @@ export default function AiChatPage() {
   const pinnedNode = chat.target?.nodeId
     ? models.catalogue?.nodes?.find((n) => n.id === chat.target.nodeId)
     : null;
-  const offlineNode = pinnedNode?.status === 'OFFLINE' ? pinnedNode : null;
+  const lastMessage = chat.messages[chat.messages.length - 1];
+  // The error under the last reply already offers the same choices; do not say it twice.
+  const offlineNode = pinnedNode?.status === 'OFFLINE' && !showsFailover(lastMessage) ? pinnedNode : null;
+  const vision = targetSupportsVision(models.catalogue, chat.target);
+  const announcement = useTurnAnnouncement(chat.messages, chat.streaming, conversationId);
 
   const hasConversation = Boolean(conversationId);
   const noModels = Boolean(models.catalogue) && models.catalogue.models.length === 0;
@@ -112,6 +121,9 @@ export default function AiChatPage() {
 
   return (
     <div className="ai-chat" data-sidebar={sidebarOpen ? 'open' : 'closed'}>
+      <div className="ai-chat__sr" aria-live="polite" data-testid="turn-announcement">
+        {announcement}
+      </div>
       <ConversationSidebar
         items={list.items}
         loading={list.loading}
@@ -152,9 +164,20 @@ export default function AiChatPage() {
               error={models.error}
               target={chat.target}
               onSelect={chat.selectTarget}
+              presets={presets.items}
+              activePresetId={chat.settings.presetId}
+              onSelectPreset={chat.applyPreset}
               open={pickerOpen}
               onOpenChange={setPickerOpen}
               onRefresh={models.refresh}
+            />
+            <ChatSettings
+              settings={chat.settings}
+              presets={presets}
+              catalogue={models.catalogue}
+              canShare={Boolean(hasPermission?.('ADMIN'))}
+              onApplyPreset={chat.applyPreset}
+              onSavePrompt={chat.saveSystemPrompt}
             />
           </div>
 
@@ -232,6 +255,7 @@ export default function AiChatPage() {
             <ContextBanner
               warning={chat.trimWarning}
               summaryActive={chat.summaryActive}
+              summaryPartial={chat.summaryPartial}
               summarizing={chat.summarizing}
               onSummarize={chat.summarize}
               onDismiss={chat.dismissTrim}
@@ -242,6 +266,7 @@ export default function AiChatPage() {
               streaming={chat.streaming}
               canSend={Boolean(chat.target) && !chat.loading && !chat.loadError}
               usage={chat.usage}
+              vision={vision}
             />
           </div>
         </div>

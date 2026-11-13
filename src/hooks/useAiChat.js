@@ -14,10 +14,11 @@ import {
   warmUp,
 } from '../services/aiChatApi';
 import { isAbortError } from '../services/sse';
-import { resolveDefaultTarget, toContextInfo } from '../components/ai/aiChatUtils';
+import { resolveDefaultTarget, sameTarget, toContextInfo } from '../components/ai/aiChatUtils';
 import { applyTurnEvent } from '../components/ai/turnEvents';
 
 export const WARM_UP_DEBOUNCE_MS = 400;
+const EMPTY_SETTINGS = { presetId: null, systemPrompt: null };
 
 /** The ring shows the last reply's footprint; before any reply, the server's estimate. */
 function usageFromDetail(detail) {
@@ -64,6 +65,8 @@ export default function useAiChat({
   const [contextInfo, setContextInfo] = useState(null);
   const [dismissedTrim, setDismissedTrim] = useState(null);
   const [summarizing, setSummarizing] = useState(false);
+  // Preset and system prompt for a chat that has no conversation yet; passed to createConversation.
+  const [draftSettings, setDraftSettings] = useState(EMPTY_SETTINGS);
 
   // The conversation id whose data `conversation` / `messages` hold ('' = none yet).
   const loadedIdRef = useRef(null);
@@ -102,6 +105,7 @@ export default function useAiChat({
     setContextInfo(null);
     setDismissedTrim(null);
     setSummarizing(false);
+    setDraftSettings(EMPTY_SETTINGS);
 
     if (!wanted) {
       setConversation(null);
@@ -159,17 +163,42 @@ export default function useAiChat({
     setConversation((c) => (c && c.id === updated.id ? { ...c, ...updated } : c));
   }, []);
 
-  /** Picker selection: warm the model up (debounced), then remember it. */
-  const selectTarget = useCallback(
+  const scheduleWarm = useCallback(
     (next) => {
-      setOverride(next);
-
       clearTimeout(warmTimerRef.current);
       warmTimerRef.current = setTimeout(() => {
         warmUp(token, next)
           .then((result) => latest.current.onWarmUp?.(result))
           .catch(() => {});
       }, WARM_UP_DEBOUNCE_MS);
+    },
+    [token]
+  );
+
+  /** Re-checks the window for `next` (only worth it once there is history). */
+  const preflight = useCallback(
+    (id, next) => {
+      if (messagesRef.current.length === 0) return;
+      getContextUsage(token, id, { model: next.model, nodeId: next.nodeId })
+        .then((context) => {
+          if (loadedIdRef.current !== id) return;
+          setUsage({ used: context.usedTokens || 0, max: context.contextLength || 0 });
+          setContextInfo(toContextInfo(context));
+          setConversation((c) => (c ? { ...c, context } : c));
+        })
+        // 503: the new target cannot be resolved right now, so there is nothing to warn about.
+        .catch(() => {
+          if (loadedIdRef.current === id) setContextInfo(null);
+        });
+    },
+    [token]
+  );
+
+  /** Picker selection: warm the model up (debounced), then remember it. */
+  const selectTarget = useCallback(
+    (next) => {
+      setOverride(next);
+      scheduleWarm(next);
 
       const id = loadedIdRef.current;
       if (!id) {
@@ -180,19 +209,7 @@ export default function useAiChat({
       }
 
       setPreferences((p) => (p ? { ...p, lastTarget: next } : p));
-      if (messagesRef.current.length > 0) {
-        getContextUsage(token, id, { model: next.model, nodeId: next.nodeId })
-          .then((context) => {
-            if (loadedIdRef.current !== id) return;
-            setUsage({ used: context.usedTokens || 0, max: context.contextLength || 0 });
-            setContextInfo(toContextInfo(context));
-            setConversation((c) => (c ? { ...c, context } : c));
-          })
-          // 503: the new target cannot be resolved right now, so there is nothing to warn about.
-          .catch(() => {
-            if (loadedIdRef.current === id) setContextInfo(null);
-          });
-      }
+      preflight(id, next);
       updateConversation(token, id, { target: next })
         .then((updated) => {
           if (loadedIdRef.current === id) mergeConversation(updated);
@@ -201,7 +218,69 @@ export default function useAiChat({
           if (loadedIdRef.current === id) setNotice(err.message || 'Could not save the model choice.');
         });
     },
-    [token, mergeConversation]
+    [token, mergeConversation, scheduleWarm, preflight]
+  );
+
+  const settings = useMemo(
+    () =>
+      conversation
+        ? {
+            presetId: conversation.settings?.presetId ?? null,
+            systemPrompt: conversation.settings?.systemPrompt ?? null,
+          }
+        : draftSettings,
+    [conversation, draftSettings]
+  );
+
+  /**
+   * Stores `{ presetId, systemPrompt }`. On an existing conversation it is PATCHed whole, without
+   * a target: when the preset pins a model the server copies it into the target and we follow the
+   * response. With no conversation yet it is held locally for createConversation, and a pinned
+   * model becomes the selection straight away (Auto when the preset has no node).
+   */
+  const updateSettings = useCallback(
+    async (next, preset = null) => {
+      const id = loadedIdRef.current;
+      if (!id) {
+        setDraftSettings(next);
+        if (preset?.model) selectTarget({ model: preset.model, nodeId: preset.nodeId ?? null });
+        return;
+      }
+      try {
+        const updated = await updateConversation(token, id, { settings: next });
+        if (loadedIdRef.current !== id) return;
+        mergeConversation(updated);
+        if (updated.target) {
+          const changed = !sameTarget(updated.target, override ?? conversation?.target);
+          setOverride(updated.target);
+          if (changed) {
+            scheduleWarm(updated.target);
+            preflight(id, updated.target);
+            setPreferences((p) => (p ? { ...p, lastTarget: updated.target } : p));
+          }
+        }
+      } catch (err) {
+        if (loadedIdRef.current === id) setNotice(err.message || 'Could not save the chat settings.');
+      }
+    },
+    [token, selectTarget, mergeConversation, scheduleWarm, preflight, override, conversation]
+  );
+
+  /** New chat from a blank chat: the URL does not change, so drop the unsent settings by hand. */
+  const resetDraft = useCallback(() => {
+    if (loadedIdRef.current) return;
+    setDraftSettings(EMPTY_SETTINGS);
+    setOverride(null);
+  }, []);
+
+  const applyPreset = useCallback(
+    (preset) => updateSettings({ presetId: preset?.id ?? null, systemPrompt: settings.systemPrompt }, preset),
+    [updateSettings, settings.systemPrompt]
+  );
+
+  const saveSystemPrompt = useCallback(
+    (text) => updateSettings({ presetId: settings.presetId, systemPrompt: text ? text : null }),
+    [updateSettings, settings.presetId]
   );
 
   /**
@@ -261,7 +340,12 @@ export default function useAiChat({
       let id = loadedIdRef.current;
       try {
         if (!id && createIfNeeded) {
-          const created = await createConversation(token, { target: turnTarget }, { signal: controller.signal });
+          const hasSettings = draftSettings.presetId || draftSettings.systemPrompt;
+          const created = await createConversation(
+            token,
+            { target: turnTarget, ...(hasSettings && { settings: draftSettings }) },
+            { signal: controller.signal }
+          );
           if (!isCurrent()) return { restoreDraft: false };
           id = created.id;
           loadedIdRef.current = id;
@@ -307,7 +391,7 @@ export default function useAiChat({
         }
       }
     },
-    [token]
+    [token, draftSettings]
   );
 
   const placeholder = (assistantKey) => ({
@@ -322,14 +406,24 @@ export default function useAiChat({
     createdAt: new Date().toISOString(),
   });
 
-  /** Sends `content` on the current target and streams the reply into the message list. */
+  /**
+   * Sends `content` (and uploaded `attachments`, which may stand in for the text) on the current
+   * target and streams the reply into the message list.
+   */
   const send = useCallback(
-    (content) => {
+    (content, attachments = []) => {
       const text = content.trim();
-      if (!text || abortRef.current || !target) return Promise.resolve({ restoreDraft: false });
+      if ((!text && attachments.length === 0) || abortRef.current || !target) {
+        return Promise.resolve({ restoreDraft: false });
+      }
 
       const firstReply = !messagesRef.current.some((m) => m.role === 'assistant' && m.status === 'complete');
       const userKey = `local-user-${turnRef.current + 1}`;
+      const body = {
+        content: text,
+        ...(attachments.length > 0 && { attachmentIds: attachments.map((a) => a.id) }),
+        target,
+      };
       return runTurn({
         turnTarget: target,
         userKey,
@@ -337,12 +431,12 @@ export default function useAiChat({
         prepare: (prev, assistantKey) => [
           ...prev,
           {
-            id: userKey, clientKey: userKey, role: 'user', content: text, attachments: [],
+            id: userKey, clientKey: userKey, role: 'user', content: text, attachments,
             status: 'complete', createdAt: new Date().toISOString(),
           },
           placeholder(assistantKey),
         ],
-        call: (id, options) => sendMessage(token, id, { content: text, target }, options),
+        call: (id, options) => sendMessage(token, id, body, options),
         onDone: (result, id) => {
           if (result.event === 'done' && firstReply) {
             generateTitle(token, id)
@@ -451,6 +545,11 @@ export default function useAiChat({
     summarize,
     summarizing,
     trimWarning,
+    summaryPartial: Boolean(conversation?.summary?.partial),
+    settings,
+    applyPreset,
+    saveSystemPrompt,
+    resetDraft,
     summaryActive: Boolean(contextInfo?.summaryActive) && !(contextInfo?.trimmedCount > 0),
     dismissTrim,
     stop,

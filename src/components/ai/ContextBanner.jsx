@@ -5,7 +5,7 @@ import { AlertIcon, CloseIcon } from './icons';
  * Above the composer: a warning when older messages no longer fit the selected model's window
  * (with the explicit Summarise action), or a quiet note when a summary stands in for them.
  */
-export default function ContextBanner({ warning, summaryActive, summarizing, onSummarize, onDismiss }) {
+export default function ContextBanner({ warning, summaryActive, summaryPartial, summarizing, onSummarize, onDismiss }) {
   if (warning) {
     const { count, model } = warning;
     return (
@@ -36,6 +36,7 @@ export default function ContextBanner({ warning, summaryActive, summarizing, onS
     return (
       <p className="ai-chat__banner ai-chat__banner--quiet" role="status">
         Older turns are summarised for this model
+        {summaryPartial && ' Only the most recent part of the older turns could be summarised.'}
       </p>
     );
   }

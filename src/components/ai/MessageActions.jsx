@@ -23,9 +23,9 @@ function CopyButton({ text }) {
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 /** Copy, Regenerate and Regenerate with... for an assistant message. */
-export function AssistantActions({ message, laterCount }) {
+export function AssistantActions({ message, laterCount, picker, onPickerChange }) {
   const { disabled, catalogue, target, onRegenerate, onRefreshModels } = useContext(MessageControls);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerOpen = Boolean(picker);
   const [confirm, setConfirm] = useState(null);
   const withRef = useRef(null);
 
@@ -53,7 +53,7 @@ export function AssistantActions({ message, laterCount }) {
   }
 
   return (
-    <div className="ai-chat__actions">
+    <div className={`ai-chat__actions${pickerOpen ? ' ai-chat__actions--open' : ''}`}>
       <CopyButton text={message.content} />
       <button type="button" className="ai-chat__action" disabled={disabled} onClick={() => request(undefined)}>
         <RetryIcon size={14} /> Regenerate
@@ -66,7 +66,7 @@ export function AssistantActions({ message, laterCount }) {
           aria-haspopup="dialog"
           aria-expanded={pickerOpen}
           disabled={disabled || !catalogue}
-          onClick={() => setPickerOpen(true)}
+          onClick={() => onPickerChange('any')}
         >
           <SwapIcon size={14} /> Regenerate with…
         </button>
@@ -75,14 +75,17 @@ export function AssistantActions({ message, laterCount }) {
             open
             hideButton
             shortcut={false}
-            title="Choose a model for this answer"
+            title={picker === 'vision' ? 'Choose a vision model for this answer' : 'Choose a model for this answer'}
+            visionOnly={picker === 'vision'}
             className="ai-chat__picker--inline"
             catalogue={catalogue}
             target={target}
             onSelect={request}
             onOpenChange={(open) => {
-              setPickerOpen(open);
-              if (!open) withRef.current?.focus();
+              if (!open) {
+                onPickerChange(null);
+                withRef.current?.focus();
+              }
             }}
             onRefresh={onRefreshModels}
           />

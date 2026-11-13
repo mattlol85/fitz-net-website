@@ -124,3 +124,26 @@ export function toContextInfo(source, extra = {}) {
     summaryActive: Boolean(source.summaryActive),
   };
 }
+
+/** True when the target's model can read images: Auto uses the models[] row, a pinned node its own copy. */
+export function targetSupportsVision(catalogue, target) {
+  if (!catalogue || !target?.model) return false;
+  if (target.nodeId) {
+    const node = catalogue.nodes?.find((n) => n.id === target.nodeId);
+    return Boolean(node?.models?.find((m) => m.name === target.model)?.capabilities?.includes('vision'));
+  }
+  return Boolean(catalogue.models?.find((m) => m.name === target.model)?.capabilities?.includes('vision'));
+}
+
+/** An assistant reply that ended in an error and shows one-click failover choices. */
+export function showsFailover(message) {
+  return (
+    message?.role === 'assistant' &&
+    message.status === 'error' &&
+    (FAILOVER_CODES.includes(message.error?.code) || message.alternatives?.length > 0)
+  );
+}
+
+export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+export const MAX_ATTACHMENTS = 4;
+export const MAX_PROMPT_CHARS = 8000;

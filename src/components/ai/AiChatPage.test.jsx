@@ -230,7 +230,9 @@ describe('AiChatPage new chat', () => {
 
     await turn.emit('meta', META);
     await turn.emit('status', { phase: 'loading_model', nodeId: NODE_PC, model: 'llama3.1:8b', message: 'Loading…' });
-    expect(screen.getByText('Loading llama3.1:8b on Matt-PC…')).toBeInTheDocument();
+    expect(within(screen.getByTestId('ai-chat-messages')).getByText('Loading llama3.1:8b on Matt-PC…')).toBeInTheDocument();
+    // ...and announced once to screen readers.
+    expect(screen.getByTestId('turn-announcement')).toHaveTextContent('Loading llama3.1:8b on Matt-PC…');
     // The tag appears as soon as the node is known.
     expect(screen.getByTestId('generation-tag')).toHaveTextContent('llama3.1:8b · Matt-PC');
     expect(screen.getByTestId('generation-tag')).toHaveTextContent('auto');
