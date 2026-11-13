@@ -80,6 +80,23 @@ describe('useModelCatalogue', () => {
     expect(listModels).toHaveBeenLastCalledWith('jwt', { refresh: true });
   });
 
+  it('should pause polling while the tab is hidden and reload once when it is shown again', async () => {
+    const setHidden = (hidden) => Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+    renderHook(() => useModelCatalogue({ token: 'jwt' }));
+    await flush();
+    listModels.mockClear();
+
+    setHidden(true);
+    await tick(CATALOGUE_POLL_MS * 3);
+    expect(listModels).not.toHaveBeenCalled();
+
+    setHidden(false);
+    await act(async () => document.dispatchEvent(new Event('visibilitychange')));
+    expect(listModels).toHaveBeenCalledTimes(1);
+    await tick(CATALOGUE_POLL_MS);
+    expect(listModels).toHaveBeenCalledTimes(2);
+  });
+
   it('should stop polling on unmount', async () => {
     const { unmount } = renderHook(() => useModelCatalogue({ token: 'jwt' }));
     await flush();

@@ -72,7 +72,12 @@ function scriptTurn(mock = api.sendMessage) {
         turn.messageId = args.length === 5 ? args[2] : undefined;
         turn.body = args.at(-2);
         turn.signal = signal;
-        turn.emit = (name, data) => act(async () => onEvent(name, data));
+        // thinking/token deltas are applied once per animation frame, so let a frame pass.
+        turn.emit = (name, data) =>
+          act(async () => {
+            onEvent(name, data);
+            if (name === 'token' || name === 'thinking') await new Promise((r) => setTimeout(r, 30));
+          });
         turn.finish = (event, data) => act(async () => resolve({ event, data }));
         turn.fail = (error) => act(async () => reject(error));
         signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));

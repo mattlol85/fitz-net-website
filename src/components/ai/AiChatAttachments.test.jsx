@@ -153,11 +153,11 @@ describe('adding images', () => {
 
     await waitFor(() => expect(api.uploadAttachment).toHaveBeenCalled());
     expect(downsizeImage).toHaveBeenCalledWith(original);
-    expect(api.uploadAttachment).toHaveBeenCalledWith('jwt', {
-      name: 'holiday.jpg',
-      mimeType: 'image/jpeg',
-      dataBase64: btoa('jpegdata'),
-    });
+    expect(api.uploadAttachment).toHaveBeenCalledWith(
+      'jwt',
+      { name: 'holiday.jpg', mimeType: 'image/jpeg', dataBase64: btoa('jpegdata') },
+      { signal: expect.any(AbortSignal) }
+    );
   });
 
   it('should show an uploading chip, then a thumbnail, and remove it with a revoked preview', async () => {
@@ -234,6 +234,43 @@ describe('adding images', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent("This model can't read images");
     expect(api.uploadAttachment).not.toHaveBeenCalled();
+  });
+});
+
+describe('abandoned uploads', () => {
+  const hang = () => {
+    const seen = {};
+    api.uploadAttachment.mockImplementation((token, body, options) => {
+      seen.signal = options.signal;
+      return new Promise(() => {});
+    });
+    return seen;
+  };
+
+  it('should abort the upload of an image that is removed', async () => {
+    const user = userEventSetup();
+    const seen = hang();
+    renderPage();
+    await waitForReady();
+    attach(png('pic.png'));
+    await waitFor(() => expect(seen.signal).toBeDefined());
+    expect(seen.signal.aborted).toBe(false);
+
+    await user.click(screen.getByRole('button', { name: 'Remove pic.jpg' }));
+
+    expect(seen.signal.aborted).toBe(true);
+  });
+
+  it('should abort uploads still running when the page goes away', async () => {
+    const seen = hang();
+    const view = renderPage();
+    await waitForReady();
+    attach(png('pic.png'));
+    await waitFor(() => expect(seen.signal).toBeDefined());
+
+    view.unmount();
+
+    expect(seen.signal.aborted).toBe(true);
   });
 });
 

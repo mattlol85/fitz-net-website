@@ -18,6 +18,14 @@ import { resolveDefaultTarget, sameTarget, toContextInfo } from '../components/a
 import { applyTurnEvent } from '../components/ai/turnEvents';
 
 export const WARM_UP_DEBOUNCE_MS = 400;
+
+// Optimistic rows have a local key until the API tells us the real id.
+const isLocalId = (id) => String(id).startsWith('local-');
+
+const requestFrame = (fn) =>
+  typeof requestAnimationFrame === 'function' ? requestAnimationFrame(fn) : setTimeout(fn, 16);
+const cancelFrame = (handle) =>
+  typeof cancelAnimationFrame === 'function' ? cancelAnimationFrame(handle) : clearTimeout(handle);
 const EMPTY_SETTINGS = { presetId: null, systemPrompt: null };
 
 /** The ring shows the last reply's footprint; before any reply, the server's estimate. */
@@ -75,6 +83,7 @@ export default function useAiChat({
   const abortRef = useRef(null);
   const messagesRef = useRef([]);
   const warmTimerRef = useRef(null);
+  const flushRef = useRef(null);
   const latest = useRef({});
   messagesRef.current = messages;
   latest.current = { onListChange, onWarmUp, setConversationId };
@@ -140,6 +149,7 @@ export default function useAiChat({
 
   useEffect(
     () => () => {
+      flushRef.current?.();
       turnRef.current += 1;
       abortRef.current?.abort();
       abortRef.current = null;
@@ -158,6 +168,25 @@ export default function useAiChat({
     loadedIdRef.current = null;
     setReloadKey((k) => k + 1);
   }, []);
+
+  /** Quietly reloads the open conversation from the server (no loading state) and replaces the list. */
+  const refetch = useCallback(
+    async (id) => {
+      if (!id) return null;
+      try {
+        const detail = await getConversation(token, id);
+        if (loadedIdRef.current !== id || abortRef.current) return null;
+        const { messages: stored, ...rest } = detail;
+        setConversation(rest);
+        setMessages(stored);
+        setUsage(usageFromDetail(detail));
+        return detail;
+      } catch {
+        return null;
+      }
+    },
+    [token]
+  );
 
   const mergeConversation = useCallback((updated) => {
     setConversation((c) => (c && c.id === updated.id ? { ...c, ...updated } : c));
@@ -298,6 +327,8 @@ export default function useAiChat({
       const snapshot = messagesRef.current;
       const assistantKey = `local-assistant-${turn}`;
       let received = false;
+      // True once the API has told us the real ids (meta, or an early done/error).
+      let serverIds = false;
 
       setNotice(null);
       setStreaming(true);
@@ -306,16 +337,47 @@ export default function useAiChat({
       const patchAssistant = (fn) =>
         setMessages((prev) => prev.map((m) => (m.clientKey === assistantKey ? fn(m) : m)));
 
+      // thinking/token deltas arrive many times a frame; re-rendering (and re-highlighting) the
+      // whole message for each is wasteful, so they are buffered and applied once per frame.
+      const pending = { thinking: '', token: '', frame: null };
+      const flush = () => {
+        if (pending.frame !== null) {
+          cancelFrame(pending.frame);
+          pending.frame = null;
+        }
+        const { thinking, token: text } = pending;
+        pending.thinking = '';
+        pending.token = '';
+        if (!thinking && !text) return;
+        patchAssistant((m) => {
+          let next = m;
+          if (thinking) next = applyTurnEvent(next, 'thinking', { content: thinking });
+          if (text) next = applyTurnEvent(next, 'token', { content: text });
+          return next;
+        });
+      };
+      flushRef.current = flush;
+
       const onEvent = (name, data) => {
         if (!isCurrent()) return;
         received = true;
+        if (name === 'thinking' || name === 'token') {
+          pending[name === 'token' ? 'token' : 'thinking'] += data.content || '';
+          if (pending.frame === null) pending.frame = requestFrame(flush);
+          return;
+        }
+        flush();
+        // meta, done and error all name the user message; take its real id from whichever comes first.
+        if (userKey && data.userMessageId) {
+          serverIds = true;
+          setMessages((prev) =>
+            prev.map((m) => (m.clientKey === userKey ? { ...m, id: data.userMessageId } : m))
+          );
+        }
+        if (name === 'meta' || data.messageId) serverIds = true;
         if (name === 'meta') {
           setMessages((prev) =>
-            prev.map((m) => {
-              if (userKey && m.clientKey === userKey) return { ...m, id: data.userMessageId ?? m.id };
-              if (m.clientKey === assistantKey) return applyTurnEvent(m, name, data);
-              return m;
-            })
+            prev.map((m) => (m.clientKey === assistantKey ? applyTurnEvent(m, name, data) : m))
           );
           setUsage((u) => ({
             used: data.context?.promptTokensEstimate ?? u.used,
@@ -337,6 +399,19 @@ export default function useAiChat({
         }
       };
 
+      const reconcile = () => {
+        // The API finalises a cancelled or dropped reply a moment after the disconnect.
+        const attempt = (delay, last) => {
+          setTimeout(async () => {
+            if (!isCurrent() || abortRef.current) return;
+            const detail = await refetch(id);
+            const stillOpen = detail?.messages.some((m) => m.status === 'streaming');
+            if (stillOpen && !last) attempt(1500, true);
+          }, delay);
+        };
+        if (id) attempt(400, false);
+      };
+
       let id = loadedIdRef.current;
       try {
         if (!id && createIfNeeded) {
@@ -355,12 +430,20 @@ export default function useAiChat({
         }
 
         const result = await call(id, { signal: controller.signal, onEvent });
+        flush();
         if (!isCurrent()) return { restoreDraft: false };
         onDone?.(result, id);
         return { restoreDraft: false };
       } catch (err) {
         if (!isCurrent()) return { restoreDraft: false };
+        flush();
+        if (isAbortError(err) && !id) {
+          // Stopped while the conversation was still being created: nothing exists anywhere.
+          setMessages(snapshot);
+          return { restoreDraft: true };
+        }
         if (isAbortError(err)) {
+          if (!serverIds) reconcile();
           patchAssistant((m) => ({
             ...m,
             status: 'cancelled',
@@ -371,6 +454,7 @@ export default function useAiChat({
         }
         if (received) {
           // The connection broke mid-reply: keep what arrived and say so.
+          if (!serverIds) reconcile();
           patchAssistant((m) => ({
             ...m,
             status: 'error',
@@ -384,6 +468,7 @@ export default function useAiChat({
         setNotice(err.message || 'The request could not be sent.');
         return { restoreDraft: true };
       } finally {
+        flush();
         if (isCurrent()) {
           abortRef.current = null;
           setStreaming(false);
@@ -391,7 +476,7 @@ export default function useAiChat({
         }
       }
     },
-    [token, draftSettings]
+    [token, draftSettings, refetch]
   );
 
   const placeholder = (assistantKey) => ({
@@ -460,6 +545,11 @@ export default function useAiChat({
     (messageId, newTarget) => {
       const turnTarget = newTarget || target;
       if (abortRef.current || !turnTarget || !loadedIdRef.current) return Promise.resolve({ restoreDraft: false });
+      if (!messagesRef.current.some((m) => m.id === messageId && !isLocalId(m.id))) {
+        // The list is out of step with the server: reload instead of sending a doomed request.
+        refetch(loadedIdRef.current);
+        return Promise.resolve({ restoreDraft: false });
+      }
       return runTurn({
         turnTarget,
         prepare: (prev, assistantKey) => {
@@ -470,14 +560,23 @@ export default function useAiChat({
         call: (id, options) => regenerateMessage(token, id, messageId, { target: turnTarget }, options),
       });
     },
-    [token, target, runTurn]
+    [token, target, runTurn, refetch]
   );
 
   /** Edits a user message in place and answers it again; later messages are removed. */
   const edit = useCallback(
     (messageId, content) => {
       const text = content.trim();
-      if (!text || abortRef.current || !target || !loadedIdRef.current) return Promise.resolve({ restoreDraft: false });
+      const original = messagesRef.current.find((m) => m.id === messageId && !isLocalId(m.id));
+      if (!original) {
+        if (loadedIdRef.current && !abortRef.current) refetch(loadedIdRef.current);
+        return Promise.resolve({ restoreDraft: false });
+      }
+      // An image-only message may be edited down to no text; a text-only one may not.
+      const hasImages = (original.attachments?.length || 0) > 0;
+      if ((!text && !hasImages) || abortRef.current || !target || !loadedIdRef.current) {
+        return Promise.resolve({ restoreDraft: false });
+      }
       return runTurn({
         turnTarget: target,
         prepare: (prev, assistantKey) => {
@@ -492,7 +591,7 @@ export default function useAiChat({
         call: (id, options) => editMessage(token, id, messageId, { content: text, target }, options),
       });
     },
-    [token, target, runTurn]
+    [token, target, runTurn, refetch]
   );
 
   /** "Summarise older turns": folds the messages that no longer fit into a stored summary. */

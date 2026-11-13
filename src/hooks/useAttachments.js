@@ -28,6 +28,8 @@ export default function useAttachments({ token }) {
   const [items, setItems] = useState([]);
   const [message, setMessage] = useState(null);
   const itemsRef = useRef([]);
+  // One AbortController per item, so a removed (or abandoned) upload stops instead of finishing.
+  const controllersRef = useRef(new Map());
 
   const commit = useCallback((next) => {
     itemsRef.current = next;
@@ -46,6 +48,8 @@ export default function useAttachments({ token }) {
 
   const process = useCallback(
     async (key, file) => {
+      const controller = new AbortController();
+      controllersRef.current.set(key, controller);
       try {
         const shrunk = await downsizeImage(file);
         const previewUrl = URL.createObjectURL?.(shrunk.blob) ?? null;
@@ -53,14 +57,18 @@ export default function useAttachments({ token }) {
           if (previewUrl) URL.revokeObjectURL?.(previewUrl);
           return;
         }
-        const attachment = await uploadAttachment(token, {
-          name: shrunk.name,
-          mimeType: 'image/jpeg',
-          dataBase64: await toBase64(shrunk.blob),
-        });
+        const dataBase64 = await toBase64(shrunk.blob);
+        if (controller.signal.aborted) return;
+        const attachment = await uploadAttachment(
+          token,
+          { name: shrunk.name, mimeType: 'image/jpeg', dataBase64 },
+          { signal: controller.signal }
+        );
         patch(key, { status: 'ready', attachment });
       } catch (err) {
         patch(key, { status: 'error', error: err.message || 'Upload failed.' });
+      } finally {
+        controllersRef.current.delete(key);
       }
     },
     [token, patch]
@@ -100,6 +108,7 @@ export default function useAttachments({ token }) {
     (key) => {
       const gone = itemsRef.current.find((i) => i.key === key);
       if (gone) revoke(gone);
+      controllersRef.current.get(key)?.abort();
       commit(itemsRef.current.filter((i) => i.key !== key));
       setMessage(null);
     },
@@ -120,6 +129,7 @@ export default function useAttachments({ token }) {
   useEffect(
     () => () => {
       itemsRef.current.forEach(revoke);
+      controllersRef.current.forEach((controller) => controller.abort());
     },
     []
   );

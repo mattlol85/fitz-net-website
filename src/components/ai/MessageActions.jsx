@@ -112,7 +112,10 @@ export function UserActions({ message, onEdit }) {
 export function MessageEditor({ message, laterCount, onCancel }) {
   const { disabled, onEdit } = useContext(MessageControls);
   const [value, setValue] = useState(message.content);
-  const canSave = value.trim().length > 0 && !disabled;
+  // An image-only message may be edited down to no text.
+  const hasImages = (message.attachments?.length || 0) > 0;
+  const empty = value.trim().length === 0 && !hasImages;
+  const canSave = !empty && !disabled;
 
   const save = () => {
     if (!canSave) return;
@@ -138,8 +141,10 @@ export function MessageEditor({ message, laterCount, onCancel }) {
           }
         }}
       />
-      <p className="ai-chat__editor-hint">
-        {laterCount > 0
+      <p className="ai-chat__editor-hint" role={empty ? 'alert' : undefined}>
+        {empty
+          ? 'A message needs some text.'
+          : laterCount > 0
           ? `Saving removes the ${plural(laterCount, 'later message')} and answers again.`
           : 'Saving answers this message again.'}
       </p>

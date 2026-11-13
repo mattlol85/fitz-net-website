@@ -52,8 +52,21 @@ export default function useModelCatalogue({ token, enabled = true, fast = false 
 
   useEffect(() => {
     if (!enabled) return undefined;
-    const interval = setInterval(load, fast ? CATALOGUE_POLL_OPEN_MS : CATALOGUE_POLL_MS);
-    return () => clearInterval(interval);
+    // A hidden tab has nobody to show the list to: skip ticks, and catch up when it is shown again.
+    const interval = setInterval(
+      () => {
+        if (!document.hidden) load();
+      },
+      fast ? CATALOGUE_POLL_OPEN_MS : CATALOGUE_POLL_MS
+    );
+    const onVisibility = () => {
+      if (!document.hidden) load();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [enabled, fast, load]);
 
   const refresh = useCallback(() => load({ refresh: true }), [load]);
