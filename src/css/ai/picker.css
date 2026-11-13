@@ -213,10 +213,51 @@
   gap: 0.25rem 0.4rem;
 }
 
+.ai-chat__option-desc {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-chat__chip--preset {
+  font-family: inherit;
+  color: var(--text-primary);
+}
+
 .ai-chat__option-note {
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
   color: var(--text-secondary);
   font-size: 0.72rem;
+}
+
+/* Small screens: the picker is a full-width sheet under the navbar (or from the bottom when it
+   belongs to a message). */
+@media (max-width: 767px) {
+  .ai-chat__picker-panel {
+    position: fixed;
+    top: var(--navbar-height);
+    right: 0;
+    left: 0;
+    width: auto;
+    max-height: calc(100vh - var(--navbar-height));
+    max-height: calc(100dvh - var(--navbar-height));
+    border-radius: 0 0 12px 12px;
+  }
+
+  .ai-chat__picker--inline .ai-chat__picker-panel {
+    top: auto;
+    bottom: 0;
+    width: auto;
+    max-height: 80vh;
+    max-height: 80dvh;
+    border-radius: 14px 14px 0 0;
+  }
+
+  .ai-chat__option {
+    padding: 0.65rem 0.55rem;
+  }
 }

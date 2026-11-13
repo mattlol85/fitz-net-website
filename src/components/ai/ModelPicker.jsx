@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { trapTab } from './Dialog';
 import {
   describeTarget,
   formatContext,
@@ -24,11 +25,33 @@ const optionKey = (nodeId, model) => `${nodeId ?? 'auto'}:${model}`;
  * name) followed by one group per node. A search term keeps rows whose model name matches, or
  * every row of a node whose name matches. OFFLINE rows stay visible but are marked disabled.
  */
-export function buildGroups(catalogue, query) {
+export function buildGroups(catalogue, query, { presets = [], visionOnly = false } = {}) {
   if (!catalogue) return [];
   const nodeName = (id) => catalogue.nodes?.find((n) => n.id === id)?.name;
+  const keep = (capabilities) => !visionOnly || (capabilities || []).includes('vision');
+
+  // Presets that pin a model come first: picking one applies the preset (and its model).
+  const presetRows = presets
+    .filter((p) => p.model)
+    .filter((p) => matchesQuery(query, p.name, p.description, p.model, p.nodeId ? nodeName(p.nodeId) : 'auto'))
+    .map((p) => {
+      const node = p.nodeId ? catalogue.nodes?.find((n) => n.id === p.nodeId) : null;
+      return {
+        key: `preset:${p.id}`,
+        kind: 'preset',
+        name: p.name,
+        preset: p,
+        description: p.description,
+        pinnedModel: p.model,
+        pinnedNode: node?.name ?? null,
+        target: { model: p.model, nodeId: p.nodeId ?? null },
+        disabled: node?.status === 'OFFLINE',
+        capabilities: [],
+      };
+    });
 
   const autoRows = (catalogue.models || [])
+    .filter((m) => keep(m.capabilities))
     .filter((m) => matchesQuery(query, m.name, ...(m.nodeIds || []).map(nodeName)))
     .map((m) => ({
       key: optionKey(null, m.name),
@@ -45,6 +68,7 @@ export function buildGroups(catalogue, query) {
     }));
 
   const groups = [];
+  if (presetRows.length) groups.push({ key: 'presets', kind: 'preset', title: 'Presets', rows: presetRows });
   if (autoRows.length) groups.push({ key: 'auto', kind: 'auto', title: 'Auto', rows: autoRows });
 
   // Reachable nodes first, OFFLINE ones last; name order within each.
@@ -57,6 +81,7 @@ export function buildGroups(catalogue, query) {
     const nodeMatches = matchesQuery(query, node.name);
     const offline = node.status === 'OFFLINE';
     const rows = (node.models || [])
+      .filter((m) => keep(m.capabilities))
       .filter((m) => nodeMatches || matchesQuery(query, m.name))
       .map((m) => ({
         key: optionKey(node.id, m.name),
@@ -108,7 +133,16 @@ function OptionRow({ id, row, selected, active, onChoose, onHover }) {
       </span>
       <span className="ai-chat__option-body">
         <span className="ai-chat__option-name">{row.name}</span>
+        {row.kind === 'preset' && row.description && (
+          <span className="ai-chat__option-desc">{row.description}</span>
+        )}
         <span className="ai-chat__option-meta">
+          {row.kind === 'preset' && (
+            <Chip title="Pinned model">
+              {row.pinnedModel}
+              {row.pinnedNode ? ` · ${row.pinnedNode}` : ''}
+            </Chip>
+          )}
           {row.parameterSize && <Chip title="Parameters">{row.parameterSize}</Chip>}
           {row.quantization && <Chip title="Quantization">{row.quantization}</Chip>}
           {context && <Chip title={`Context window: ${row.contextLength.toLocaleString()} tokens`}>{context} ctx</Chip>}
@@ -174,6 +208,10 @@ export default function ModelPicker({
   onSelect,
   onOpenChange,
   onRefresh,
+  presets = [],
+  activePresetId = null,
+  onSelectPreset,
+  visionOnly = false,
   open: openProp,
   hideButton = false,
   shortcut = true,
@@ -200,7 +238,10 @@ export default function ModelPicker({
     [controlled, onOpenChange]
   );
 
-  const groups = useMemo(() => buildGroups(catalogue, query), [catalogue, query]);
+  const groups = useMemo(
+    () => buildGroups(catalogue, query, { presets, visionOnly }),
+    [catalogue, query, presets, visionOnly]
+  );
   const enabledRows = useMemo(
     () => groups.flatMap((g) => g.rows).filter((r) => !r.disabled),
     [groups]
@@ -223,7 +264,7 @@ export default function ModelPicker({
     if (!open) return;
     setQuery('');
     const selected = catalogue
-      ? buildGroups(catalogue, '').flatMap((g) => g.rows).find((r) => !r.disabled && sameTarget(r.target, target))
+      ? buildGroups(catalogue, '').flatMap((g) => g.rows).find((r) => !r.disabled && r.kind !== 'preset' && sameTarget(r.target, target))
       : null;
     setActiveKey(selected?.key ?? null);
     // Only on open: later catalogue refreshes must not reset what the user typed.
@@ -274,7 +315,8 @@ export default function ModelPicker({
   }, [open, active?.key]);
 
   const choose = (row) => {
-    onSelect(row.target);
+    if (row.kind === 'preset') onSelectPreset?.(row.preset);
+    else onSelect(row.target);
     close();
   };
 
@@ -334,6 +376,7 @@ export default function ModelPicker({
           className="ai-chat__picker-panel"
           role="dialog"
           aria-label={title}
+          onKeyDown={(e) => trapTab(e, panelRef.current)}
         >
           <div className="ai-chat__picker-search">
             <SearchIcon size={16} />
@@ -374,7 +417,12 @@ export default function ModelPicker({
                   aria-labelledby={headerId}
                   className={`ai-chat__group${group.node?.status === 'OFFLINE' ? ' ai-chat__group--offline' : ''}`}
                 >
-                  {group.kind === 'auto' ? (
+                  {group.kind === 'preset' ? (
+                    <div id={headerId} className="ai-chat__group-header">
+                      <span className="ai-chat__group-name">Presets</span>
+                      <span className="ai-chat__group-status">model and prompt together</span>
+                    </div>
+                  ) : group.kind === 'auto' ? (
                     <div id={headerId} className="ai-chat__group-header">
                       <span className="ai-chat__group-name">Auto</span>
                       <span className="ai-chat__group-status">picks the best node for you</span>
@@ -387,7 +435,9 @@ export default function ModelPicker({
                       key={row.key}
                       id={optionId(row.key)}
                       row={row}
-                      selected={sameTarget(row.target, target)}
+                      selected={
+                        row.kind === 'preset' ? row.preset.id === activePresetId : sameTarget(row.target, target)
+                      }
                       active={active?.key === row.key}
                       onChoose={choose}
                       onHover={(r) => setActiveKey(r.key)}
