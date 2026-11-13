@@ -168,7 +168,9 @@ describe('aiChatApi requests', () => {
 
     const blob = await api.fetchAttachment('jwt', 'att1');
 
-    expect(blob).toBeInstanceOf(Blob);
+    // Not instanceof: Response.blob() comes from Node, Blob from jsdom (two realms on CI).
+    expect(blob.size).toBe(5);
+    expect(blob.type).toBe('image/png');
     expect(fetchMock.mock.calls[0][0]).toMatch(/\/ai\/attachments\/att1$/);
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer jwt');
   });

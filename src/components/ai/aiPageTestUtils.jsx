@@ -96,7 +96,7 @@ export const typeAndSend = async (user, text) => {
 
 export const waitForReady = () =>
   waitFor(() =>
-    expect(screen.getByRole('button', { name: /llama3\.1:8b|llama3\.2-vision|qwen3|select a model/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /llama3\.1:8b|llama3\.2-vision|qwen3/i })).toBeInTheDocument()
   );
 
 /** Default responses for every mocked endpoint the page touches. */

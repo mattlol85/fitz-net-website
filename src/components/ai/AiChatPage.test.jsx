@@ -117,7 +117,9 @@ const typeAndSend = async (user, text) => {
   await user.keyboard('{Enter}');
 };
 
-const waitForReady = () => waitFor(() => expect(screen.getByRole('button', { name: /llama3\.1:8b|qwen3|select a model/i })).toBeInTheDocument());
+// A real model name, not "Select a model": that placeholder shows before the catalogue and
+// preferences have loaded, when vision support is not yet known.
+const waitForReady = () => waitFor(() => expect(screen.getByRole('button', { name: /llama3\.1:8b|qwen3/i })).toBeInTheDocument());
 
 beforeEach(() => {
   useAuth.mockReturnValue({ token: 'jwt' });

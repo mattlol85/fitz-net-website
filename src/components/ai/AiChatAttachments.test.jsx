@@ -113,6 +113,8 @@ describe('adding images', () => {
   it('should reject files that are not PNG, JPEG or WebP', async () => {
     renderPage();
     await waitForReady();
+    // Vision support is derived from the catalogue; adding files before it is known would be refused.
+    await waitFor(() => expect(attachButton()).toBeEnabled());
 
     attach(new File(['x'], 'anim.gif', { type: 'image/gif' }), new File(['x'], 'doc.pdf', { type: 'application/pdf' }));
 
