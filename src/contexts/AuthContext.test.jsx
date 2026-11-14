@@ -1,8 +1,10 @@
 import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider, useAuth } from './AuthContext';
 import * as api from '../services/api';
+import { freshToken } from '../services/session';
 
 const makeToken = () => {
   const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }));
@@ -298,5 +300,97 @@ describe('AuthContext session lifecycle', () => {
 
     expect(screen.getByTestId('user')).toHaveTextContent('partial');
     installLocalStorage();
+  });
+});
+
+describe('AuthContext session refresh', () => {
+  const tokenExpiringIn = (seconds) => {
+    const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + seconds }));
+    return `h.${payload}.s`;
+  };
+
+  const restoreSession = (token) => {
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('authUser', JSON.stringify({ username: 'matt', permissions: ['AI_USER'] }));
+    renderProvider();
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    installLocalStorage();
+    api.getCurrentUser.mockResolvedValue({ success: false });
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  it('opens the sign-in card when the token runs out, keeping the session meanwhile', () => {
+    vi.useFakeTimers();
+    restoreSession(tokenExpiringIn(60));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(60_000);
+    });
+
+    expect(screen.getByRole('alertdialog', { name: 'Your session has expired' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Username')).toHaveValue('matt');
+    // The route guards keep the page mounted, so nothing typed on it is lost.
+    expect(auth.isAuthenticated()).toBe(true);
+  });
+
+  it('signs the same user in again from the card and hands the new token to waiting requests', async () => {
+    const oldToken = tokenExpiringIn(3600);
+    const newToken = tokenExpiringIn(7200);
+    api.loginUser.mockResolvedValue({ success: true, message: 'ok', username: 'matt', token: newToken, permissions: ['AI_USER'] });
+    restoreSession(oldToken);
+
+    let waiting;
+    await act(async () => {
+      waiting = freshToken(oldToken);
+    });
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Password'), 'pw{Enter}');
+
+    await expect(waiting).resolves.toBe(newToken);
+    expect(api.loginUser).toHaveBeenCalledWith('matt', 'pw');
+    expect(localStorage.getItem('authToken')).toBe(newToken);
+    expect(auth.token).toBe(newToken);
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+  });
+
+  it('keeps the card open when the password is wrong', async () => {
+    const oldToken = tokenExpiringIn(3600);
+    api.loginUser.mockResolvedValue({ success: false, message: 'Invalid username or password' });
+    restoreSession(oldToken);
+
+    await act(async () => {
+      freshToken(oldToken);
+    });
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Password'), 'wrong{Enter}');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid username or password');
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    expect(localStorage.getItem('authToken')).toBe(oldToken);
+
+    // Leave no prompt pending for the next test.
+    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+  });
+
+  it('signs out from the card, releasing waiting requests without a token', async () => {
+    const oldToken = tokenExpiringIn(3600);
+    restoreSession(oldToken);
+
+    let waiting;
+    await act(async () => {
+      waiting = freshToken(oldToken);
+    });
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Sign out' }));
+
+    await expect(waiting).resolves.toBeNull();
+    await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('none'));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(localStorage.getItem('authToken')).toBeNull();
   });
 });

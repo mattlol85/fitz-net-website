@@ -14,7 +14,7 @@ export function newCorrelationId() {
 }
 
 /** Origins that are ours; adding a custom header to a foreign origin would break its CORS. */
-function isTracedUrl(url) {
+export function isTracedUrl(url) {
   if (url.startsWith('/')) return true;
   try {
     const target = new URL(url, window.location.href);
