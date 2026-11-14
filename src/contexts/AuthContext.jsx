@@ -2,6 +2,8 @@ import React, { createContext, useState, useEffect, useContext, useRef } from 'r
 import { flushSync } from 'react-dom';
 import { loginUser, logoutUser, validateToken, updateUserProfile, getCurrentUser } from '../services/api';
 import { DEFAULT_BOARD_COLOR } from '../constants';
+import { registerSessionBridge, watchExpiry } from '../services/session';
+import SessionExpiredCard from '../components/SessionExpiredCard';
 
 // Create the AuthContext
 const AuthContext = createContext(null);
@@ -22,6 +24,16 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   // Tracks the live session token so late async responses can tell they are stale.
   const tokenRef = useRef(null);
+  // The token ran out while a page was open: the session card asks for the password again.
+  const [sessionExpired, setSessionExpired] = useState(false);
+  // Requests (held by the session fetch wrapper) waiting for that sign-in; see services/session.js.
+  const waitersRef = useRef([]);
+
+  const settleWaiters = (nextToken) => {
+    const waiters = waitersRef.current;
+    waitersRef.current = [];
+    waiters.forEach((resolve) => resolve(nextToken));
+  };
 
   const normalizeUserData = (data = {}, fallbackUser = {}) => ({
     username: data.username ?? fallbackUser?.username ?? '',
@@ -98,6 +110,24 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  // A 401 on a signed-in request opens the card and waits for the new token.
+  useEffect(
+    () =>
+      registerSessionBridge({
+        currentToken: () => tokenRef.current,
+        prompt: () =>
+          new Promise((resolve) => {
+            waitersRef.current.push(resolve);
+            setSessionExpired(true);
+          }),
+      }),
+    []
+  );
+
+  // Tokens last a couple of hours and a page left open outlives them: ask for the password when
+  // the token runs out, before the next request fails.
+  useEffect(() => watchExpiry(token, () => setSessionExpired(true)), [token]);
+
   // Login function
   const login = async (username, password) => {
     try {
@@ -134,6 +164,8 @@ export const AuthProvider = ({ children }) => {
       tokenRef.current = null;
       setUser(null);
       setToken(null);
+      setSessionExpired(false);
+      settleWaiters(null);
 
       // Clear localStorage
       safeRemoveItem('authToken');
@@ -145,9 +177,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Check if user is authenticated
+  // Signs the same user in again from the session card, then lets the waiting requests resend.
+  const refreshSession = async (password) => {
+    const result = await login(user?.username ?? '', password);
+    if (result.success) {
+      setSessionExpired(false);
+      settleWaiters(tokenRef.current);
+    }
+    return result;
+  };
+
+  // Check if user is authenticated. A token that runs out mid-session still counts until the user
+  // signs in again or signs out from the session card, so pages stay mounted and keep what was
+  // typed; a stored session that has already expired is dropped on startup instead.
   const isAuthenticated = () => {
-    return user !== null && token !== null && validateToken(token);
+    return user !== null && token !== null;
   };
 
   // ADMIN implies every permission. This only controls what the UI shows; the
@@ -187,7 +231,14 @@ export const AuthProvider = ({ children }) => {
     updateProfile,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {sessionExpired && user && (
+        <SessionExpiredCard username={user.username} onSignIn={refreshSession} onSignOut={logout} />
+      )}
+    </AuthContext.Provider>
+  );
 };
 
 export default AuthContext;

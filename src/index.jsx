@@ -4,8 +4,11 @@ import './css/index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { installFetchTracing } from './utils/tracing';
+import { installSessionRefresh } from './services/session';
 
+// Tracing first, so the session wrapper sits outside it and a resent request gets its own id.
 installFetchTracing();
+installSessionRefresh();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
