@@ -22,7 +22,7 @@ describe('constants', () => {
     const { API_URLS } = await import('./constants');
 
     expect(API_URLS.FITZ_NET_API).toBe('/api');
-    expect(API_URLS.GAMERBELL).toBe('https://gamerbell.fitznet.doomdns.org');
+    expect(API_URLS.GAMERBELL).toBe('https://gamerbell.fitznet.org');
   });
 
   it('should point the website health check at the current origin in the browser', async () => {
