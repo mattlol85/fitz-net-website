@@ -138,9 +138,9 @@ describe('StatusDashboard endpoint handling', () => {
     render(<StatusDashboard />);
 
     await waitFor(() =>
-      expect(fetch).toHaveBeenCalledWith('https://api.fitznet.doomdns.org/actuator/info', expect.anything())
+      expect(fetch).toHaveBeenCalledWith('https://api.fitznet.org/actuator/info', expect.anything())
     );
-    expect(fetch).toHaveBeenCalledWith('https://gamerbell.fitznet.doomdns.org/actuator/health', expect.anything());
+    expect(fetch).toHaveBeenCalledWith('https://gamerbell.fitznet.org/actuator/health', expect.anything());
   });
 
   it('should record a service as having no health when its health endpoint errors', async () => {
