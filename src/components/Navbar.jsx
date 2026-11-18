@@ -1,8 +1,8 @@
 import React, { useLayoutEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import logo from '../img/FN_Logo_Straight.png';
 import ThemeToggle from './ThemeToggle.jsx';
 import { useAuth } from '../contexts/AuthContext';
+import { getSite } from '../site';
 import '../css/Navbar.css';
 
 function Navbar({ theme, toggleTheme }) {
@@ -10,6 +10,9 @@ function Navbar({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const navRef = useRef(null);
   const authenticated = isAuthenticated();
+  const site = getSite();
+  // Lori-Net is a single gated page: no Fitz-Net feature links, and signing in happens in its dialog.
+  const isFitzNet = site.id === 'fitznet';
 
   useLayoutEffect(() => {
     const updateNavbarHeight = () => {
@@ -52,36 +55,40 @@ function Navbar({ theme, toggleTheme }) {
           <ul className="nav-primary-list">
             <li>
               <Link to="/" className="logo-link">
-                <img src={logo} alt="Fitz-Net Logo" className="logo-img" />
+                <img src={site.logo} alt={`${site.name} Logo`} className="logo-img" />
               </Link>
             </li>
-            <li>
-              <Link to="/status">Status</Link>
-            </li>
-            {authenticated && (
+            {isFitzNet && (
               <>
                 <li>
-                  <Link to="/liveboard">&ldquo;The Board&rdquo;</Link>
+                  <Link to="/status">Status</Link>
                 </li>
-                <li>
-                  <Link to="/websocket">WebSocket</Link>
-                </li>
+                {authenticated && (
+                  <>
+                    <li>
+                      <Link to="/liveboard">&ldquo;The Board&rdquo;</Link>
+                    </li>
+                    <li>
+                      <Link to="/websocket">WebSocket</Link>
+                    </li>
+                  </>
+                )}
+                {authenticated && hasPermission?.('AI_USER') && (
+                  <li>
+                    <Link to="/ai">Matt-GPT</Link>
+                  </li>
+                )}
+                {authenticated && hasPermission?.('JOENET_USER') && (
+                  <li>
+                    <Link to="/joenet">Joenet</Link>
+                  </li>
+                )}
+                {authenticated && hasPermission?.('ADMIN') && (
+                  <li>
+                    <Link to="/admin">Admin</Link>
+                  </li>
+                )}
               </>
-            )}
-            {authenticated && hasPermission?.('AI_USER') && (
-              <li>
-                <Link to="/ai">Matt-GPT</Link>
-              </li>
-            )}
-            {authenticated && hasPermission?.('JOENET_USER') && (
-              <li>
-                <Link to="/joenet">Joenet</Link>
-              </li>
-            )}
-            {authenticated && hasPermission?.('ADMIN') && (
-              <li>
-                <Link to="/admin">Admin</Link>
-              </li>
             )}
           </ul>
         </li>
@@ -104,7 +111,7 @@ function Navbar({ theme, toggleTheme }) {
                   </button>
                 </li>
               </>
-            ) : (
+            ) : isFitzNet && (
               <>
                 <li>
                   <Link to="/login">Login</Link>

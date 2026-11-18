@@ -1,4 +1,5 @@
 import React, { useLayoutEffect, useRef } from 'react';
+import { getSite } from '../site';
 import '../css/Footer.css';
 
 
@@ -36,7 +37,7 @@ function Footer() {
 
   return (
     <footer ref={footerRef} className="footer">
-      &copy; {new Date().getFullYear()} fitznet.org by Matthew Fitzgerald
+      &copy; {new Date().getFullYear()} {getSite().footer}
     </footer>
   );
 }

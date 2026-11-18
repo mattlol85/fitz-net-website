@@ -1,0 +1,25 @@
+{
+  "short_name": "Lori-Net",
+  "name": "Lori-Net",
+  "icons": [
+    {
+      "src": "/lori/favicon.ico",
+      "sizes": "64x64 32x32 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/lori/logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/lori/logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#e6007e",
+  "background_color": "#fff5fa"
+}

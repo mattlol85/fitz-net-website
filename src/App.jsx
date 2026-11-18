@@ -1,6 +1,6 @@
 import './css/App.css';
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { JoenetKeyProvider } from './contexts/JoenetKeyContext';
 import Homepage from './components/Homepage.jsx';
@@ -12,7 +12,9 @@ import Register from './components/Register.jsx';
 import EditProfile from './components/EditProfile.jsx';
 import WebSocketButton from './components/WebSocketButton.jsx';
 import RequirePermission from './components/RequirePermission.jsx';
+import SiteGate from './components/SiteGate.jsx';
 import useVisualViewport from './hooks/useVisualViewport';
+import { getSite } from './site';
 
 // These pages pull in the Three.js-based graph components and other heavy
 // dependencies, so they're loaded on demand instead of in the main bundle.
@@ -26,6 +28,7 @@ const JoenetAdminPanel = lazy(() => import('./components/joenet/JoenetAdminPanel
 
 function App() {
   useVisualViewport();
+  const site = getSite();
 
   const [theme, setTheme] = useState(() => {
     // Initialize theme from localStorage or default to 'light'
@@ -41,9 +44,9 @@ function App() {
     // Keep the browser chrome (address bar, task switcher) in sync with the theme
     const themeColorMeta = document.querySelector('meta[name="theme-color"]');
     if (themeColorMeta) {
-      themeColorMeta.setAttribute('content', theme === 'dark' ? '#1a1a1a' : '#ffffff');
+      themeColorMeta.setAttribute('content', site.themeColor[theme === 'dark' ? 'dark' : 'light']);
     }
-  }, [theme]);
+  }, [theme, site]);
 
   const toggleTheme = () => {
     setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
@@ -56,46 +59,60 @@ function App() {
           <BrowserRouter>
             <Navbar theme={theme} toggleTheme={toggleTheme} />
             <main className="app-main">
-              <Suspense fallback={null}>
-                <Routes>
-                  <Route path="/home" element={<Homepage />} />
-                  <Route index element={<Homepage />} />
-                  <Route path="/status" element={<StatusDashboard />} />
-                  <Route path="/websocket" element={<WebSocketButton />} />
-                  <Route path="/liveboard" element={<LiveBoard />} />
-                  <Route
-                    path="/ai"
-                    element={
-                      <RequirePermission permission="AI_USER">
-                        <AiChat />
-                      </RequirePermission>
-                    }
-                  />
-                  <Route
-                    path="/admin"
-                    element={
-                      <RequirePermission permission="ADMIN">
-                        <AdminUsers />
-                      </RequirePermission>
-                    }
-                  />
-                  <Route
-                    path="/joenet"
-                    element={
-                      <RequirePermission permission="JOENET_USER">
-                        <Joenet />
-                      </RequirePermission>
-                    }
-                  >
-                    <Route index element={<JoenetComingSoon />} />
-                    <Route path="admin" element={<JoenetAdminPanel />} />
-                  </Route>
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/profile" element={<EditProfile />} />
-                  <Route path="*" element={<NoPage />} />
-                </Routes>
-              </Suspense>
+              {site.id === 'lori' ? (
+                <SiteGate site={site}>
+                  <Routes>
+                    <Route index element={<Homepage />} />
+                    <Route path="/home" element={<Homepage />} />
+                    {/* Signing in happens in the gate's dialog, so /login just lands on home. */}
+                    <Route path="/login" element={<Navigate to="/" replace />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/profile" element={<EditProfile />} />
+                    <Route path="*" element={<NoPage />} />
+                  </Routes>
+                </SiteGate>
+              ) : (
+                <Suspense fallback={null}>
+                  <Routes>
+                    <Route path="/home" element={<Homepage />} />
+                    <Route index element={<Homepage />} />
+                    <Route path="/status" element={<StatusDashboard />} />
+                    <Route path="/websocket" element={<WebSocketButton />} />
+                    <Route path="/liveboard" element={<LiveBoard />} />
+                    <Route
+                      path="/ai"
+                      element={
+                        <RequirePermission permission="AI_USER">
+                          <AiChat />
+                        </RequirePermission>
+                      }
+                    />
+                    <Route
+                      path="/admin"
+                      element={
+                        <RequirePermission permission="ADMIN">
+                          <AdminUsers />
+                        </RequirePermission>
+                      }
+                    />
+                    <Route
+                      path="/joenet"
+                      element={
+                        <RequirePermission permission="JOENET_USER">
+                          <Joenet />
+                        </RequirePermission>
+                      }
+                    >
+                      <Route index element={<JoenetComingSoon />} />
+                      <Route path="admin" element={<JoenetAdminPanel />} />
+                    </Route>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/profile" element={<EditProfile />} />
+                    <Route path="*" element={<NoPage />} />
+                  </Routes>
+                </Suspense>
+              )}
             </main>
             <Footer />
             <Outlet />
