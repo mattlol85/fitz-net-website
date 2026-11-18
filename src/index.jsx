@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './css/index.css';
+import './css/mobile.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { installFetchTracing } from './utils/tracing';

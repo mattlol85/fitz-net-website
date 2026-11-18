@@ -16,7 +16,7 @@
   transition: color 0.3s ease;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .homepage-title {
     font-size: 3rem;
   }

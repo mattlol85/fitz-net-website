@@ -2,9 +2,10 @@
    page scrolls and rests above the (in-flow) footer at the end of a long conversation. */
 .ai-chat__dock {
   position: sticky;
-  bottom: 0;
+  bottom: var(--keyboard-inset, 0px);
   z-index: 10;
   padding: 0.5rem 0 1rem;
+  padding-bottom: max(1rem, var(--safe-bottom));
   background: var(--bg-primary);
 }
 

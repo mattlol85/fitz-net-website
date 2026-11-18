@@ -80,6 +80,9 @@
   position: sticky;
   top: 0;
   z-index: 30;
+  padding-top: max(20px, var(--safe-top));
+  padding-right: max(20px, var(--safe-right));
+  padding-left: max(20px, var(--safe-left));
 }
 
 /* Single, never-wrapping row: primary links on the left, auth controls pinned
@@ -236,6 +239,9 @@
 @media (max-width: 480px) {
   .site-nav {
     padding: 0.75rem;
+    padding-top: max(0.75rem, var(--safe-top));
+    padding-right: max(0.75rem, var(--safe-right));
+    padding-left: max(0.75rem, var(--safe-left));
   }
 
   .site-nav-list,
@@ -251,5 +257,20 @@
 
   .logo-img {
     max-height: 36px;
+  }
+}
+
+/* Touch screens: every nav control is at least one comfortable tap target. */
+@media (hover: none) and (pointer: coarse) {
+  .site-nav-list a,
+  .nav-auth-list a,
+  .logout-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-target);
+  }
+
+  .site-nav-list a.logo-link {
+    min-height: 0;
   }
 }

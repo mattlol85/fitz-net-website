@@ -195,7 +195,7 @@
   color: #93c5fd;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .status-dashboard {
     padding: 1rem;
   }

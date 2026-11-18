@@ -9,6 +9,9 @@
     align-items: center;
     justify-content: center;
     padding: 1rem;
+    padding-right: max(1rem, var(--safe-right));
+    padding-bottom: max(1rem, var(--safe-bottom));
+    padding-left: max(1rem, var(--safe-left));
     flex: 0 0 auto;
     width: 100%;
     font-size: 0.8rem;
@@ -27,6 +30,9 @@
       justify-content: space-between;
       font-size: 1rem;
       padding: 1rem 2rem;
+      padding-right: max(2rem, var(--safe-right));
+      padding-bottom: max(1rem, var(--safe-bottom));
+      padding-left: max(2rem, var(--safe-left));
     }
     
     .footer-text {

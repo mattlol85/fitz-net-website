@@ -1,0 +1,45 @@
+/*
+ * Site-wide mobile foundations: safe-area and keyboard tokens, and touch defaults.
+ * Breakpoint values are documented in src/constants/breakpoints.js.
+ */
+:root {
+  /* Device notch / home-indicator insets (needs viewport-fit=cover in index.html). */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  /* Height of the on-screen keyboard over the layout viewport; set by useVisualViewport. */
+  --keyboard-inset: 0px;
+
+  /* Minimum comfortable touch target. */
+  --tap-target: 44px;
+}
+
+html {
+  /* Removes the double-tap-to-zoom delay without disabling pinch zoom. */
+  touch-action: manipulation;
+  /* Stop iOS inflating text when the phone is rotated to landscape. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+a,
+button,
+[role='button'],
+input,
+select,
+textarea,
+label {
+  /* Swap the grey tap flash for the components' own :active states. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  /* iOS zooms the page when a focused field's text is under 16px. */
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}

@@ -18,9 +18,10 @@ import { AlertIcon, CloseIcon, SidebarIcon } from './icons';
 import '../../css/ai/layout.css';
 import '../../css/ai/chat.css';
 import '../../css/ai/controls.css';
+import { MEDIA } from '../../constants/breakpoints';
 
 const SIDEBAR_KEY = 'aiChat.sidebar';
-const isDesktop = () => window.matchMedia?.('(min-width: 768px)').matches ?? true;
+const isDesktop = () => window.matchMedia?.(MEDIA.desktop).matches ?? true;
 
 function readSidebarPreference() {
   if (!isDesktop()) return false;
