@@ -12,6 +12,7 @@ import Register from './components/Register.jsx';
 import EditProfile from './components/EditProfile.jsx';
 import WebSocketButton from './components/WebSocketButton.jsx';
 import RequirePermission from './components/RequirePermission.jsx';
+import useVisualViewport from './hooks/useVisualViewport';
 
 // These pages pull in the Three.js-based graph components and other heavy
 // dependencies, so they're loaded on demand instead of in the main bundle.
@@ -24,6 +25,8 @@ const JoenetComingSoon = lazy(() => import('./components/joenet/JoenetComingSoon
 const JoenetAdminPanel = lazy(() => import('./components/joenet/JoenetAdminPanel.jsx'));
 
 function App() {
+  useVisualViewport();
+
   const [theme, setTheme] = useState(() => {
     // Initialize theme from localStorage or default to 'light'
     return localStorage.getItem('theme') || 'light';

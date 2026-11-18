@@ -236,7 +236,7 @@
 
 /* Small screens: the picker is a full-width sheet under the navbar (or from the bottom when it
    belongs to a message). */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .ai-chat__picker-panel {
     position: fixed;
     top: var(--navbar-height);
