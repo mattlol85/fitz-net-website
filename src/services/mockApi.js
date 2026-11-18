@@ -22,6 +22,14 @@ const MOCK_USERS = {
     boardColor: 'hsl(340,72%,50%)',
     permissions: ['AI_USER'],
   },
+  // Lori-Net preview (localhost:3000/?site=lori)
+  lori: {
+    username: 'lori',
+    password: 'lorinet123',
+    email: 'lori@example.com',
+    boardColor: 'hsl(330,90%,60%)',
+    permissions: ['LORINET_ACCESS'],
+  },
 };
 
 // Generate a mock JWT token

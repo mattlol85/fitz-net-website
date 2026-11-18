@@ -28,6 +28,7 @@ React 19 SPA — the frontend for Fitz-Net. Features authentication, real-time b
 | CSS | `src/css/` | Component-scoped CSS files (one per component) |
 | Constants | `src/constants.js` | API URLs, config arrays |
 | Routing | `src/App.jsx` | React Router v7 `<Routes>` |
+| Sites | `src/site.js` | One build serves **fitznet.org** and **lori.fitznet.org** (Lori-Net, pink "LN"), picked from the hostname |
 
 ---
 
@@ -41,6 +42,7 @@ React 19 SPA — the frontend for Fitz-Net. Features authentication, real-time b
 - Each component `Foo.jsx` has a co-located `Foo.test.jsx`
 - Mocking pattern in tests: `vi.mock('../contexts/AuthContext', ...)` to control auth state
 - Test names must start with `should`
+- **Two sites, one build.** `getSite()` (`src/site.js`) returns the Fitz-Net or Lori-Net config: name, logo, animation, footer, required permission. `index.jsx` sets `data-site` on `<html>`, and `:root[data-site='lori']` in `index.css` re-tints every colour token, so new CSS that uses tokens is pink on Lori-Net for free. Lori-Net renders its own short route list in `App.jsx` inside `SiteGate`, which needs `LORINET_ACCESS` (ADMIN passes) and shows `LoginModal` when signed out. Preview it locally at `http://localhost:3000/?site=lori` (mock user `lori` / `lorinet123`). LN brand assets are generated from the FN ones by `scripts/make-lori-assets.py`; re-run it if an FN asset changes
 
 ---
 

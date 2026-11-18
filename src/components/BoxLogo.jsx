@@ -1,11 +1,11 @@
 import React from 'react';
-import logo from '../img/FN_Logo_Animation_nonloop.gif';
+import { getSite } from '../site';
 import '../css/BoxLogo.css';
 
 function BoxLogo() {
   return (
     <div>
-      <img src={logo} alt="Fitz-Net Logo" className="logo" />
+      <img src={getSite().animation} alt={`${getSite().name} Logo`} className="logo" />
     </div>
   );
 }

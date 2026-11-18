@@ -23,6 +23,15 @@
   --toggle-icon-color: #333333;
   --logout-button-bg: #dc3545;
   --logout-button-hover: #c82333;
+
+  /* Accent used by dialogs such as the gated-site login modal */
+  --accent: #0077b6;
+  --accent-hover: #005f91;
+  --accent-contrast: #ffffff;
+  --accent-ring: rgba(0, 119, 182, 0.25);
+  --accent-shadow: rgba(0, 0, 0, 0.15);
+  --modal-overlay: rgba(0, 0, 0, 0.45);
+  --logo-chip-bg: #ffffff;
 }
 
 [data-theme='dark'] {
@@ -47,6 +56,82 @@
   --toggle-icon-color: #ffd700;
   --logout-button-bg: #dc3545;
   --logout-button-hover: #b21f2d;
+
+  --accent: #4da3d9;
+  --accent-hover: #6bb5e3;
+  --accent-contrast: #0d0d0d;
+  --accent-ring: rgba(77, 163, 217, 0.3);
+  --accent-shadow: rgba(0, 0, 0, 0.5);
+  --modal-overlay: rgba(0, 0, 0, 0.6);
+  --logo-chip-bg: #ffffff;
+}
+
+/* Lori-Net (lori.fitznet.org): the same layout in pink. data-site is set in index.jsx. */
+/* :root[...] so these win over per-component :root tokens (e.g. Navbar.css) loaded later. */
+:root[data-site='lori'] {
+  --bg-primary: #fff5fa;
+  --bg-secondary: #ffe4f1;
+  --text-primary: #4a1631;
+  --text-secondary: #8a4a6b;
+  --border-color: rgba(230, 0, 126, 0.18);
+  --shadow-color: rgba(230, 0, 126, 0.12);
+  --nav-bg: #ffffff;
+  --footer-bg: #b5527e;
+  --footer-text: #ffffff;
+  --card-bg: #ffffff;
+  --link-color: #4a1631;
+  --link-hover: #e6007e;
+  --button-bg: #e6007e;
+  --button-text: #ffffff;
+  --toggle-bg: #ffe4f1;
+  --toggle-border: #f7b6d5;
+  --toggle-hover-bg: #ffd1e7;
+  --toggle-icon-color: #b5527e;
+  --logout-button-bg: #c2185b;
+  --logout-button-hover: #a0134b;
+  --user-info-bg: rgba(230, 0, 126, 0.1);
+  --user-info-hover-bg: rgba(230, 0, 126, 0.18);
+
+  --accent: #e6007e;
+  --accent-hover: #c4006b;
+  --accent-contrast: #ffffff;
+  --accent-ring: rgba(230, 0, 126, 0.22);
+  --accent-shadow: rgba(230, 0, 126, 0.2);
+  --modal-overlay: rgba(255, 182, 213, 0.45);
+  --logo-chip-bg: #ffffff;
+}
+
+:root[data-site='lori'][data-theme='dark'] {
+  --bg-primary: #1f1018;
+  --bg-secondary: #2e1824;
+  --text-primary: #fbe4ef;
+  --text-secondary: #d8a6bf;
+  --border-color: rgba(255, 105, 180, 0.2);
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  --nav-bg: #26131d;
+  --footer-bg: #140a10;
+  --footer-text: #fbe4ef;
+  --card-bg: #2e1824;
+  --link-color: #fbe4ef;
+  --link-hover: #ff69b4;
+  --button-bg: #ff4fa3;
+  --button-text: #1f1018;
+  --toggle-bg: #2e1824;
+  --toggle-border: #4d2638;
+  --toggle-hover-bg: #3d2030;
+  --toggle-icon-color: #ffb3d9;
+  --logout-button-bg: #e0457b;
+  --logout-button-hover: #c2185b;
+  --user-info-bg: rgba(255, 105, 180, 0.18);
+  --user-info-hover-bg: rgba(255, 105, 180, 0.28);
+
+  --accent: #ff69b4;
+  --accent-hover: #ff8cc6;
+  --accent-contrast: #1f1018;
+  --accent-ring: rgba(255, 105, 180, 0.3);
+  --accent-shadow: rgba(0, 0, 0, 0.55);
+  --modal-overlay: rgba(20, 8, 14, 0.6);
+  --logo-chip-bg: #ffffff;
 }
 
 body {
