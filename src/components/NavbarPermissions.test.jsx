@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import Navbar from './Navbar.jsx';
 import * as AuthContext from '../contexts/AuthContext';
@@ -70,5 +70,25 @@ describe('Navbar logout', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
 
     await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe('Navbar on Lori-Net', () => {
+  // site.js reads ?site= in tests and remembers it for the tab.
+  beforeEach(() => window.history.pushState({}, '', '/?site=lori'));
+  afterEach(() => window.history.pushState({}, '', '/?site=fitznet'));
+
+  it('should show Home and Recipes to a signed-in Lori-Net user and no Fitz-Net links', () => {
+    renderNavbar({ hasPermission: () => true });
+    expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Recipes' })).toHaveAttribute('href', '/recipes');
+    expect(screen.queryByRole('link', { name: 'Status' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Welcome, matt' })).toBeInTheDocument();
+  });
+
+  it('should hide the Lori-Net links while signed out', () => {
+    renderNavbar({ isAuthenticated: () => false, hasPermission: () => false });
+    expect(screen.queryByRole('link', { name: 'Recipes' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Home' })).not.toBeInTheDocument();
   });
 });

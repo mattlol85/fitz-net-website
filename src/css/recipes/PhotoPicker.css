@@ -1,0 +1,70 @@
+.photo-picker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.photo-picker__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: min(100%, 240px);
+  aspect-ratio: 1;
+  padding: 1rem;
+  font: inherit;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--accent) 6%, var(--card-bg));
+  border: 2.5px dashed var(--accent);
+  border-radius: 24px;
+  cursor: pointer;
+  transition: transform 0.18s var(--rb-ease, ease), background-color 0.15s ease;
+}
+
+.photo-picker__empty:hover:not(:disabled),
+.photo-picker--over .photo-picker__empty {
+  background: color-mix(in srgb, var(--accent) 14%, var(--card-bg));
+  transform: translateY(-2px) rotate(-1deg);
+}
+
+.photo-picker__empty:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.photo-picker__label {
+  font-family: var(--rb-display, inherit);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.photo-picker__hint {
+  font-size: 0.85rem;
+}
+
+.photo-picker__empty svg {
+  color: var(--accent);
+}
+
+.photo-picker__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.photo-picker__error {
+  margin: 0;
+  max-width: 240px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--rb-danger-text, #a3124a);
+}
+
+.photo-picker--over .recipe-photo {
+  outline: 3px dashed var(--accent);
+  outline-offset: 4px;
+}

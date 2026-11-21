@@ -2,7 +2,8 @@ import React, { useContext, useRef, useState } from 'react';
 import useCopy from '../../hooks/useCopy';
 import ModelPicker from './ModelPicker';
 import { MessageControls } from './messageControls';
-import { CopyIcon, CheckIcon, PencilIcon, RetryIcon, SwapIcon } from './icons';
+import { PencilIcon } from '../icons';
+import { CopyIcon, CheckIcon, RetryIcon, SwapIcon } from './icons';
 
 function CopyButton({ text }) {
   const [copied, copy] = useCopy();

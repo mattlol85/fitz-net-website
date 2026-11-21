@@ -1,20 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { uploadAttachment } from '../services/aiChatApi';
 import { downsizeImage } from '../utils/imageDownsize';
+import fileToBase64 from '../utils/fileToBase64';
 import { IMAGE_TYPES, MAX_ATTACHMENTS } from '../components/ai/aiChatUtils';
 
 const revoke = (item) => {
   if (item.previewUrl) URL.revokeObjectURL?.(item.previewUrl);
 };
-
-function toBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
-    reader.onerror = () => reject(new Error('The image could not be read.'));
-    reader.readAsDataURL(blob);
-  });
-}
 
 let nextKey = 1;
 
@@ -57,7 +49,7 @@ export default function useAttachments({ token }) {
           if (previewUrl) URL.revokeObjectURL?.(previewUrl);
           return;
         }
-        const dataBase64 = await toBase64(shrunk.blob);
+        const dataBase64 = await fileToBase64(shrunk.blob);
         if (controller.signal.aborted) return;
         const attachment = await uploadAttachment(
           token,

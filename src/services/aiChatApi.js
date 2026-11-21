@@ -12,22 +12,19 @@
  * With VITE_USE_MOCK_API=true every call is answered by an in-memory mock (loaded lazily, so it
  * never ships in the production path).
  */
-import { API_URLS } from '../constants';
+import {
+  ApiError,
+  USE_MOCK_API as USE_MOCK,
+  authHeaders as headers,
+  buildUrl,
+  request as apiRequest,
+  requestBlob,
+  toApiError,
+} from './apiClient';
 import { readSseStream } from './sse';
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === 'true';
-
-// Proxy/edge statuses that mean "the request outlived a timeout between the browser and the API".
-const GATEWAY_TIMEOUT_STATUSES = new Set([502, 504, 524]);
-
-export class ApiError extends Error {
-  constructor(message, { status, data } = {}) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-    this.data = data;
-  }
-}
+// Re-exported so existing callers can keep `import { ApiError } from './aiChatApi'`.
+export { ApiError };
 
 let mockModule = null;
 const loadMock = () => {
@@ -35,45 +32,11 @@ const loadMock = () => {
   return mockModule;
 };
 
-function buildUrl(path, query) {
-  const params = new URLSearchParams();
-  Object.entries(query || {}).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
-  });
-  const qs = params.toString();
-  return `${API_URLS.FITZ_NET_API}${path}${qs ? `?${qs}` : ''}`;
-}
-
-function headers(token, { json = false, accept = 'application/json' } = {}) {
-  return {
-    Accept: accept,
-    ...(json && { 'Content-Type': 'application/json' }),
-    Authorization: `Bearer ${token}`,
-  };
-}
-
-async function toApiError(response, fallback) {
-  const data = await response.json().catch(() => null);
-  let message = data?.message;
-  if (!message && GATEWAY_TIMEOUT_STATUSES.has(response.status)) {
-    message = `The server took too long to respond (HTTP ${response.status}).`;
-  }
-  return new ApiError(message || `${fallback}: ${response.status}`, { status: response.status, data });
-}
-
 async function request(method, path, { token, body, query, signal } = {}) {
   if (USE_MOCK) {
     return (await loadMock()).handleRequest(method, path, { body, query, signal, token });
   }
-
-  const response = await fetch(buildUrl(path, query), {
-    method,
-    headers: headers(token, { json: body !== undefined }),
-    body: body === undefined ? undefined : JSON.stringify(body),
-    signal,
-  });
-  if (!response.ok) throw await toApiError(response, 'Request failed');
-  return response.json();
+  return apiRequest(method, path, { token, body, query, signal });
 }
 
 async function streamTurn(path, body, token, { signal, onEvent } = {}) {
@@ -184,13 +147,11 @@ export const uploadAttachment = (token, { name, mimeType, dataBase64 }, { signal
  */
 export async function fetchAttachment(token, attachmentId, { signal } = {}) {
   if (USE_MOCK) return (await loadMock()).getAttachmentBlob(attachmentId);
-
-  const response = await fetch(buildUrl(`/ai/attachments/${id(attachmentId)}`), {
-    headers: headers(token, { accept: '*/*' }),
+  return requestBlob(`/ai/attachments/${id(attachmentId)}`, {
+    token,
     signal,
+    fallback: 'Failed to load the attachment',
   });
-  if (!response.ok) throw await toApiError(response, 'Failed to load the attachment');
-  return response.blob();
 }
 
 // --- Presets (section 9) -----------------------------------------------------------------------

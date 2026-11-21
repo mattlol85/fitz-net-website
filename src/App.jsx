@@ -25,6 +25,8 @@ const AdminUsers = lazy(() => import('./components/AdminUsers.jsx'));
 const Joenet = lazy(() => import('./components/joenet/Joenet.jsx'));
 const JoenetComingSoon = lazy(() => import('./components/joenet/JoenetComingSoon.jsx'));
 const JoenetAdminPanel = lazy(() => import('./components/joenet/JoenetAdminPanel.jsx'));
+// Lori-Net's recipe book: its font, styles and mock data only load on /recipes.
+const RecipeBox = lazy(() => import('./components/recipes/RecipeBox.jsx'));
 
 function App() {
   useVisualViewport();
@@ -61,15 +63,18 @@ function App() {
             <main className="app-main">
               {site.id === 'lori' ? (
                 <SiteGate site={site}>
-                  <Routes>
-                    <Route index element={<Homepage />} />
-                    <Route path="/home" element={<Homepage />} />
-                    {/* Signing in happens in the gate's dialog, so /login just lands on home. */}
-                    <Route path="/login" element={<Navigate to="/" replace />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/profile" element={<EditProfile />} />
-                    <Route path="*" element={<NoPage />} />
-                  </Routes>
+                  <Suspense fallback={null}>
+                    <Routes>
+                      <Route index element={<Homepage />} />
+                      <Route path="/home" element={<Homepage />} />
+                      <Route path="/recipes/*" element={<RecipeBox />} />
+                      {/* Signing in happens in the gate's dialog, so /login just lands on home. */}
+                      <Route path="/login" element={<Navigate to="/" replace />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/profile" element={<EditProfile />} />
+                      <Route path="*" element={<NoPage />} />
+                    </Routes>
+                  </Suspense>
                 </SiteGate>
               ) : (
                 <Suspense fallback={null}>

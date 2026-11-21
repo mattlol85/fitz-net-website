@@ -1,0 +1,226 @@
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1.25rem;
+  background: var(--rb-surface);
+  border: 1.5px solid var(--rb-line);
+  border-radius: 28px;
+  box-shadow: var(--rb-shadow);
+}
+
+.recipe-settings .recipe-back {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+}
+
+.recipe-box .settings-card__title {
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.settings-section h2 {
+  font-size: 1.3rem;
+}
+
+.cover-picker {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.cover-picker legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.cover-picker__swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.6rem;
+}
+
+.cover-swatch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--tap-target, 44px);
+  padding: 0.35rem 0.75rem 0.35rem 0.4rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: hsl(var(--tint-h) calc(var(--tint-s) * 0.8) var(--rb-tint-fg-l));
+  background: hsl(var(--tint-h) calc(var(--tint-s) * var(--rb-tint-sat)) var(--rb-tint-bg-l));
+  border: 2px solid hsl(var(--tint-h) calc(var(--tint-s) * var(--rb-tint-sat)) var(--rb-tint-edge-l));
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.18s var(--rb-ease, ease);
+}
+
+.cover-swatch:hover {
+  transform: translateY(-2px);
+}
+
+.cover-swatch input,
+.color-picker__swatch input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.cover-swatch__chip {
+  flex: none;
+  width: 1.7rem;
+  height: 1.7rem;
+  background: hsl(var(--tint-h) var(--tint-s) 58%);
+  border-radius: 50%;
+}
+
+.cover-swatch:has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.cover-swatch:has(input:checked) .cover-swatch__chip {
+  box-shadow: 0 0 0 3px #fff inset;
+}
+
+.cover-swatch:has(input:focus-visible),
+.color-picker__swatch:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.chapter-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.chapter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  background: hsl(var(--tint-h) calc(var(--tint-s) * var(--rb-tint-sat)) var(--rb-tint-bg-l));
+  border: 1.5px solid hsl(var(--tint-h) calc(var(--tint-s) * var(--rb-tint-sat)) var(--rb-tint-edge-l));
+  border-radius: var(--rb-radius-md);
+}
+
+.chapter-row__dot {
+  flex: none;
+  width: 0.9rem;
+  height: 0.9rem;
+  background: hsl(var(--tint-h) var(--tint-s) var(--rb-tint-dot-l));
+  border-radius: 50%;
+}
+
+.chapter-row__main {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  min-width: 0;
+}
+
+.recipe-box .chapter-row__name {
+  flex: 1 1 10rem;
+  width: auto;
+  font-weight: 600;
+}
+
+.color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.color-picker__swatch {
+  position: relative;
+  width: 1.7rem;
+  height: 1.7rem;
+  background: hsl(var(--tint-h) var(--tint-s) 62%);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--rb-line);
+  cursor: pointer;
+}
+
+.color-picker__swatch:has(input:checked) {
+  box-shadow: 0 0 0 2.5px var(--accent);
+  transform: scale(1.15);
+}
+
+.chapter-row__count {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--rb-muted);
+}
+
+.settings-note {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--rb-muted);
+}
+
+.settings-card__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 1rem;
+  border-top: 2px dotted var(--rb-line);
+}
+
+.settings-card__footer .form-error {
+  margin: 0;
+}
+
+.settings-card__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+@media (min-width: 768px) {
+  .settings-card {
+    padding: 2rem 2.25rem;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .chapter-row {
+    flex-wrap: wrap;
+  }
+
+  .chapter-row__main {
+    flex-basis: calc(100% - 2rem);
+  }
+
+  .chapter-row .row-tools {
+    margin-left: auto;
+  }
+
+  .settings-card__buttons .rb-button {
+    flex: 1;
+  }
+}

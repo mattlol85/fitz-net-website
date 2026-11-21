@@ -1,0 +1,173 @@
+.recipe-search {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.25rem 0 0.5rem;
+  padding: 1.1rem;
+  background: var(--rb-surface);
+  border: 1.5px solid var(--rb-line);
+  border-radius: var(--rb-radius);
+  box-shadow: var(--rb-shadow);
+}
+
+.recipe-search__fields {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.recipe-search__field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.recipe-search__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--rb-muted);
+}
+
+/* One rounded box for the icon, the input and any chips. */
+.recipe-search__input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: var(--tap-target, 44px);
+  padding: 0.2rem 0.8rem;
+  background: var(--rb-soft);
+  border: 1.5px solid var(--rb-line);
+  border-radius: 999px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.recipe-search__input:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.recipe-search__input > svg {
+  flex: none;
+  color: var(--rb-muted);
+}
+
+/* The inner inputs are borderless; the wrapper shows focus. */
+.recipe-box .recipe-search__input input {
+  flex: 1 1 8rem;
+  width: auto;
+  min-width: 6rem;
+  min-height: 38px;
+  padding: 0.3rem 0.2rem;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.recipe-box .recipe-search__input input:focus-visible {
+  box-shadow: none;
+}
+
+.ingredient-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.7rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-radius: 999px;
+  animation: chip-pop 0.25s var(--rb-ease, ease);
+}
+
+.ingredient-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.25);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.ingredient-chip__remove:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.recipe-search__suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin-top: 0.3rem;
+  padding: 0.35rem;
+  background: var(--rb-surface);
+  border: 1.5px solid var(--rb-line);
+  border-radius: var(--rb-radius-md);
+  box-shadow: var(--rb-shadow-hover);
+}
+
+.recipe-search__suggestions li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 40px;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--rb-radius-sm);
+  cursor: pointer;
+}
+
+.recipe-search__suggestions li.is-active {
+  background: var(--rb-soft-strong);
+}
+
+.recipe-search__suggestion-count {
+  font-size: 0.8rem;
+  color: var(--rb-muted);
+}
+
+.recipe-search__chapters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@keyframes chip-pop {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+}
+
+@media (min-width: 768px) {
+  .recipe-search__fields {
+    grid-template-columns: 1fr 1.4fr;
+  }
+}
+
+/* A phone: chapters scroll sideways in one row rather than stacking into a wall of pills. */
+@media (max-width: 767.98px) {
+  .recipe-search__chapters {
+    flex-wrap: nowrap;
+    margin: 0 -1.1rem;
+    padding: 0.2rem 1.1rem 0.4rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .recipe-search__chapters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .recipe-search__chapters .chapter-pill {
+    flex: none;
+  }
+}

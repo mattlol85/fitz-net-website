@@ -1,5 +1,6 @@
 import React from 'react';
-import { AlertIcon, CloseIcon } from './icons';
+import { CloseIcon } from '../icons';
+import { AlertIcon } from './icons';
 
 /**
  * Above the composer: a warning when older messages no longer fit the selected model's window

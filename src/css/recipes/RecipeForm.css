@@ -1,0 +1,213 @@
+.form-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  padding: 1.25rem;
+  background: var(--rb-surface);
+  border: 1.5px solid var(--rb-line);
+  border-radius: 28px;
+  box-shadow: var(--rb-shadow);
+}
+
+.recipe-box .form-card__title {
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+}
+
+.form-card__top {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.form-card__main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-width: 0;
+}
+
+.form-card__photo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.form-card__photo .field-label {
+  align-self: flex-start;
+}
+
+.form-card__numbers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.form-card__numbers .form-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.chapter-field__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.form-section h2 {
+  font-size: 1.35rem;
+}
+
+.row-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* Ingredient rows: on a phone the four fields wrap into a 2-up grid; on a desktop they sit in one line. */
+.ingredient-grid-head {
+  display: none;
+}
+
+.ingredient-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.4rem 0.5rem;
+  align-items: start;
+  padding: 0.6rem;
+  background: var(--rb-soft);
+  border-radius: var(--rb-radius-md);
+}
+
+.ingredient-row__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.ingredient-row__fields .is-name,
+.ingredient-row__fields .is-note {
+  grid-column: 1 / -1;
+}
+
+.ingredient-row .row-tools {
+  justify-self: end;
+}
+
+.ingredient-row .form-error,
+.step-row .form-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.step-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem 0.6rem;
+  align-items: start;
+}
+
+.step-row__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-top: 0.45rem;
+  font-family: var(--rb-display);
+  font-weight: 600;
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.step-row .row-tools {
+  grid-column: 2;
+}
+
+.recipe-box .step-row textarea {
+  min-height: var(--tap-target, 44px);
+  line-height: 1.5;
+  resize: none;
+  overflow: hidden;
+}
+
+.form-card__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 1rem;
+  border-top: 2px dotted var(--rb-line);
+}
+
+.form-card__footer .form-error {
+  margin: 0;
+}
+
+.form-card__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+@media (max-width: 479.98px) {
+  .form-card__buttons .rb-button {
+    flex: 1;
+  }
+}
+
+@media (min-width: 768px) {
+  .form-card {
+    padding: 2rem 2.25rem;
+  }
+
+  .form-card__top {
+    grid-template-columns: minmax(0, 1fr) 260px;
+    gap: 2rem;
+  }
+
+  .ingredient-grid-head,
+  .ingredient-row__fields {
+    display: grid;
+    grid-template-columns: 5.5rem 6.5rem minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .ingredient-grid-head {
+    padding: 0 7.2rem 0 0.6rem;
+    margin-bottom: -0.35rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--rb-muted);
+  }
+
+  .ingredient-row {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .ingredient-row__fields .is-name,
+  .ingredient-row__fields .is-note {
+    grid-column: auto;
+  }
+
+  .step-row {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .step-row .row-tools {
+    grid-column: auto;
+    padding-top: 0.4rem;
+  }
+
+  .step-row .form-error {
+    grid-column: 2 / -1;
+  }
+}

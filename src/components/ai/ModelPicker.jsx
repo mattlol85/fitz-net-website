@@ -8,14 +8,8 @@ import {
   sameTarget,
   statusLabel,
 } from './aiChatUtils';
-import {
-  CheckIcon,
-  ChevronDownIcon,
-  EyeIcon,
-  RefreshIcon,
-  SearchIcon,
-  SparkIcon,
-} from './icons';
+import { SearchIcon } from '../icons';
+import { CheckIcon, ChevronDownIcon, EyeIcon, RefreshIcon, SparkIcon } from './icons';
 import '../../css/ai/picker.css';
 
 const optionKey = (nodeId, model) => `${nodeId ?? 'auto'}:${model}`;

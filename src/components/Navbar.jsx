@@ -11,7 +11,8 @@ function Navbar({ theme, toggleTheme }) {
   const navRef = useRef(null);
   const authenticated = isAuthenticated();
   const site = getSite();
-  // Lori-Net is a single gated page: no Fitz-Net feature links, and signing in happens in its dialog.
+  // Lori-Net is its own gated site: no Fitz-Net feature links (it has Home and Recipes once signed
+  // in), and signing in happens in its dialog.
   const isFitzNet = site.id === 'fitznet';
 
   useLayoutEffect(() => {
@@ -58,6 +59,16 @@ function Navbar({ theme, toggleTheme }) {
                 <img src={site.logo} alt={`${site.name} Logo`} className="logo-img" />
               </Link>
             </li>
+            {!isFitzNet && authenticated && (
+              <>
+                <li className="nav-link--home">
+                  <Link to="/">Home</Link>
+                </li>
+                <li>
+                  <Link to="/recipes">Recipes</Link>
+                </li>
+              </>
+            )}
             {isFitzNet && (
               <>
                 <li>
@@ -102,7 +113,8 @@ function Navbar({ theme, toggleTheme }) {
               <>
                 <li className="user-info">
                   <Link to="/profile" className="username username-clickable">
-                    Welcome, {user?.username}
+                    <span className="username__greeting">Welcome, </span>
+                    {user?.username}
                   </Link>
                 </li>
                 <li>

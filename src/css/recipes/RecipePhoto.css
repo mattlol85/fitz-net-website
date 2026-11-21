@@ -1,0 +1,57 @@
+/* A recipe photo as a rounded "sticker": a thick light border and a soft shadow. */
+.recipe-photo {
+  --frame: var(--card-bg);
+  position: relative;
+  overflow: hidden;
+  background: hsl(var(--tint-h) calc(var(--tint-s) * var(--rb-tint-sat)) var(--rb-tint-bg-l));
+  border: 5px solid var(--frame);
+  border-radius: 20px;
+  box-shadow: 0 0 0 1.5px var(--border-color), 0 8px 18px -10px var(--shadow-color);
+}
+
+.recipe-photo--card {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  border-width: 4px;
+}
+
+.recipe-photo--hero {
+  width: min(100%, 320px);
+  aspect-ratio: 1;
+  flex: none;
+}
+
+.recipe-photo--picker {
+  width: min(100%, 240px);
+  aspect-ratio: 1;
+}
+
+.recipe-photo--tilt {
+  transform: rotate(-2deg);
+}
+
+.recipe-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.recipe-photo__plate {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 12%;
+  color: hsl(var(--tint-h) var(--tint-s) 45%);
+}
+
+.recipe-photo[data-state='loading'] {
+  animation: photo-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes photo-pulse {
+  50% {
+    opacity: 0.6;
+  }
+}

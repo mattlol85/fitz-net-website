@@ -248,6 +248,18 @@
   .logo-img {
     max-height: 36px;
   }
+
+  /* Lori-Net on a phone: logo + Recipes + the auth controls on one row. The logo already goes
+     home, so the separate Home link and the "Welcome," greeting step aside. */
+  :root[data-site='lori'] .nav-link--home,
+  :root[data-site='lori'] .username__greeting {
+    display: none;
+  }
+
+  :root[data-site='lori'] .site-nav-list > li.nav-primary {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
 }
 
 /* Touch screens: every nav control is at least one comfortable tap target. */
