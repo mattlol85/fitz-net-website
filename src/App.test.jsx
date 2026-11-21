@@ -30,6 +30,10 @@ vi.mock('./components/AiChat.jsx', async () => {
   const React = await import('react');
   return { default: () => React.createElement('div', null, 'AI chat page') };
 });
+vi.mock('./components/recipes/RecipeBox.jsx', async () => {
+  const React = await import('react');
+  return { default: () => React.createElement('div', null, 'Recipe box page') };
+});
 vi.mock('./components/AdminUsers.jsx', async () => {
   const React = await import('react');
   return { default: () => React.createElement('div', null, 'Admin page') };
@@ -286,6 +290,19 @@ describe('App Component', () => {
     render(<App />);
 
     await waitFor(() => expect(window.location.pathname).toBe('/login'));
+  });
+
+  test('should lazy-load the recipe book at /recipes on Lori-Net', async () => {
+    signIn(['LORINET_ACCESS']);
+    goTo('/recipes?site=lori');
+    try {
+      render(<App />);
+      expect(await screen.findByText('Recipe box page')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Recipes' })).toHaveAttribute('href', '/recipes');
+    } finally {
+      // site.js remembers ?site= for the tab; put Fitz-Net back for the other tests.
+      sessionStorage.setItem('site', 'fitznet');
+    }
   });
 
   test('should show the 404 page for unknown routes', () => {

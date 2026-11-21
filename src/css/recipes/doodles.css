@@ -1,0 +1,65 @@
+/* Doodle illustrations: line art in the text colour, washed with the Lori pink. */
+.doodle {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.doodle__fill {
+  fill: color-mix(in srgb, var(--accent) 10%, var(--card-bg));
+}
+
+.doodle__line {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.doodle__line--soft {
+  stroke: var(--text-secondary);
+  stroke-width: 2;
+  opacity: 0.55;
+}
+
+.doodle__line--thick {
+  stroke-width: 6;
+}
+
+.doodle__shadow {
+  fill: var(--shadow-color);
+}
+
+.doodle__lens {
+  fill: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.doodle__heart {
+  fill: var(--accent);
+  stroke: var(--text-primary);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.doodle__shine {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+
+.doodle__steam {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.5;
+}
+
+.doodle__spark {
+  fill: var(--accent);
+  opacity: 0.8;
+}

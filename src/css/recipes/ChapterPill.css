@@ -1,0 +1,78 @@
+/* Chapter pill: a pastel wash of the chapter's colour (--tint-h / --tint-s from the data). */
+.chapter-pill {
+  --pill-bg: hsl(var(--tint-h) calc(var(--tint-s) * var(--rb-tint-sat)) var(--rb-tint-bg-l));
+  --pill-edge: hsl(var(--tint-h) calc(var(--tint-s) * var(--rb-tint-sat)) var(--rb-tint-edge-l));
+  --pill-fg: hsl(var(--tint-h) calc(var(--tint-s) * 0.7) var(--rb-tint-fg-l));
+  --pill-dot: hsl(var(--tint-h) var(--tint-s) var(--rb-tint-dot-l));
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 100%;
+  padding: 0.3rem 0.8rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--pill-fg);
+  background: var(--pill-bg);
+  border: 1.5px solid var(--pill-edge);
+  border-radius: 999px;
+}
+
+.chapter-pill--sm {
+  padding: 0.15rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+.chapter-pill__dot {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  background: var(--pill-dot);
+  border-radius: 50%;
+}
+
+.chapter-pill__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chapter-pill__count {
+  padding: 0 0.4rem;
+  font-size: 0.78rem;
+  background: color-mix(in srgb, var(--pill-fg) 14%, transparent);
+  border-radius: 999px;
+}
+
+button.chapter-pill {
+  min-height: 38px;
+  cursor: pointer;
+  transition: transform 0.18s var(--rb-ease, ease), box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+button.chapter-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px -8px var(--shadow-color);
+}
+
+button.chapter-pill:active {
+  transform: scale(0.96);
+}
+
+/* Selected: filled with the strong colour, with a check-like ring. */
+button.chapter-pill--active {
+  color: #fff;
+  background: hsl(var(--tint-h) calc(var(--tint-s) * 0.75) 38%);
+  border-color: hsl(var(--tint-h) calc(var(--tint-s) * 0.75) 38%);
+  box-shadow: 0 6px 12px -8px var(--shadow-color);
+}
+
+button.chapter-pill--active .chapter-pill__dot {
+  background: #fff;
+}
+
+button.chapter-pill--active .chapter-pill__count {
+  background: rgba(255, 255, 255, 0.25);
+}

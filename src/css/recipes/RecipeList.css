@@ -1,0 +1,136 @@
+/* The banner: the book's cover colour as a soft pastel wash. */
+.recipe-banner {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  padding: 1.5rem 1.75rem;
+  overflow: hidden;
+  color: hsl(var(--tint-h) calc(var(--tint-s) * 0.8) var(--rb-tint-fg-l));
+  background: linear-gradient(
+    135deg,
+    hsl(var(--tint-h) calc(var(--tint-s) * var(--rb-tint-sat)) calc(var(--rb-tint-bg-l) - 1%)),
+    hsl(var(--tint-h) calc(var(--tint-s) * var(--rb-tint-sat)) calc(var(--rb-tint-bg-l) - 8%))
+  );
+  border: 1.5px solid hsl(var(--tint-h) calc(var(--tint-s) * var(--rb-tint-sat)) var(--rb-tint-edge-l));
+  border-radius: 28px;
+  box-shadow: none;
+}
+
+.recipe-banner__text {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.recipe-box .recipe-banner__title {
+  font-size: clamp(1.7rem, 4vw, 2.5rem);
+  line-height: 1.1;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+
+.recipe-banner__count {
+  margin: 0.35rem 0 0;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.recipe-banner__actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Little whisk and spoon doodles tucked into the corners. */
+.recipe-banner__doodle {
+  position: absolute;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.recipe-banner__doodle--whisk {
+  right: 14rem;
+  top: -0.5rem;
+  transform: rotate(18deg);
+}
+
+.recipe-banner__doodle--spoon {
+  right: 8rem;
+  bottom: -0.75rem;
+  transform: rotate(-12deg);
+}
+
+.recipe-list__status {
+  min-height: 1.9rem;
+  margin: 0.9rem 0.25rem 0.6rem;
+  color: var(--rb-muted);
+  font-weight: 600;
+}
+
+.recipe-list__status p {
+  margin: 0;
+}
+
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 1.1rem;
+  transition: opacity 0.2s ease;
+}
+
+.recipe-grid--refreshing {
+  opacity: 0.6;
+}
+
+.recipe-skeleton {
+  min-height: 300px;
+  background: linear-gradient(100deg, var(--rb-soft) 30%, var(--rb-soft-strong) 50%, var(--rb-soft) 70%) 0 0 / 200% 100%;
+  border: 1.5px solid var(--rb-line);
+  border-radius: var(--rb-radius);
+  animation: skeleton-shimmer 1.6s linear infinite;
+}
+
+@keyframes skeleton-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .recipe-banner {
+    padding: 1.15rem 1.15rem 1.25rem;
+    border-radius: 24px;
+  }
+
+  .recipe-banner__doodle {
+    display: none;
+  }
+
+  .recipe-banner__actions {
+    width: 100%;
+  }
+
+  .recipe-banner__actions .rb-button {
+    flex: 1;
+  }
+
+  .recipe-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.8rem;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .recipe-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recipe-grid .recipe-photo--card {
+    aspect-ratio: 16 / 10;
+  }
+}
