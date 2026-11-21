@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CloseIcon, MoreIcon, PencilIcon, PinIcon, PlusIcon, SearchIcon, TrashIcon } from './icons';
+import { CloseIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from '../icons';
+import { MoreIcon, PinIcon } from './icons';
 import '../../css/ai/sidebar.css';
 
 function ConversationRow({

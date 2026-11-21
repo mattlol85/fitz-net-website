@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import Dialog from './Dialog';
 import { MAX_PROMPT_CHARS } from './aiChatUtils';
-import { PencilIcon, PlusIcon, TrashIcon } from './icons';
+import { PencilIcon, PlusIcon, TrashIcon } from '../icons';
 import '../../css/ai/settings.css';
 
 const EMPTY_FORM = {

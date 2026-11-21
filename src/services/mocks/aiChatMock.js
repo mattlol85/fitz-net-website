@@ -8,7 +8,7 @@
  * target ends the turn with NODE_OFFLINE and alternatives (a seeded conversation does exactly
  * that). A message starting with `/fail` fails mid-reply with NODE_UNREACHABLE.
  */
-import { ApiError } from '../aiChatApi';
+import { ApiError } from '../apiClient';
 import { abortError } from '../sse';
 
 export const mockConfig = {

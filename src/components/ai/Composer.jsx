@@ -3,7 +3,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import useAttachments from '../../hooks/useAttachments';
 import ContextRing from '../ContextRing';
 import { IMAGE_TYPES, MAX_ATTACHMENTS } from './aiChatUtils';
-import { ArrowUpIcon, CloseIcon, PaperclipIcon, StopIcon } from './icons';
+import { CloseIcon } from '../icons';
+import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import '../../css/ai/composer.css';
 import '../../css/ai/attachments.css';
 

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import useAttachmentUrl from '../../hooks/useAttachmentUrl';
+import useAuthedObjectUrl from '../../hooks/useAuthedObjectUrl';
+import { fetchAttachment } from '../../services/aiChatApi';
 import Dialog from './Dialog';
 import '../../css/ai/attachments.css';
 
@@ -9,8 +9,7 @@ import '../../css/ai/attachments.css';
  * an object URL; clicking opens the full image in a dialog.
  */
 export default function AttachmentThumb({ attachment }) {
-  const { token } = useAuth();
-  const { url, error } = useAttachmentUrl(token, attachment.id);
+  const { url, error } = useAuthedObjectUrl('ai-attachment', fetchAttachment, attachment.id);
   const [open, setOpen] = useState(false);
   const buttonRef = useRef(null);
   const name = attachment.name || 'image';
