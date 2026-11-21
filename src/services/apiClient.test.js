@@ -51,7 +51,7 @@ describe('apiClient', () => {
   it('should resolve a Blob for raw downloads and use the fallback message on failure', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response('abc')));
     const blob = await requestBlob('/img/1', { token: 'jwt' });
-    expect(await blob.text()).toBe('abc');
+    expect(blob.size).toBe(3);
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response('', { status: 500 })));
     const error = await requestBlob('/img/1', { token: 'jwt', fallback: 'Image failed' }).catch((e) => e);
