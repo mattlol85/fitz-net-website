@@ -260,6 +260,38 @@
     flex: 0 1 auto;
     min-width: 0;
   }
+
+  /* Recipes and Spider both have to fit beside the auth controls. */
+  :root[data-site='lori'] .site-nav-list,
+  :root[data-site='lori'] .nav-primary-list,
+  :root[data-site='lori'] .nav-auth-list {
+    gap: 0.4rem;
+  }
+
+  :root[data-site='lori'] .nav-primary-list a:not(.logo-link) {
+    font-size: 13px;
+    letter-spacing: 0;
+  }
+
+  :root[data-site='lori'] .nav-spacer {
+    min-width: 0;
+  }
+
+  :root[data-site='lori'] .nav-auth-list .username {
+    max-width: 4.5rem;
+  }
+
+  :root[data-site='lori'] .nav-auth-list .logout-button {
+    padding: 0.45rem 0.6rem;
+    font-size: 13px;
+  }
+}
+
+/* The smallest phones: the username chip steps aside so the links stay on one row. */
+@media (max-width: 420px) {
+  :root[data-site='lori'] .nav-auth-list .user-info {
+    display: none;
+  }
 }
 
 /* Touch screens: every nav control is at least one comfortable tap target. */

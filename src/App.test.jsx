@@ -34,6 +34,10 @@ vi.mock('./components/recipes/RecipeBox.jsx', async () => {
   const React = await import('react');
   return { default: () => React.createElement('div', null, 'Recipe box page') };
 });
+vi.mock('./components/solitaire/SpiderSolitaire.jsx', async () => {
+  const React = await import('react');
+  return { default: () => React.createElement('div', null, 'Spider solitaire page') };
+});
 vi.mock('./components/AdminUsers.jsx', async () => {
   const React = await import('react');
   return { default: () => React.createElement('div', null, 'Admin page') };
@@ -301,6 +305,18 @@ describe('App Component', () => {
       expect(screen.getByRole('link', { name: 'Recipes' })).toHaveAttribute('href', '/recipes');
     } finally {
       // site.js remembers ?site= for the tab; put Fitz-Net back for the other tests.
+      sessionStorage.setItem('site', 'fitznet');
+    }
+  });
+
+  test('should lazy-load Spider Solitaire at /spider on Lori-Net', async () => {
+    signIn(['LORINET_ACCESS']);
+    goTo('/spider?site=lori');
+    try {
+      render(<App />);
+      expect(await screen.findByText('Spider solitaire page')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Spider' })).toHaveAttribute('href', '/spider');
+    } finally {
       sessionStorage.setItem('site', 'fitznet');
     }
   });
