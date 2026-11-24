@@ -11,7 +11,7 @@ function Navbar({ theme, toggleTheme }) {
   const navRef = useRef(null);
   const authenticated = isAuthenticated();
   const site = getSite();
-  // Lori-Net is its own gated site: no Fitz-Net feature links (it has Home and Recipes once signed
+  // Lori-Net is its own gated site: no Fitz-Net feature links (it has Home, Recipes and Spider once signed
   // in), and signing in happens in its dialog.
   const isFitzNet = site.id === 'fitznet';
 
@@ -66,6 +66,9 @@ function Navbar({ theme, toggleTheme }) {
                 </li>
                 <li>
                   <Link to="/recipes">Recipes</Link>
+                </li>
+                <li>
+                  <Link to="/spider">Spider</Link>
                 </li>
               </>
             )}

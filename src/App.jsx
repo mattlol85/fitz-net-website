@@ -27,6 +27,8 @@ const JoenetComingSoon = lazy(() => import('./components/joenet/JoenetComingSoon
 const JoenetAdminPanel = lazy(() => import('./components/joenet/JoenetAdminPanel.jsx'));
 // Lori-Net's recipe book: its font, styles and mock data only load on /recipes.
 const RecipeBox = lazy(() => import('./components/recipes/RecipeBox.jsx'));
+// Lori-Net's card game: Spider Solitaire.
+const SpiderSolitaire = lazy(() => import('./components/solitaire/SpiderSolitaire.jsx'));
 
 function App() {
   useVisualViewport();
@@ -68,6 +70,7 @@ function App() {
                       <Route index element={<Homepage />} />
                       <Route path="/home" element={<Homepage />} />
                       <Route path="/recipes/*" element={<RecipeBox />} />
+                      <Route path="/spider" element={<SpiderSolitaire />} />
                       {/* Signing in happens in the gate's dialog, so /login just lands on home. */}
                       <Route path="/login" element={<Navigate to="/" replace />} />
                       <Route path="/register" element={<Register />} />
