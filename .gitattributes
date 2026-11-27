@@ -1,0 +1,2 @@
+# Run inside Linux containers, so keep LF even on Windows checkouts
+*.sh text eol=lf
