@@ -29,6 +29,8 @@ const JoenetAdminPanel = lazy(() => import('./components/joenet/JoenetAdminPanel
 const RecipeBox = lazy(() => import('./components/recipes/RecipeBox.jsx'));
 // Lori-Net's card game: Spider Solitaire.
 const SpiderSolitaire = lazy(() => import('./components/solitaire/SpiderSolitaire.jsx'));
+// Marine Park's Unity web build, framed with the player's username as their in-game name.
+const MarinePark = lazy(() => import('./components/MarinePark.jsx'));
 
 function App() {
   useVisualViewport();
@@ -114,6 +116,14 @@ function App() {
                       <Route index element={<JoenetComingSoon />} />
                       <Route path="admin" element={<JoenetAdminPanel />} />
                     </Route>
+                    <Route
+                      path="/marine-park"
+                      element={
+                        <RequirePermission permission="MARINE_PARK_GAME">
+                          <MarinePark />
+                        </RequirePermission>
+                      }
+                    />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/profile" element={<EditProfile />} />

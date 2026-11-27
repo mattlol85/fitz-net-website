@@ -38,6 +38,10 @@ vi.mock('./components/solitaire/SpiderSolitaire.jsx', async () => {
   const React = await import('react');
   return { default: () => React.createElement('div', null, 'Spider solitaire page') };
 });
+vi.mock('./components/MarinePark.jsx', async () => {
+  const React = await import('react');
+  return { default: () => React.createElement('div', null, 'Marine Park page') };
+});
 vi.mock('./components/AdminUsers.jsx', async () => {
   const React = await import('react');
   return { default: () => React.createElement('div', null, 'Admin page') };
@@ -238,6 +242,31 @@ describe('App Component', () => {
 
     expect(await screen.findByText('404')).toBeInTheDocument();
     expect(screen.queryByText('Admin page')).not.toBeInTheDocument();
+  });
+
+  test('should send signed-out visitors from /marine-park to the login page', async () => {
+    goTo('/marine-park');
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/login'));
+    expect(screen.queryByText('Marine Park page')).not.toBeInTheDocument();
+  });
+
+  test('should show Marine Park to users with MARINE_PARK_GAME', async () => {
+    signIn(['MARINE_PARK_GAME']);
+    goTo('/marine-park');
+    render(<App />);
+
+    expect(await screen.findByText('Marine Park page')).toBeInTheDocument();
+  });
+
+  test('should show the 404 page at /marine-park to users without MARINE_PARK_GAME', async () => {
+    signIn(['AI_USER']);
+    goTo('/marine-park');
+    render(<App />);
+
+    expect(await screen.findByText('404')).toBeInTheDocument();
+    expect(screen.queryByText('Marine Park page')).not.toBeInTheDocument();
   });
 
   test('should send signed-out visitors from /joenet to the login page', async () => {

@@ -97,6 +97,11 @@ function Navbar({ theme, toggleTheme }) {
                     <Link to="/joenet">Joenet</Link>
                   </li>
                 )}
+                {authenticated && hasPermission?.('MARINE_PARK_GAME') && (
+                  <li>
+                    <Link to="/marine-park">Marine-Park</Link>
+                  </li>
+                )}
                 {authenticated && hasPermission?.('ADMIN') && (
                   <li>
                     <Link to="/admin">Admin</Link>
