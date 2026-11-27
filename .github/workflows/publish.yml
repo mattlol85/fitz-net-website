@@ -290,6 +290,10 @@ jobs:
           cache-to: type=inline
           build-args: |
             VERSION=${{ needs.version.outputs.new-version-no-v }}
+            MARINE_PARK_REQUIRED=true
+          # Read access to the private Marine-Park repo, for the pinned web build (marine-park.version).
+          secrets: |
+            marine_park_token=${{ secrets.MARINE_PARK_TOKEN }}
 
       - name: 📝 Update Docker Hub description
         uses: peter-evans/dockerhub-description@v5

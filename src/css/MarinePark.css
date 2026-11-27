@@ -1,0 +1,34 @@
+/* Marine Park: the Unity web build fills the space between the navbar and the footer. */
+
+.marine-park {
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
+  background-color: #231f20; /* The game's own loading backdrop, so there's no flash while it boots. */
+}
+
+.marine-park__frame {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 480px;
+  border: 0;
+  display: block;
+}
+
+.marine-park--message {
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+  background-color: var(--bg-primary);
+}
+
+.marine-park--message p {
+  margin: 0;
+}
+
+.marine-park__title {
+  color: var(--text-primary);
+}

@@ -20,7 +20,7 @@ const MOCK_USERS = {
     password: 'password123',
     email: 'testuser@example.com',
     boardColor: 'hsl(340,72%,50%)',
-    permissions: ['AI_USER'],
+    permissions: ['AI_USER', 'MARINE_PARK_GAME'],
   },
   // Lori-Net preview (localhost:3000/?site=lori)
   lori: {

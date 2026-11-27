@@ -26,3 +26,6 @@ yarn-error.log*
 
 # PR/doc assets (hosted externally, not committed)
 /docs/pr-assets/
+
+# Marine Park web build, dropped in locally from the game's release zip (not committed)
+/public/marine-park/

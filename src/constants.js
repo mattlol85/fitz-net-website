@@ -9,6 +9,10 @@ export const API_URLS = {
   GAMERBELL: import.meta.env.VITE_GAMERBELL_URL || 'https://gamerbell.fitznet.org',
 };
 
+// Marine Park's Unity web build. Served from the site itself by default (drop the release zip's
+// contents into public/marine-park/ locally); point it elsewhere with VITE_MARINE_PARK_URL.
+export const MARINE_PARK_URL = import.meta.env.VITE_MARINE_PARK_URL || '/marine-park/index.html';
+
 export const DEFAULT_BOARD_COLOR = 'hsl(200,72%,50%)';
 
 // API Configurations for Status Dashboard

@@ -56,6 +56,21 @@ describe('Navbar permission gating', () => {
     expect(screen.queryByRole('link', { name: 'Joenet' })).not.toBeInTheDocument();
   });
 
+  it('should show the Marine-Park link to users with MARINE_PARK_GAME', () => {
+    renderNavbar({ hasPermission: (p) => p === 'MARINE_PARK_GAME' });
+    expect(screen.getByRole('link', { name: 'Marine-Park' })).toHaveAttribute('href', '/marine-park');
+  });
+
+  it('should hide the Marine-Park link from users without MARINE_PARK_GAME', () => {
+    renderNavbar({ hasPermission: (p) => p === 'AI_USER' });
+    expect(screen.queryByRole('link', { name: 'Marine-Park' })).not.toBeInTheDocument();
+  });
+
+  it('should hide the Marine-Park link from logged-out visitors', () => {
+    renderNavbar({ isAuthenticated: () => false, hasPermission: () => true });
+    expect(screen.queryByRole('link', { name: 'Marine-Park' })).not.toBeInTheDocument();
+  });
+
   it('hides the Admin link from users without ADMIN', () => {
     renderNavbar({ hasPermission: () => false });
     expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument();
