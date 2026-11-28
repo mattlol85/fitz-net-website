@@ -60,6 +60,7 @@ describe('MarinePark', () => {
     const src = new URL(frame.getAttribute('src'));
     expect(src.pathname).toBe('/marine-park/index.html');
     expect(src.searchParams.get('name')).toBe('matt');
+    expect(frame.getAttribute('allow')).toContain('clipboard-write');
     expect(frame).toHaveAttribute('allowfullscreen');
   });
 

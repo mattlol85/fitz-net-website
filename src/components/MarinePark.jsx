@@ -70,7 +70,8 @@ function MarinePark() {
         className="marine-park__frame"
         src={buildGameUrl(MARINE_PARK_URL, username)}
         title="Marine Park"
-        allow="fullscreen; autoplay; gamepad"
+        // clipboard-write: the online host's Copy button puts the join code on the clipboard.
+        allow="fullscreen; autoplay; gamepad; clipboard-write"
         allowFullScreen
       />
     </div>

@@ -2,4 +2,4 @@
 # Put a Marine-Park release version on the line below (e.g. 0.2.0); that release must have
 # MarinePark-<version>-web.zip attached. Leave it blank to build without the game.
 # See scripts/fetch-marine-park.sh.
-0.1.1
+0.2.0
